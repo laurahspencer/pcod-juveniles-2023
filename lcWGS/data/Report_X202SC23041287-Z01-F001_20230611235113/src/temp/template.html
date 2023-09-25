@@ -1,0 +1,477 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" >
+<html>
+<head>
+<TITLE> QC analysis report</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="src/css/jquery-ui.css" />
+<link rel="stylesheet" href="src/css/bootstrap-4.3.1.min.css" />
+<link rel="stylesheet" href="src/css/jquery.tocify.css" />
+<link rel="stylesheet" href="src/css/style.css"/>
+<link rel="stylesheet" href="src/css/base.css"/>
+<link rel="stylesheet" href="src/css/gallery.css"/>
+<script src="src/js/jquery-3.3.1.min.js" type="text/javascript"></script>
+<script src="src/js/jquery-ui.min.js" type="text/javascript"></script>
+<script src="src/js/jquery.tocify.min.js" type="text/javascript"></script>
+<script src="src/js/bootstrap-4.3.1.min.js" type="text/javascript"></script>
+<script src="src/js/scrollTop.js" type="text/javascript"></script>
+<script type="text/javascript">
+	$(function () {
+		var options = {
+			selectors: "h2,h3,h4,h5",
+			theme: "bootstrap",
+			scrollTo: "60"
+		};
+		var toc = $("#toc").tocify(options).data("toc-tocify");
+	});
+</script>
+<script type="text/javascript">
+function trans(img_div_id) {
+img_div = $("#" + img_div_id)
+img = $("#" + img_div_id + " img").first();
+if (img_div.hasClass("fullscreen-div")) {
+img_div.removeClass("fullscreen-div");
+img.removeClass("fullscreen-img");
+}
+else {
+img_div.addClass("fullscreen-div");
+img.addClass("fullscreen-img");
+}
+}
+function filter_display() {
+return $(this).css("display") != "none";
+}
+function show_default() {
+var list_group_id = "#" + $(this).attr("id");
+if ($(list_group_id + " a.active").css("display") == "none") {
+var list_tab = $(list_group_id + " a.active");
+var pan_id = list_tab.attr("href");
+$(pan_id).removeClass("active show");
+list_tab.removeClass("active");
+}
+if ($(list_group_id + " a.active").filter(filter_display).length == 0) {
+$(list_group_id + " a").filter(filter_display).first().tab("show");
+}
+}
+$.fn.show_default = show_default
+function next(botton_id) {
+var present_tab = $("#" + botton_id.replace("_button_next", "_list-tab") + " .active").first();
+while (present_tab.next().length == 1) {
+if (present_tab.next().css("display") != "none") {
+present_tab.next().tab("show");
+break;
+}
+else {
+present_tab = present_tab.next();
+}
+}
+}
+function prev(botton_id) {
+var present_tab = $("#" + botton_id.replace("_button_prev", "_list-tab") + " .active").first();
+while (present_tab.prev().length == 1) {
+if (present_tab.prev().css("display") != "none") {
+present_tab.prev().tab("show");
+break;
+}
+else {
+present_tab = present_tab.prev();
+}
+}
+}
+$(document).ready(function () {
+$(".form-control").on("keyup", function () {
+var value = $(this).val().toLowerCase();
+var input_box_id = "#" + $(this).attr("id");
+var list_group_id = input_box_id.replace("_InputList", "_list-tab");
+$(list_group_id + " a").filter(function () {
+$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+});
+$(list_group_id).show_default();
+});
+$(".list-group").each(show_default);
+});
+</script>
+</head>
+<body>
+<div id="toc" class="tocify">
+</div>
+	<div style="position:fixed; top:0; left:0; width:100%; z-index:1000;">
+		<table width="100%" height="50px" border="0" cellpadding="5" cellspacing="0"
+			style="background:#F3F3F3; border-bottom:1px solid #eee;border-top: none;background-image:-moz-linear-gradient(top,#EEEEEE,#FFFFFF); background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#EEEEEE), color-stop(1,#FFFFFF));filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#EEEEEE', endColorstr='#FFFFFF', GradientType='0')">
+			<tr height="86%">
+				<td width='1%'></td>
+				<td><img src="src/images/logo1.png"></td>
+				<td>
+					<div style="margin:5px;border-left:1px solid #DCDCDC;height:30px"></div>
+				</td>
+				<td width="20%"></td>
+				<td width="15%"></td>
+				<td width="25%"
+					style="text-align:right;padding:0px;margin:0px;color:black;font-size:14px;font-weight:50;">
+					<br><a href="mailto:op-rna@novogene.com" target="black"
+						style="text-decoration:none;color:black;font-size:14px;font-weight:50;">
+						<a></td>
+				<td width="1%"></td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<!--------------------------标题---------------------------------->
+<div id="main">
+<br><h1>QC Analysis Report</h1></br>
+<table class="gy">
+<tr>
+
+<th>Contract Information</th>
+<th>Contract Content</th>
+
+</tr>
+{% for col in title_project %}
+<tr>
+{% for item in col %}
+<td>{{item}}</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+<br /><br />
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="Library Preparation and Sequencing">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h2>A. Library Preparation and Sequencing</h2>
+<p class="paragraph">From the DNA samples to the final data, each step, including sample test, library preparation, and sequencing, influences the quality of the data, and data quality directly impacts the analysis results. To guarantee the reliability of the data, quality control (QC) is performed at each step of the procedure. The workflow is as follows: </p>
+<p class="center">
+<img src="src/images/pipeline.png" width="600" height="450" />
+</p>
+<p class="paragraph"></p>
+<h3>1 Sample Quality Control</h3>
+<p class="paragraph">Please refer to Novogene’s QC report for methods of sample quality control.</p>
+<p class="paragraph"></p>
+<h3>2 Library Construction, Quality Control and Sequencing</h3>
+<p class="paragraph">The genomic DNA was randomly sheared into short fragments. The obtained fragments were end repaired, A-tailed and further ligated with Illumina adapter. The fragments with adapters were PCR amplified, size selected, and purified. Following is the workflow of library construction:</p>
+<p class="center">
+<!--<img class="small" src="src/images/agilent experiment pipeline.png" />-->
+<img src="src/images/wgs_experiment_pipeline.png" width="200" height="450"></img>
+</p>
+<p class="paragraph">The library was checked with Qubit and real-time PCR for quantification and bioanalyzer for size distribution detection. Quantified libraries will be pooled and sequenced on Illumina platforms, according to effective library concentration and data amount required.</p>
+
+<!----------------------------------------------------------------------------------------->
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="项目结果说明">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h2>B. Results and Instructions</h2>
+<h3>1 Data Quality Control</h3>
+<h4>1.1 Distribution of Sequencing Quality</h4>
+<p class="paragraph">The “e” represents the sequence error rate and Q<sub>phred</sub> represents the base quality value,Q<sub>phred</sub>=-10log<sub>10</sub>(e). 
+The relationship between sequencing error rate (e) and sequencing base quality value (Q<sub>phred</sub>) is shown in the table below:</p>
+<table class="gy">
+<tr><th>Phred score</th><th>Error base</th><th>Right base</th><th>Q-score</th></tr>
+<tr><td>10</td><td>1/10</td><td>90%</td><td>Q10</td></tr>
+<tr><td>20</td><td>1/100</td><td>99%</td><td>Q20</td></tr>
+<tr><td>30</td><td>1/1000</td><td>99.9%</td><td>Q30</td></tr>
+<tr><td>40</td><td>1/10000</td><td>99.99%</td><td>Q40</td></tr>
+</table>
+</p>
+</p>
+<p class="paragraph">The distribution of quality score is shown in <strong>Fig.1</strong>: </p>
+<p class="center">
+<div class="row gallery-row">
+<div class="col-1">
+<div id="gallery_figure_qscore_button_prev" class="button_prev" onclick="prev(this.id)"><svg viewbox="0 0 16000 16000" class="svg_prev"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="8789.5,4902.8 8789.5,5846.4 6801.7,8000 8789.5,10253.6 8789.5,11097.2 5930.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-6">
+<div class="tab-content" id="gallery_figure_qscore_nav-tabContent">
+
+{% for item in figure_qscore %}
+
+<div class="tab-pane fade" id="gallery_figure_qscore_pane_{{item.0}}" role="tabpanel" aria-labelledby="gallery_figure_qscore_list_{{item.0}}" onclick="trans(this.id)"><img class="img-gallery" src="{{item.1}}" /></div>
+
+{% endfor %}
+
+</div>
+</div>
+<div class="col-1">
+<div id="gallery_figure_qscore_button_next" class="button_next" onclick="next(this.id)"><svg viewbox="0 0 16000 16000" class="svg_next"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="7210.5,4902.8 7210.5,5846.4 9198.3,8000 7210.5,10253.6 7210.5,11097.2 10069.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-4">
+<input class="form-control" id="gallery_figure_qscore_InputList" type="text" placeholder="Search..">
+<div class="list-group" id="gallery_figure_qscore_list-tab" role="tablist">
+
+{% for item in figure_qscore %}
+
+<a class="list-group-item list-group-item-action" id="gallery_figure_qscore_list_{{item.0}}" data-toggle="list" href="#gallery_figure_qscore_pane_{{item.0}}" role="tab" aria-controls="{{item.0}}">{{item.0}}</a>
+
+{% endfor %}
+
+</div>
+</div>
+</div>
+
+<p class="name_fig"><strong>Fig.1 Distribution of Sequencing Quality</strong></p>
+<p class="premark">The base position is on the horizontal axis and the sequencing quality is on the vertical axis. </p>
+<!------------------------------------------------------------------------------------------------------------>
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="Distribution of Sequencing Error Rate">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h4>1.2 Distribution of Sequencing Error Rate</h4>
+<p class="paragraph">For Illumina SBS technology, the distribution of sequencing error rate has two features: </p>
+<p class="paragraph">(1) Error rate grows with sequenced reads extension because of the consumption of sequencing reagent. The phenomenon is common in the Illumina high-throughput sequencing platform (Erlich Y. et al. 2008; Jiang et al. 2011). </p>
+<p class="paragraph">(2) The reason for the high error rate of the first six bases is that the random hex-primers and RNA template bind incompletely in the process of cDNA synthesis (Jiang et al.2011).</p>
+<p class="paragraph">The error rate of this project is shown in <strong>Fig.2</strong>: </p>
+<br />
+
+<p class="center">
+<div class="row gallery-row">
+<div class="col-1">
+<div id="gallery_figure_error_button_prev" class="button_prev" onclick="prev(this.id)"><svg viewbox="0 0 16000 16000" class="svg_prev"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="8789.5,4902.8 8789.5,5846.4 6801.7,8000 8789.5,10253.6 8789.5,11097.2 5930.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-6">
+<div class="tab-content" id="gallery_figure_error_nav-tabContent">
+
+{% for item in figure_error %}
+
+<div class="tab-pane fade" id="gallery_figure_error_pane_{{item.0}}" role="tabpanel" aria-labelledby="gallery_figure_error_list_{{item.0}}" onclick="trans(this.id)"><img class="img-gallery" src="{{item.1}}" /></div>
+
+{% endfor %}
+
+</div>
+</div>
+<div class="col-1">
+<div id="gallery_figure_error_button_next" class="button_next" onclick="next(this.id)"><svg viewbox="0 0 16000 16000" class="svg_next"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="7210.5,4902.8 7210.5,5846.4 9198.3,8000 7210.5,10253.6 7210.5,11097.2 10069.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-4">
+<input class="form-control" id="gallery_figure_error_InputList" type="text" placeholder="Search..">
+<div class="list-group" id="gallery_figure_error_list-tab" role="tablist">
+
+{% for item in figure_error %}
+
+<a class="list-group-item list-group-item-action" id="gallery_figure_error_list_{{item.0}}" data-toggle="list" href="#gallery_figure_error_pane_{{item.0}}" role="tab" aria-controls="{{item.0}}">{{item.0}}</a>
+
+{% endfor %}
+
+</div>
+</div>
+</div>
+
+<p class="name_fig"><strong>Fig.2 Error Rate Distribution</strong></p>
+<p class="premark">The base position is on the horizontal axis and the single base error rate is on the vertical axis</p>
+<!------------------------------------------------------------------------------------------------------------>
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="A/T/G/C碱基含量分布检查">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h4>1.3 Distribution of A/T/G/C Base</h4>
+<p class="paragraph">It is used to identify the separation situation of AT and GC by checking the distribution of GC content. According to the principle of complementary bases, the content of AT and GC should be equal at each sequencing cycle and be constant and stable in the whole sequencing procedure. 
+But in practical measurement, due to the primer amplification bias and some other reasons, the first 6 to 7 nucleotides will fluctuate which is normal and reasonable.
+</p>
+<p class="paragraph">The distribution of GC content is shown in <strong>Fig.3</strong>:</p>
+<p class="center">
+<div class="row gallery-row">
+<div class="col-1">
+<div id="gallery_figure_gc_button_prev" class="button_prev" onclick="prev(this.id)"><svg viewbox="0 0 16000 16000" class="svg_prev"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="8789.5,4902.8 8789.5,5846.4 6801.7,8000 8789.5,10253.6 8789.5,11097.2 5930.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-6">
+<div class="tab-content" id="gallery_figure_gc_nav-tabContent">
+
+{% for item in figure_gc %}
+
+<div class="tab-pane fade" id="gallery_figure_gc_pane_{{item.0}}" role="tabpanel" aria-labelledby="gallery_figure_gc_list_{{item.0}}" onclick="trans(this.id)"><img class="img-gallery" src="{{item.1}}" /></div>
+
+{% endfor %}
+
+</div>
+</div>
+<div class="col-1">
+<div id="gallery_figure_gc_button_next" class="button_next" onclick="next(this.id)"><svg viewbox="0 0 16000 16000" class="svg_next"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="7210.5,4902.8 7210.5,5846.4 9198.3,8000 7210.5,10253.6 7210.5,11097.2 10069.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-4">
+<input class="form-control" id="gallery_figure_gc_InputList" type="text" placeholder="Search..">
+<div class="list-group" id="gallery_figure_gc_list-tab" role="tablist">
+
+{% for item in figure_gc %}
+
+<a class="list-group-item list-group-item-action" id="gallery_figure_gc_list_{{item.0}}" data-toggle="list" href="#gallery_figure_gc_pane_{{item.0}}" role="tab" aria-controls="{{item.0}}">{{item.0}}</a>
+
+{% endfor %}
+
+</div>
+</div>
+</div>
+
+<p class="name_fig"><strong>Fig.3 A/T/G/C Distribution</strong></p>
+<p class="premark">The base position is on the horizontal axis and the single base percentage is on the vertical axis</p>
+<!------------------------------------------------------------------------------------------------------------>
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="Results of Raw Data Filtering">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h4>1.4 Results of Raw Data Filtering</h4>
+<p class="paragraph">The sequenced reads (raw reads) often contain low quality reads and adapters, which will affect the analysis quality. So it's necessary to filter the raw reads and get the clean reads. The filtering process is as follows:</p>
+<p class="paragraph">(1) Remove reads containing adapters.</p>
+<p class="paragraph">(2) Remove reads containing N > 10% (N represents the base cannot be determined).</p>
+<p class="paragraph">(3) Remove reads containing low quality (Qscore<= 5) base which is over 50% of the total base.</p>
+
+<p style="font-weight: bold;">Sequences of adapter</p>
+
+{% if single_cell_V %}
+<p class="paragraph">&nbsp 5' Adapter:</p>
+<p class="paragraph">&nbsp 5'-CTGTCTCTTATACACATCTGACGCTGCCGACGAGTGTAGATCTCGGTGGTCGCCGTATCATT-3'</p>
+<p class="paragraph">&nbsp 3' Adapter:</p>
+<p class="paragraph">&nbsp 5'-CTGTCTCTTATACACATCTCCGAGCCCACGAGAC-3'</p>
+{% else %}
+<p class="paragraph">&nbsp 5' Adapter:</p>
+<p class="paragraph">&nbsp 5'-AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT-3'</p>
+<p class="paragraph">&nbsp 3' Adapter:</p>
+<p class="paragraph">&nbsp 5'-GATCGGAAGAGCACACGTCTGAACTCCAGTCACGGATGACTATCTCGTATGCCGTCTTCTGCTTG-3'</p>
+{% endif %}
+{% if single_cell_type %}
+<p class="paragraph">&nbsp SMART-Seq PCR primer:</p>
+<p class="paragraph">&nbsp 5'-AAGCAGTGGTATCAACGCAGAGTAC-3'</p>
+{% endif %}
+
+<p class="paragraph">The Sequencing data filtration of this project can be seen in <strong>Fig.4</strong> :</p>
+
+<p class="center">
+<div class="row gallery-row">
+<div class="col-1">
+<div id="gallery_figure_C_button_prev" class="button_prev" onclick="prev(this.id)"><svg viewbox="0 0 16000 16000" class="svg_prev"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="8789.5,4902.8 8789.5,5846.4 6801.7,8000 8789.5,10253.6 8789.5,11097.2 5930.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-6">
+<div class="tab-content" id="gallery_figure_C_nav-tabContent">
+{% for item in figure_C %}
+
+<div class="tab-pane fade" id="gallery_figure_C_pane_{{item.0}}" role="tabpanel" aria-labelledby="gallery_figure_C_list_{{item.0}}" onclick="trans(this.id)"><img class="img-gallery" src="{{item.1}}" /></div>
+
+{% endfor %}
+
+</div>
+</div>
+<div class="col-1">
+<div id="gallery_figure_C_button_next" class="button_next" onclick="next(this.id)"><svg viewbox="0 0 16000 16000" class="svg_next"><circle class="c" cx="8000" cy="8000" r="6080"></circle><polygon class="a" points="7210.5,4902.8 7210.5,5846.4 9198.3,8000 7210.5,10253.6 7210.5,11097.2 10069.5,8000 "></polygon></svg></div>
+</div>
+<div class="col-4">
+<input class="form-control" id="gallery_figure_C_InputList" type="text" placeholder="Search..">
+<div class="list-group" id="gallery_figure_C_list-tab" role="tablist">
+{% for item in figure_C %}
+
+<a class="list-group-item list-group-item-action" id="gallery_figure_C_list_{{item.0}}" data-toggle="list" href="#gallery_figure_C_pane_{{item.0}}" role="tab" aria-controls="{{item.0}}">{{item.0}}</a>
+
+{% endfor %}
+
+</div>
+</div>
+</div>
+
+<p class="name_fig"><strong>Fig.4 Composition of Raw Data</strong></p>
+<p class="premark">Different color for different components: </p>
+<p class="premark">(1)Adapter related: (reads containing adapter) / (total raw reads)</p>
+<p class="premark">(2)Containing N: (reads with more than 10% N) / (total raw reads)</p>
+<p class="premark">(3)Low quality: (reads of low quality) / (total raw reads)</p>
+<p class="premark">(4)Clean reads: (clean reads) / (total raw reads)</p>
+{% if single_cell_type %}
+<p class="premark">(5)PCR Primer Contamination: (reads containing PCR Primer) / (total raw reads)</p>
+{% endif %}
+</p>
+<!------------------------------------------------------------------------------------------------------------>
+<p class="head"><a href="#home" title = "返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="测序数据信息汇总">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h3>2 Summary of Sequencing Data Information</h3>
+<p class="paragraph">The total output of data on the sequencer: Raw data {{total_raw}} G.
+
+<p class="paragraph">The detail statistics for the quality of sequencing data are shown in <strong>Table 1</strong>.</p>
+<p class="name_table"><p class="center"><strong>Table 1 Data Quality Summary</strong></p>
+<p class="center">
+<div style="overflow-x: auto">
+<table class="gy">
+<thead><tr>{% for item in table_qc_head %}<th>{{item}}</th>{% endfor %}</tr></thead>
+{% for each in table_qc %}
+	{% for x in each %}
+		{% if forloop.first %}
+			<tr><td style="text-align:left">{{x.0}}</td><td>{{x.1}}</td><td>{{x.2}}</td><td rowspan={{each|length}}>{{x.3}}</td><td>{{x.4}}</td><td>{{x.5}}</td><td>{{x.6}}</td><td>{{x.7}}</td><td>{{x.8}}</td></tr>
+		{% else %}
+			<tr><td style="text-align:left">{{x.0}}</td><td>{{x.1}}</td><td>{{x.2}}</td><td>{{x.3}}</td><td>{{x.4}}</td><td>{{x.5}}</td><td>{{x.6}}</td><td>{{x.7}}</td></tr>
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+</table>
+</div>
+</p>
+<p class="tremark">Sample: sample name<br />
+Library_Flowcell_Lane: Library ID_Flowcell ID_lane ID, for raw data file naming.<br />
+Raw reads: total amount of reads of raw data, each four lines taken as one unit. For paired-end sequencing, it equals the amount of read1 and read2, otherwise it equals the amount of read1 for single-end sequencing.<br />
+Raw data: (Raw reads) * (sequence length), calculating in G. For paired-end sequencing like PE150, sequencing length equals 150, otherwise it equals 50 for sequencing like SE50.<br />
+Effective: (Clean reads/Raw reads)*100%<br />
+Error: base error rate<br />
+Q20, Q30: (Base count of Phred value > 20 or 30) / (Total base count)<br />
+GC: (G & C base count) / (Total base count)<br />
+</p>
+<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png" /></a>
+<a name="part1">Novogene Co., Ltd</a>
+<hr />
+</p><br />
+<h2>C. Appendix</h2>
+<h3>1 Introduction of Sequencing Data Format</h3>
+<p class="paragraph">The original raw data from Illumina platform are transformed to Sequenced Reads, known as Raw Data or RAW Reads, by base calling. Raw data are recorded in a FASTQ file, which contains sequencing reads and corresponding sequencing quality. Every read in FASTQ format is stored in four lines, as indicated below (Cock P.J.A. et al. 2010):</p>
+
+<p class="seq">
+@HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT&nbsp;&nbsp;&nbsp;<br />
+NAAGAACACGTTCGGTCACCTCAGCACACTTGTGAATGTCATGGGATCCAT<br />
++<br />
+#55???BBBBB?BA@DEEFFCFFHHFFCFFHHHHHHHFAE0ECFFD/AEHH<br />
+</p>
+<p class="paragraph">Line 1 begins with a '@' character and is followed by the Illumina Sequence Identifiers and an optional description. The details of Illumina sequence identifier are listed in the table below. </P>
+<table class="gy">
+<tr><th>Identifier</th><th>Meaning</th></tr>
+<tr><td>HWI-ST1276</td><td>Instrument – unique identifier of the sequencer </td></tr>
+<tr><td>71</td><td>Run number – Run number on instrument</td></tr>
+<tr><td>C1162ACXX</td><td>Flow Cell ID – ID of flow cell</td></tr>
+<tr><td>1</td><td>Lane Number – positive integer</td></tr>
+<tr><td>1101</td><td>Tile Number – positive integer</td></tr>
+<tr><td>1208</td><td>X – x coordinate of the spot. Integer which can be negative</td></tr>
+<tr><td>2458</td><td>Y – y coordinate of the spot. Integer which can be negative</td></tr>
+<tr><td>1</td><td>Read number. 1 can be single read or Read 2 of paired-end.</td></tr>
+<tr><td>N</td><td>Y if the read is filtered (did not pass), N otherwise.</td></tr>
+<tr><td>0</td><td>Control number - 0 when none of the control bits are on, otherwise it is an even number</td></tr>
+<tr><td>CGATGT</td><td>Illumina index sequences</td></tr>
+</table>
+
+<p class="paragraph">Line 2 is the raw sequence of the read. </p>
+<p class="paragraph">Line 3 begins with a '+' character and is optionally followed by the same sequence identifiers and descriptions as in Line 1. </p>
+<p class="paragraph">Line 4 encodes the quality values for the bases in Line 2 and contains the same number of characters as the bases in the read (Cock, 2009.).</p>
+<br />
+<h3>2 Explanation of Sequencing Data Related</h3>
+<p class="paragraph">(1) The data delivered is a compressed file in format of '.fq.gz'. Before data delivery, we will calculate the md5 value of each compressed file and
+please check it when you get the data. There are two ways to check the md5 value. In Linux environment, you can use 'md5sum -c <*md5.txt>' command under the data directory. In Windows environment, you can use 
+a calibration tool e.g. hashmyfiles. If the md5 value of compressed file doesn't match with the one we provide in md5 file in data directory, the file may have been damaged during the transmitting procedure.<br />
+
+<p class="paragraph">(2) For paired-end (PE) sequencing, every sample should have 2 data flies (read1 file and read2 file). These 2 files have the same line number, you could use 'wc -l' command to check the line number in Linux environment.
+ The line number divide by 4 is the number of reads.<br />
+
+<p class="paragraph">(3) The data size is the space occupied by the data in the hard disk. It's related to the format of the disk and compression ratio. And it has no influence on the quantity of sequenced bases. 
+Thus, the size of read1 file may be unequal to the size of read2 file.<br />
+
+<p class="paragraph">(4) When customer’s samples need large amount of data e.g. whole genome sequencing data, we would use separate-lane sequencing strategy to make sure the quality of data, so it's possible that one sample has several parts sequencing data. 
+For example, if sample 1 has two read1 files, sample1_L1_1.fq.gz and sample1_L2_1.fq.gz, that means this sample was sequenced on different lanes.<br />
+
+<p class="paragraph">(5) If we agree to deliver the clean data before the project starts, we will filter the data strictly according to the standard to obtain high quality clean data which can be used for further research and paper writing. We will discard the paired reads in the following situation: when either one read contains adapter contamination; when either one read contains more than 10 percent uncertain nucleotides; when either one read contains more than 50 percent low quality nucleotides (base quality less than 5). The data analysis results based on the clean data that is filtered by this standard can be approved by high level magazines (Yan L.Y. et al . 2013). If you want to get more information, please refer to the official website of Novogene (www.novogene.com). <br />
+
+<p class="paragraph">(6) The Index is normally in the middle of the adapter during the process of experiment and sequencing except the special library. We can get the Read1 sequence and Read2 sequence according to the Index read. They are all the sequence of samples so that it's no necessary to dispose the beginning and end of reads in the downstream analysis (e.g. mapping). <br />
+
+<p class="paragraph">(7) 30 days after the data delivery, we will delete outdated data. So please keep your data properly. If you have any questions or concerns, please contact us as soon as possible.<br />
+<br />
+<h3>3 References</h3>
+<p class=ref>
+Cock P.J.A. et al (2010). The Sanger FASTQ file format for sequences with quality scores, and the Solexa/Illumina FASTQ variants. Nucleic acids research 38, 1767-1771. <br /><br />
+Hansen K.D. et al (2010). Biases in Illumina transcriptome sequencing caused by random hexamer priming. Nucleic acids research 38, e131-e131. <br /><br />
+Erlich Y.et al (2008). Alta-Cyclic: a self-optimizing base caller for next-generation sequencing.Nature Methods,5,679-682.  <br /><br />
+Jiang L.C. et al (2011). Synthetic spike-in standards for RNA-seq experiments. Genome research 21, 1543-1551. <br /><br />
+Yan L.Y. et al (2013). Single-cell RNA-Seq profiling of human preimplantation embryos and embryonic stem cells. Nat Struct Mol Biol. <br /><br />
+</p>
+</body>
+</html>
+

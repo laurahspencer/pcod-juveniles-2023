@@ -1,0 +1,171 @@
+---
+title: "lcWGS"
+author: "Laura Spencer"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r, message=FALSE, warning=FALSE, results=FALSE}
+#### Load libraries and source scripts 
+
+`%!in%` = Negate(`%in%`)
+source("../scripts/biostats.R")
+
+
+# Add all required libraries that are installed with install.packages() here
+list.of.packages <- c("tidyverse", "readxl", "janitor", "purrr", "ggpubr")
+
+# Add all libraries that are installed using BiocManager here
+bioconductor.packages <- c()
+
+# # Install BiocManager if needed
+# if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+# 
+# # Get names of all required packages that aren't installed
+# new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+# new.bioc.packages <- bioconductor.packages[!(bioconductor.packages %in% installed.packages()[, "Package"])]
+# # Install all new packages
+# if(length(new.packages)) install.packages(new.packages)
+# if(length(new.bioc.packages)) BiocManager::install(new.bioc.packages)
+
+# Load all required libraries
+all.packages <- c(list.of.packages, bioconductor.packages)
+lapply(all.packages, FUN = function(X) {
+  do.call("require", list(X))
+})
+```
+
+Read in sample metadata
+
+```{r}
+sample.info <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
+  mutate_at(c("tank", "temperature"), factor)
+```
+
+
+Read in depth coverage results from alignment to look for bad samples 
+
+```{r}
+depths <- read_delim(file = "../analysis-20230823/pcod-lcWGS_depths.csv", delim = "\t",  col_names = c("sample", "ave_depth")) %>%
+  mutate(sample=gsub("GM", "", sample)) %>%
+  mutate(sample=as.numeric(sample))
+
+depths %>%
+  left_join(sample.info %>% mutate(genetic_sampling_count=as.numeric(genetic_sampling_count)),
+            by=c("sample"="genetic_sampling_count")) %>%
+  ggplot(aes(x=reorder(sample, ave_depth), y=ave_depth, fill=temperature)) + 
+  geom_bar(stat="identity") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) +
+  scale_fill_manual(values = rev(c("#d7191c", "#fdae61", "#abd9e9", "#2c7bb6")))
+```
+
+PCAs
+
+```{bash}
+rm ../analysis-20230823/pca/cov-results.txt #rm file if it already exists
+for file in ../analysis-20230823/pca/*.cov
+do
+filename="$(echo $file)"
+sample="$(basename -a $filename | cut -d "." -f 1)"
+printf "%s\t%s\n" "$filename" "$sample" >> ../analysis-20230823/pca/cov-results.txt
+done
+```
+```{r}
+outlier <- "GM121"
+
+sample.order <- (read_delim(file="../analysis-20230823/pca/pcod-lcWGS_filtered_bamslist.txt", 
+                            delim = "/t", col_names = "sample") %>%
+                   mutate(sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230828/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", "", sample)))$sample
+                   
+
+filenames <- read_delim(file="../analysis-20230823/pca/cov-results.txt", col_names = c("filename", "chromosome"), delim = "\t") %>%
+  mutate(chromosome=gsub("pcod-lcWGS_|_polymorphic|-polymorphic", "", chromosome))
+files <- file.path(filenames$filename) #extract vector of filenames
+all(file.exists(files)) #easy code to check that all files exist!
+
+chrom_covar <- vector(mode = "list", length = nrow(filenames))
+names(chrom_covar) <- c(filenames$chromosome)
+
+for (i in 1:nrow(filenames)) {
+    chrom_covar[[i]] <- read_delim(file=files[i], col_names = sample.order) %>% 
+      select(-outlier) %>% as.matrix()
+}
+
+#(covariances.chrom <- chrom_covar %>% purrr::reduce(full_join, by = "gene") %>% column_to_rownames(var="gene"))
+
+chrom_covar$Chr10
+```
+
+### PCAs using prcomp
+
+This enables screeplot to ID significant PCs, calculates variance, etc. 
+
+```{r, warning=F, message=F}
+pcas<-list(1:length(filenames$chromosome))
+for (i in 1:length(filenames$chromosome)){
+  
+  print(names(chrom_covar[i]))
+  covar<- chrom_covar[[i]]
+  pca.princomp <- prcomp(covar, scale=F) #scale=F for variance-covariance matrix
+  #pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+  pc.percent <- pca.eigenval(pca.princomp)[2,1:6]*100
+  #screeplot(pca.princomp, bstick=FALSE) 
+  pc.percent[1:2] %>% sum()
+  
+  #### Generate dataframe with prcomp results 
+  tab.expr <- data.frame(sample.id = colnames(covar),
+      EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
+      EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
+      EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
+      EV4.all = pca.princomp$rotation[,4],    # the fourth eigenvector
+      EV5.all = pca.princomp$rotation[,5],    # the fourth eigenvector
+      EV6.all = pca.princomp$rotation[,6],    # the fourth eigenvector
+      stringsAsFactors = FALSE)
+  #shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+  #hist(pca.princomp$x) #normal? hard to say, maybe
+  tab.expr.annot <- left_join(tab.expr %>% mutate(sample.id=as.numeric(sub("GM", "", sample.id))), sample.info[c("temperature", "tank", "genetic_sampling_count")], by=c("sample.id"="genetic_sampling_count")) %>% droplevels()
+  
+  
+  pcas[[i]] <- print(ggscatter(tab.expr.annot,
+            group=c("temperature"),
+            x="EV1.all", y="EV2.all", col="temperature", size=3.5, alpha=0.85, 
+            ellipse = FALSE, star.plot = FALSE) + #, label="sample.id"
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    xlab(paste("PC1 (", round(pc.percent[1], digits = 2), "%)", sep="")) + 
+    ylab(paste("PC2 (", round(pc.percent[2], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+    scale_color_manual(name="Temperature", values=c("0"="purple", "5"="blue", "9"="orange", "16"="red")) +
+      ggtitle(names(chrom_covar[i])))
+}
+
+pdf('../analysis-20230823/pca/pcas.pdf')
+pcas
+dev.off()
+```
+
+From Ingrid: Shumagins, WKodiak, PWS, and Cook Inlet
+
+Sara's presentation: https://docs.google.com/presentation/d/1t11nqJNUMMkaulUN4HrPFqEGznRV0Fi84BwayesOUXA/edit?usp=sharing
+
+Amchitka
+Adak
+Kodiak
+West Kodiak
+Shumagins
+Unimak
+Hecate Strait
+Pervenets
+How many samples per? 
+Fish might move from eastern to western gulf 
+
+
+```{r}
+ref.10 <- read_delim("../references/ABLGs_10inds_per_pop.txt", delim = "/t", col_names = "ID")
+
+ref.10.files <- read_delim("../references/pcod_lcwgs_reference.txt", delim = "/t", col_names = "file") %>% 
+  separate(file, into = c("ID", "rest"), remove = FALSE) %>% select(-rest) %>%
+  mutate(ID=as.numeric(gsub("ABLG", "", ID))) %>%
+  filter(ID %in% ref.10$ID) %>% select(file) %>% write_delim(file = "../references/pcod_10refs.txt", col_names = F)
+```
+
