@@ -191,6 +191,7 @@ dev.off()
 save(filenames, file = "../analysis-20230922/pca/plotly/filenames")
 save(chrom_covar, file = "../analysis-20230922/pca/plotly/chrom_covar")
 save(sample.info, file = "../analysis-20230922/pca/plotly/sample.info")
+save(pcas, file="../analysis-20230922/pca/plotly/pcas")
 ```
 
 Whole-Genome PCAs using more PC axes 
@@ -237,7 +238,7 @@ for (i in 1:nrow(axes)){
     ylab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
     theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
     scale_color_manual(name="Temperature/Population", 
-                       values=c("0"="black", "5"="gray25", "9"="gray50", "16"="gray90",
+                       values=c("0"="gray75", "5"="gray50", "9"="gray25", "16"="black",
                                 "Russia"="navyblue", "Pervenets"="cornflowerblue",
                                 "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476", 
                                 "Unimak"="antiquewhite", "Shumagins"="mistyrose", 
@@ -289,6 +290,7 @@ pca_df <- cbind(as.numeric(gsub("GM|ABLG", "", sample.order)), first3pcs) %>%
 pdf('../analysis-20230922/pca/pcas-genomewide-sara-code.pdf', width = 8.5, height = 7)
 genomewidePlot
 dev.off()
+save(genomewidePlot, file="../analysis-20230922/pca/plotly/genomewidePlot")
 ```
 
 
