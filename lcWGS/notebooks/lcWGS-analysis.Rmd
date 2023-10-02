@@ -245,7 +245,7 @@ for (i in 1:nrow(axes)){
       ggtitle(paste("PC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")))
 }
 
-pdf('../analysis-20230922/pca/pcas-genomewide.pdf')
+pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
 pcas.genome
 dev.off()
 ```
