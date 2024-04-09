@@ -63,7 +63,7 @@ ref.10.files <- read_delim("../references/pcod_lcwgs_reference.txt", delim = "/t
 
 Read in sample metadata
 
-```{r}
+```{r, warning=FALSE}
 sample.info <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
   mutate_at(c("tank", "temperature"), factor) %>%
   select(temperature, genetic_sampling_count) %>% 
@@ -71,14 +71,15 @@ sample.info <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx",
   rbind(
     read_excel("../references/20230414_pcod_named.xlsx") %>% clean_names() %>%
       select(ablg, location1) %>% rename(sample=ablg, treatment=location1)) 
-
-View(sample.info)
 ```
 
 Read in depth coverage results from alignment to look for bad samples 
 
 ```{r}
-depths <- read_delim(file = "../analysis-20230922/pcod-lcWGS_depths.csv", delim = "\t",  col_names = c("sample", "ave_depth")) %>%
+depths <- 
+#  read_delim(file = "../analysis-20230823/pcod-lcWGS_depths.csv", 
+  read_delim(file = "../analysis-20230922/pcod-lcWGS_depths.csv", 
+             delim = "\t",  col_names = c("sample", "ave_depth")) %>%
   mutate(sample=gsub("GM|ABLG", "", sample)) %>%
   mutate(sample=as.numeric(sample))
 
@@ -94,25 +95,35 @@ depths %>%
 Perform PCA on each covariate matrix resulting from the lcWGS pipeline. One PCA for each chromosome + one whole genome 
 
 ```{bash}
-#rm ../analysis-20230922/pca/cov-results.txt #rm file if it already exists
+#rm ../analysis-20230823/pca/cov-results.txt #rm file if it already exists
+rm ../analysis-20230922/pca/cov-results.txt #rm file if it already exists
+#for file in ../analysis-20230823/pca/*.cov
 for file in ../analysis-20230922/pca/*.cov
 do
 filename="$(echo $file)"
 sample="$(basename -a $filename | cut -d "." -f 1)"
+#printf "%s\t%s\n" "$filename" "$sample" >> ../analysis-20230823/pca/cov-results.txt
 printf "%s\t%s\n" "$filename" "$sample" >> ../analysis-20230922/pca/cov-results.txt
 done
 ```
 
 ```{r}
-outlier <- c("GM121") #c("GM121", "ABLG2109", "ABLG2937", "ABLG2622")
+outlier <- c("GM121") #c("GM121", "ABLG2109", "ABLG2937", "ABLG2622") NULL #
 
-sample.order <- (read_delim(file="../analysis-20230922/pcod-lcWGS_filtered_bamslist.txt", 
+sample.order <- (read_delim(
+#  file="../analysis-20230823/pca/pcod-lcWGS_filtered_bamslist.txt", 
+  file="../analysis-20230922/pcod-lcWGS_filtered_bamslist.txt", 
                             delim = "/t", col_names = "sample") %>%
-                   mutate(sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230922/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
+                   mutate(
+#                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230828/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
+                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230922/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
                                       "", sample)))$sample
                    
 
-filenames <- read_delim(file="../analysis-20230922/pca/cov-results.txt", col_names = c("filename", "chromosome"), delim = "\t") %>%
+filenames <- read_delim(
+#  file="../analysis-20230823/pca/cov-results.txt", 
+  file="../analysis-20230922/pca/cov-results.txt", 
+  col_names = c("filename", "chromosome"), delim = "\t") %>%
   mutate(chromosome=gsub("pcod-lcWGS_|_polymorphic|-polymorphic", "", chromosome))
 files <- file.path(filenames$filename) #extract vector of filenames
 all(file.exists(files)) #easy code to check that all files exist!
@@ -135,20 +146,34 @@ This enables screeplot to ID significant PCs, calculates variance, etc.
 
 Separate PCA for each chromosome (#1-23) and for the whole genome
 
+```{r}
+# Filter sample info to only include those we used in our lcWGS pipeline 
+sample.info <- sample.info %>% 
+  mutate(sample.id=case_when(
+      (treatment=="0" | treatment=="5" | treatment=="9" | treatment=="16") ~ paste("GM", sample, sep=""), 
+      TRUE ~ paste("ABLG", sample, sep=""))) %>%
+  filter(sample.id %in% sample.order)
+
+# Get sample IDs for those from our likely spawning populations, and experimental animals (i.e. those to include in a PCA)
+likely.pops <- (sample.info %>%
+                  filter(sample.id != outlier) %>% #remove outlier sample(s)
+        filter(treatment %in% c("0", "5", "9", "16", "Kodiak", "Shumagins", "HecateStrait")))$sample.id #keep only likely source pops
+```
+
 ```{r, warning=F, message=F}
 pcas<-list(1:length(filenames$chromosome))
 for (i in 1:length(filenames$chromosome)){
-  
-  print(names(chrom_covar[i]))
+
+    print(names(chrom_covar[i]))
   covar<- chrom_covar[[i]]
-  pca.princomp <- prcomp(covar, scale=F) #scale=F for variance-covariance matrix
+  pca.princomp <- prcomp(covar[,likely.pops], scale=F) #scale=F for variance-covariance matrix
   #pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
   pc.percent <- pca.eigenval(pca.princomp)[2,1:6]*100
-  #screeplot(pca.princomp, bstick=FALSE) 
+  screeplot(pca.princomp, bstick=FALSE) 
   pc.percent[1:2] %>% sum()
   
   #### Generate dataframe with prcomp results 
-  tab.expr <- data.frame(sample.id = colnames(covar),
+  tab.expr <- data.frame(sample.id = colnames(covar[,likely.pops]),
       EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
       EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
       EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
@@ -158,7 +183,8 @@ for (i in 1:length(filenames$chromosome)){
       stringsAsFactors = FALSE)
   #shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
   #hist(pca.princomp$x) #normal? hard to say, maybe
-  tab.expr.annot <- left_join(tab.expr %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), sample.info[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
+  tab.expr.annot <- left_join(tab.expr %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                              sample.info[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
     mutate(treatment=factor(treatment, ordered = T, 
                             levels = c("0", "5", "9", "16", 
                                        "Russia", "Pervenets", "TanagaIsland", 
@@ -169,42 +195,44 @@ for (i in 1:length(filenames$chromosome)){
   pcas[[i]] <- print(ggscatter(tab.expr.annot,
             group=c("temperature"),
             x="EV1.all", y="EV2.all", col="treatment", size=3, alpha=0.85, 
-            ellipse = FALSE, star.plot = FALSE) + #, label="sample.id"
+            ellipse = FALSE, star.plot = T) + #, label="sample.id"
     theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
     xlab(paste("PC1 (", round(pc.percent[1], digits = 2), "%)", sep="")) + 
     ylab(paste("PC2 (", round(pc.percent[2], digits = 2), "%)", sep="")) + 
     theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
-    scale_color_manual(name="Temperature/Population", 
-                       values=c("0"="black", "5"="gray25", "9"="gray50", "16"="gray90",
+    # scale_color_manual(name="Temperature/Population", 
+    #                    values=c("0"="purple", "5"="blue", "9"="orange", "16"="red")) +
+    scale_color_manual(name="Temperature/Population",
+                       values=c("0"="gray90", "5"="gray50", "9"="gray25", "16"="black",
                                 "Russia"="navyblue", "Pervenets"="cornflowerblue",
-                                "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476", 
-                                "Unimak"="antiquewhite", "Shumagins"="mistyrose", 
+                                "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476",
+                                "Unimak"="antiquewhite", "Shumagins"="mistyrose",
                                 "Kodiak"="palevioletred2", "HecateStrait"="purple")) +
       ggtitle(names(chrom_covar[i])))
 }
 
-pdf('../analysis-20230922/pca/pcas12-by-chrom.pdf')
-pcas
-dev.off()
-
-# Save objects for Plotly in RStudio Cloud 
-save(filenames, file = "../analysis-20230922/pca/plotly/filenames")
-save(chrom_covar, file = "../analysis-20230922/pca/plotly/chrom_covar")
-save(sample.info, file = "../analysis-20230922/pca/plotly/sample.info")
-save(pcas, file="../analysis-20230922/pca/plotly/pcas")
+# pdf('../analysis-20230922/pca/pcas12-by-chrom.pdf')
+# pcas
+# dev.off()
+# 
+# # Save objects for Plotly in RStudio Cloud 
+# save(filenames, file = "../analysis-20230922/pca/plotly/filenames")
+# save(chrom_covar, file = "../analysis-20230922/pca/plotly/chrom_covar")
+# save(sample.info, file = "../analysis-20230922/pca/plotly/sample.info")
+# save(pcas, file="../analysis-20230922/pca/plotly/pcas")
 ```
 
 Whole-Genome PCAs using more PC axes 
 
 ```{r}
-pca.princomp <- prcomp(chrom_covar$wholegenome, scale=F) #scale=F for variance-covariance matrix
+pca.princomp <- prcomp(chrom_covar$wholegenome[,likely.pops], scale=F) #scale=F for variance-covariance matrix
   #pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
   pc.percent <- pca.eigenval(pca.princomp)[2,1:6]*100
   screeplot(pca.princomp, bstick=FALSE) 
   pc.percent[1:6] %>% sum()
   
   #### Generate dataframe with prcomp results 
-  tab.expr <- data.frame(sample.id = colnames(chrom_covar$wholegenome),
+  tab.expr <- data.frame(sample.id = colnames(chrom_covar$wholegenome[,likely.pops]),
       EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
       EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
       EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
@@ -231,11 +259,11 @@ pcas.genome<-list(1:nrow(axes))
 for (i in 1:nrow(axes)){
   pcas.genome[[i]] <- print(ggscatter(tab.expr.annot,
             group=c("temperature"),
-            x=axes[i,"ev.x"], y=axes[i,"ev.y"], col="treatment", size=3, alpha=0.85, 
-            ellipse = FALSE, star.plot = FALSE) + #, label="sample.id"
+            x=axes[i,"ev.y"], y=axes[i,"ev.x"], col="treatment", size=3, alpha=0.85, 
+            ellipse = FALSE, star.plot = T) + #, label="sample.id"
     theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
-    xlab(paste("PC", axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
-    ylab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    xlab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    ylab(paste("PC", axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
     theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
     scale_color_manual(name="Temperature/Population", 
                        values=c("0"="gray75", "5"="gray50", "9"="gray25", "16"="black",
@@ -243,7 +271,7 @@ for (i in 1:nrow(axes)){
                                 "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476", 
                                 "Unimak"="antiquewhite", "Shumagins"="mistyrose", 
                                 "Kodiak"="palevioletred2", "HecateStrait"="purple")) +
-      ggtitle(paste("PC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")))
+      ggtitle(paste("PC", axes[i, "pc.y"], "x", "PC", axes[i, "pc.x"], sep="")))
 }
 
 pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
@@ -251,6 +279,27 @@ pcas.genome
 dev.off()
 
 ```
+
+Zoom in on temperature experiment animals in PC1xPC2 space to look at slight separation of 16C animals - why would that be? 
+
+```{r}
+i<-1
+ggscatter(tab.expr.annot,
+            group=c("temperature"),
+            x=axes[i,"ev.x"], y=axes[i,"ev.y"], col="treatment", size=3, alpha=0.85, 
+            ellipse = T, star.plot = F) + #, label="sample.id"
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    xlab(paste("PC", axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
+    ylab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+    scale_color_manual(name="Temperature/Population", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+    scale_fill_manual(name="Temperature/Population", 
+                       values=c("0"=lighten("#2c7bb6"), "5"=lighten("#abd9e9"), "9"=lighten("#fdae61"), "16"=lighten("#d7191c"))) +
+      ggtitle(paste("Experimental animals only, PC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")) + 
+  xlim(-.1,-.01) + ylim(-0.12, 0.1)
+```
+
 
 Genome wide PCA using Sara's code 
 
@@ -330,4 +379,13 @@ phenotypes %>%
   ggtitle("Weight")
 ```
 
+NEW PCA
+ - SHUMAGINS (VERY SIMILAR TO KODIAK) 
+ - KODIAK 
+ - HECATE STRAIT 
+ 
+```{r}
+tab.expr.annot
+```
+ 
 

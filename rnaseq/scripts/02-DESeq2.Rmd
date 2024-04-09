@@ -1,0 +1,3428 @@
+---
+title: "02-DESeq2-etc-Pcod"
+author: "Laura Spencer"
+date: '2024-04-05'
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+      number_sections: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning = F, message = F)
+```
+
+```{r, message=FALSE, warning=FALSE, results=FALSE}
+#### Load libraries and source scripts 
+
+source("../../references/biostats.R")
+source("../../references/iLOO.R")
+`%!in%` = Negate(`%in%`)
+
+# Add all required libraries that are installed with install.packages() here
+list.of.packages <- c("RCurl", "tidyverse", "vegan", "pheatmap", "pastecs", "factoextra", "FactoMineR", "RColorBrewer", "tibble", "reshape2", "plotly", "cowplot", "clipr", "janitor", "ggpubr", "forcats", "apeglm", "car", "vsn", "devtools", "grid", "gridGraphics", "Rfast", "dendextend", "RColorBrewer", "scales", "VennDiagram", "colorspace", "edgeR", "ggpattern")
+
+# Add all libraries that are installed using BiocManager here
+bioconductor.packages <- c("DESeq2", "WGCNA")
+
+# # Install BiocManager if needed
+# if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+# 
+# Get names of all required packages that aren't installed
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+new.bioc.packages <- bioconductor.packages[!(bioconductor.packages %in% installed.packages()[, "Package"])]
+# Install all new packages
+if(length(new.packages)) install.packages(new.packages)
+if(length(new.bioc.packages)) BiocManager::install(new.bioc.packages)
+
+# Load all required libraries
+all.packages <- c(list.of.packages, bioconductor.packages)
+lapply(all.packages, FUN = function(X) {
+  do.call("require", list(X))
+})
+
+# Github packages 
+#install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
+library(pairwiseAdonis)
+
+`%!in%` = Negate(`%in%`)
+```
+
+```{r}
+#### Load counts and sample info 
+
+# load(file="../data/sample.info")
+# load(file = "../counts")
+# load(file = "../counts.t")
+# load(file = "../counts.ts")
+# load( file = "../references/gadMor.blast")
+# load(file = "../references/gadMor.blast.GO")
+```
+
+
+## Library summary stats
+
+#### No. of fragments per sample? 
+
+```{r}
+data.frame(rowSums(counts.ts)) %>% 
+                  dplyr::rename(read.total = 1) %>% 
+                  rownames_to_column(var="sample") %>% #summary() 
+dplyr::summarise(mean=round(mean(read.total, na.rm=T)), 
+          sd=round(sd(read.total, na.rm=T)), 
+          se=round(sd/sqrt(length(sample))),
+          median=median(read.total), 
+          min=min(read.total), 
+          max=max(read.total)) %>% t() %>% as.data.frame() %>% 
+  dplyr::mutate(V1=prettyNum(V1, big.mark = ",")) %>% 
+  dplyr::rename("fragments.per.sample"="V1") #use this to average across all samples 
+```
+
+#### Did the no. of fragments per temperature differ? 
+
+##### Boxplots of the # of fragments in each sample per temperature 
+
+```{r}
+fragments <- data.frame(rowSums(counts.ts)) %>% 
+                  dplyr::rename(read.total = 1) %>% 
+                  rownames_to_column(var="sample") %>%
+  left_join(sample.info %>% dplyr::select(sample_name, sample_number, tank_number, temperature, tissue_type), by=c("sample"="sample_name")) %>%
+  mutate(temperature=factor(temperature, ordered = T, levels=c("0", "5", "9", "16"))) %>%
+  mutate(sample=as.factor(as.character(sample)))
+
+      #ggplotly(
+ggplot(fragments) +
+           geom_bar(aes(x=fct_reorder(sample, as.numeric(temperature)), y=read.total, fill=temperature), stat = "identity") + ggtitle("Total # fragments by sample") + 
+             theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
+
+ggplot(fragments) +
+           geom_bar(aes(x=fct_reorder(sample, read.total), y=read.total, fill=temperature), stat = "identity") + ggtitle("Total # fragments by sample") + 
+             theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
+
+# FOR SOME REASON THE 5DEGC SAMPLES HAVE FEWER OR MORE READS
+```
+
+##### Statistically test whether no. of fragments / temperature differs 
+
+```{r}
+hist(log(fragments$read.total))
+shapiro.test(log(fragments$read.total))
+anova(lm(log(read.total) ~ temperature, fragments))
+
+ggplot(fragments, aes(x=temperature, y=read.total, fill=temperature)) + geom_boxplot() + theme_minimal() #super weird, why the wider range in 5C? 
+```
+
+#### How many samples per temperature, tank, etc?
+
+```{r}
+fragments %>% group_by(temperature) %>% tally()
+fragments %>% group_by(temperature, tank_number) %>% tally() %>% arrange(temperature, tank_number)
+```
+
+#### How many genes total in the filtered count matrix?
+
+```{r}
+prettyNum(ncol(counts.ts),big.mark = ",")
+```
+
+#### What's the average no. of genes per sample, etc.? 
+
+```{r}
+data.frame(rowSums(counts.ts != 0)) %>% 
+                  dplyr::rename(count.total = 1) %>% 
+                  rownames_to_column(var="sample") %>% 
+  summarise(mean=round(mean(count.total, na.rm=T)), 
+            sd=round(sd(count.total, na.rm=T)), 
+            se=round(sd/sqrt(length(sample))),
+            median=median(count.total, na.rm=T),
+            min=min(count.total, na.rm=T), 
+            max=max(count.total, na.rm=T)) %>% t() %>% as.data.frame() %>% 
+  mutate(V1=prettyNum(V1, big.mark = ",")) %>% 
+  dplyr::rename("genes.per.sample"="V1")
+```
+
+#### Total no. of genes identified in each sample
+
+```{r}
+#ggplotly(
+ggplot(data = data.frame(rowSums(counts.t != 0, na.rm=TRUE)) %>% 
+                  dplyr::rename(count.total = 1) %>% 
+                  rownames_to_column(var="sample")) +
+           geom_bar(aes(x=sample, y=count.total), stat = "identity") + ggtitle("Total # genes by sample") + 
+             theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
+```
+
+```{r}
+#### Merge sample key info to count data, then sort, and generate heat map for initial inspection by temperature 
+
+# IMPORTANT NOTE: to use data for ALL genes, use object "counts.t". To remove low-frequency genes, use object "counts.ts" 
+
+# merge count data with sample key, reset row names as sample names, and arrange by infection, then temperature, then day 
+counts.tk <- merge(x=sample.info[,c("sample_name", "temperature", "tissue_type", "tank_number", "temperature_tank")], by.x="sample_name", y=counts.ts, by.y="row.names") %>% 
+  arrange(temperature, tank_number)  %>% column_to_rownames(var="sample_name") %>% droplevels()
+
+head(counts.tk[1:24]) #check out results of merge/arrange
+save(counts.tk, file = "../counts.tk")
+```
+
+```{r}
+#### Reformat for DESeq, ensure correct sample order for 
+
+# NOTE: It is absolutely critical that the **columns of the count matrix** and the **rows of the column data (information about samples)** are in the same order. DESeq2 will not make guesses as to which column of the count matrix belongs to which row of the column data, these must be provided to DESeq2 already in consistent order.
+
+all(rownames(counts.tk) == counts.tk[-1:-4] %>% t() %>% colnames()) #check that rownames of untransformed matrix match column names of transformed matrix. Should print 'TRUE' 
+```
+
+```{r}
+##### If using counts which included multimapped counted fractionally, need to round to the nearest integer for DESeq2. 
+#_Not needed for gene counts produced by STAR aligner_
+
+#counts.tk <- counts.tk %>% mutate_if(is.numeric, round)
+```
+
+<!-- # Controlling for fish length  -->
+
+<!-- ## Examine length distributions by temperature -->
+
+<!-- ```{r} -->
+<!-- ## read in and plot sizes of fish that were selected for RNAseq  -->
+<!-- length.rnaseq <- read_csv("../data/length_data_rnaseq.csv", na = c("NA", "")) -->
+
+<!-- require(colorspace) -->
+
+<!-- #ggplotly( -->
+<!-- length.rnaseq %>% -->
+<!--   clean_names() %>% -->
+<!--   mutate_at(c("temperature", "p_h", "tank_number"), factor) %>%  -->
+<!--   ggplot(aes(x=value_mm, fill=interaction(temperature:p_h))) +  -->
+<!--   geom_histogram(color="gray50", bins = 25, alpha=0.5, position="dodge") +  -->
+<!--   xlab("Length (mm)") + ylab(NULL) + -->
+<!--   facet_wrap(~interaction(temperature:p_h), nrow=6) + theme_minimal() +  -->
+<!--   ggtitle("Larval cod samples used in RNAseq\n    size by temperature") + -->
+<!--   scale_y_continuous(breaks=c(0,2)) + -->
+<!--     theme(panel.grid = element_blank(), -->
+<!--         strip.text.x = element_blank(), -->
+<!--         strip.background = element_blank(), -->
+<!--         axis.text.y = element_blank(), -->
+<!--         legend.text=element_text(size=7.5)) + -->
+<!--     scale_fill_manual(name="temperature",  -->
+<!--                      values=c("6:amb"="gray65", -->
+<!--                               "6:low"=lighten("darkorange2", 0.25),  -->
+<!--                               "10:amb"=lighten("firebrick4", 0.45),  -->
+<!--                               "10:low"="firebrick4",  -->
+<!--                               "3:amb"=lighten("navyblue", 0.45), -->
+<!--                               "3:low"="navyblue"), -->
+<!--                      labels=c("6:amb"="Control", -->
+<!--                               "6:low"="High pCO2",  -->
+<!--                               "10:amb"="Warm Temperature",  -->
+<!--                               "10:low"="Warm Temperature + High pCO2",  -->
+<!--                               "3:amb"="Cold Temperature", -->
+<!--                               "3:low"="Cold Temperature + High pCO2")) -->
+<!-- #) -->
+<!-- ``` -->
+
+<!-- ## Remove genes that are strongly associated with fish length -->
+
+<!-- 1. Use DESeq2 to identify genes with expression dependent on larval length.  -->
+<!-- 2. Use edgeR to test for effects of length as a continuous explanatory variable using all 3 temperatures. -->
+<!-- 3. Use edgeR to test for effects of length as a continuous explanatory variable without the 10C temperature. -->
+
+<!-- ### 1. Genes associated with length using DESeq2 and all three temperatures  -->
+
+<!-- ```{r} -->
+<!-- # Determine size-associated genes using DESeq2 -->
+<!-- dds.length <- DESeqDataSetFromMatrix(countData = counts.tk[-1:-6] %>% t(), -->
+<!--                               colData = counts.tk[,"length", drop=FALSE] %>% scale() %>% as.data.frame(), -->
+<!--                               design = ~ length) -->
+<!-- vsd.length <- varianceStabilizingTransformation(dds.length, blind=FALSE) -->
+<!-- dds.DESeq.length <- DESeq(dds.length) -->
+
+<!-- summary(res.length <- results(dds.DESeq.length, alpha=0.05))  -->
+<!-- paste("No. of genes associated with length:",  sum(res.length$padj < 0.05, na.rm=TRUE)) -->
+<!-- diffex.length <- subset(res.length, padj < 0.05) # & abs(log2FoldChange)>0.5 -->
+<!-- ``` -->
+
+<!-- ### 2. Genes associated with length using edgeR and all three temperatures  -->
+
+<!-- ```{r} -->
+<!-- # Re-organize counts dataframe to use in edgeR -->
+<!-- counts.treat <- counts.ts %>% rownames_to_column("sample") %>% -->
+<!--   left_join(sample.info[c("tank_number", "temperature", "ph", "sample_name", "length")], by=c("sample"="sample_name")) %>% -->
+<!--   mutate(temperature=as.factor(paste(ph, temperature, sep="."))) %>% -->
+<!--   mutate(ph=gsub("amb", "370", ph)) %>% #estimate ambient = pH 8.0 and pco2 370 -->
+<!--   mutate(ph=gsub("low", "950", ph)) %>% #estimate low pH of 7.6 as pco2 900 -->
+<!--   mutate(ph=as.numeric(as.character(ph)), -->
+<!--          temperature=as.numeric(as.character(temperature)), -->
+<!--          temperature=factor(temperature,  -->
+<!--                           levels=c("amb.6", "low.6", "amb.3", "low.3", "amb.10", "low.10"))) %>%  -->
+<!--   select(sample, tank_number, temperature, ph, temperature, length, everything()) -->
+
+<!-- # Save counts.treat to use in other analyses -->
+<!-- save(counts.treat, file = "../data/counts.treat") -->
+
+<!-- counts.length <- counts.treat %>% column_to_rownames("sample") %>% -->
+<!--   dplyr::select(-tank_number, -temperature, -ph, -temperature, -length) %>% -->
+<!--   t() %>% as.data.frame() -->
+
+<!-- # double check samples (columns) are in the same order as the samples in the annotated count dataframe. Should = TRUE -->
+<!-- all(colnames(counts.length) == counts.treat$sample) -->
+
+<!-- # Extract vectors of larval size (length) and temperature -->
+<!-- temperature.length <- counts.treat$temperature -->
+<!-- length <- counts.treat$length -->
+<!-- temperature.length <- counts.treat$temperature -->
+
+<!-- # Create a DGEList object  -->
+<!-- y.length <- DGEList(counts.length, group=temperature.length) -->
+
+<!-- #NOTE: counts have already been filtered for low-frequency genes, see "01-Importing-data" notebook -->
+
+<!-- # TMM normalization -->
+<!-- y.length <- calcNormFactors(y.length) -->
+<!-- y.length$samples #check out the normalization factor column  -->
+
+<!-- # check out distribution of normalized, filtered read counts -->
+
+<!-- # Calculate logCPM -->
+<!-- df_log.length <- cpm(y.length, log = TRUE, prior.count = 2) -->
+
+<!-- # Create tabulated dataframe of mean expression across each temperature level with metadata for transcript ID and factors -->
+<!-- tab_exp_df.length <- as.data.frame(df_log.length) %>% rownames_to_column("geneid") %>% -->
+<!--   pivot_longer(cols = -geneid) %>%  -->
+<!--   left_join(counts.treat[c("sample", "temperature", "ph", "temperature", "length")],  -->
+<!--             by=c("name"="sample")) -->
+
+<!-- # Fit design matrix -->
+<!-- design.length <- -->
+<!--   model.matrix( -->
+<!--     ~ 1 +  -->
+<!--       length +   #linear effect of larval length -->
+<!--       temperature.length:length      #interaction between temperature and length  -->
+<!--     ) # Generate multivariate edgeR glm -->
+
+<!-- #design <- model.matrix(~ 0 + temperature)  -->
+<!-- #colnames(design.length) <- levels(temperature) -->
+
+<!-- # Check out coefficients  -->
+<!-- head(design.length) -->
+
+<!-- # Estimate dispersion coefficients -->
+<!-- y.length <- estimateDisp(y.length, design.length, robust=TRUE) -->
+<!-- y.length$common.dispersion -->
+<!-- plotBCV(y.length) -->
+
+<!-- # Fit quasi-likelihood, neg binom linear regression with multifactorial design matrix -->
+<!-- fit.length <- glmQLFit(y.length, design.length, robust=TRUE) -->
+<!-- head(fit.length$coefficients) -->
+<!-- #plotQLDisp(fit) -->
+
+<!-- # Linear effect of length -->
+<!-- # estimate sign. degs  -->
+<!-- lin.length <- -->
+<!--     glmQLFTest(fit.length, -->
+<!--     coef = 2, -->
+<!--     contrast = NULL, -->
+<!--     poisson.bound = FALSE) # Estimate significant DEGs -->
+
+<!-- # Make contrasts -->
+<!-- lin.length.res <- -->
+<!--   decideTestsDGE(lin.length, adjust.method = "fdr", p.value = 0.05) -->
+
+<!-- # Summary of genes linearly related to size using edgeR -->
+<!-- summary(lin.length.res) -->
+<!-- plotMD(lin.length, cex=0.6) -->
+
+<!-- DEGs.lin.length <- -->
+<!--   topTags( -->
+<!--   lin.length, -->
+<!--   n = sum(abs(lin.length.res)), -->
+<!--   adjust.method = "BH", -->
+<!--   p.value = 0.05 -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- ### 2. Genes associated with length using edgeR using only 3C and 6C groups  -->
+
+<!-- ```{r} -->
+<!-- # Identify genes that are linearly related to size when considering only 3C & 6C -->
+
+<!-- counts.length.no10 <- counts.treat %>% column_to_rownames("sample") %>% -->
+<!--   filter(temperature!=10) %>% -->
+<!--   dplyr::select(-tank_number, -temperature, -ph, -temperature, -length) %>% -->
+<!--   t() %>% as.data.frame() -->
+
+<!-- # double check samples (columns) are in the same order as the samples in the annotated count dataframe. Should = TRUE -->
+<!-- all(colnames(counts.length.no10) == counts.treat[counts.treat$temperature!=10,]$sample) -->
+
+<!-- # Extract vectors of larval size (length) and temperature -->
+<!-- temperature.length.no10 <- counts.treat[counts.treat$temperature!=10,]$temperature -->
+<!-- length.no10 <- counts.treat[counts.treat$temperature!=10,]$length -->
+<!-- temperature.length.no10 <- counts.treat[counts.treat$temperature!=10,]$temperature -->
+
+<!-- # Create a DGEList object  -->
+<!-- y.length.no10 <- DGEList(counts.length.no10, group=temperature.length.no10) -->
+
+<!-- #NOTE: counts have already been filtered for low-frequency genes, see "01-Importing-data" notebook -->
+
+<!-- # TMM normalization -->
+<!-- y.length.no10.no10 <- calcNormFactors(y.length.no10) -->
+<!-- y.length.no10.no10$samples #check out the normalization factor column  -->
+
+<!-- # check out distribution of normalized, filtered read counts -->
+
+<!-- # Calculate logCPM -->
+<!-- df_log.length.no10 <- cpm(y.length.no10, log = TRUE, prior.count = 2) -->
+
+<!-- # Create tabulated dataframe of mean expression across each temperature level with metadata for transcript ID and factors -->
+<!-- tab_exp_df.length.no10 <- as.data.frame(df_log.length.no10) %>% rownames_to_column("geneid") %>% -->
+<!--   pivot_longer(cols = -geneid) %>%  -->
+<!--   left_join(counts.treat[c("sample", "temperature", "ph", "temperature", "length")],  -->
+<!--             by=c("name"="sample")) -->
+
+<!-- # # Fit design matrix -->
+<!-- # design.length.no10 <- -->
+<!-- #   model.matrix( -->
+<!-- #     ~ 1 + length.no10) # Generate edgeR glm -->
+
+<!-- # Fit design matrix -->
+<!-- design.length.no10 <- -->
+<!--   model.matrix( -->
+<!--     ~ 1 +  -->
+<!--       length.no10 +   #linear effect of larval length -->
+<!--       temperature.length.no10:length.no10      #interaction between temperature and length  -->
+<!--     ) # Generate multivariate edgeR glm -->
+
+<!-- # Check out coefficients  -->
+<!-- head(design.length.no10) -->
+
+<!-- # Estimate dispersion coefficients -->
+<!-- y.length.no10 <- estimateDisp(y.length.no10, design.length.no10, robust=TRUE) -->
+<!-- y.length.no10$common.dispersion -->
+<!-- plotBCV(y.length.no10) -->
+
+<!-- # Fit quasi-likelihood, neg binom linear regression with multifactorial design matrix -->
+<!-- fit.length.no10 <- glmQLFit(y.length.no10, design.length.no10, robust=TRUE) -->
+<!-- head(fit.length.no10$coefficients) -->
+<!-- #plotQLDisp(fit) -->
+
+<!-- # effect of size -->
+<!-- # estimate sign. degs  -->
+<!-- lin.length.no10 <- -->
+<!--     glmQLFTest(fit.length.no10, -->
+<!--     coef = 2, -->
+<!--     contrast = NULL, -->
+<!--     poisson.bound = FALSE) # Estimate significant DEGs -->
+
+<!-- # Make contrasts -->
+<!-- lin.length.res.no10 <- -->
+<!--   decideTestsDGE(lin.length.no10, adjust.method = "fdr", p.value = 0.05) -->
+
+<!-- # Summary of genes linearly related to size using edgeR -->
+<!-- summary(lin.length.res.no10) -->
+<!-- plotMD(lin.length.no10, cex=0.6) -->
+
+<!-- DEGs.length.no10 <- -->
+<!--   topTags( -->
+<!--   lin.length.no10, -->
+<!--   n = sum(abs(lin.length.res.no10)), -->
+<!--   adjust.method = "BH", -->
+<!--   p.value = 0.05 -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Consensus set of genes that are associated with length (across all temperatures) using DESeq2 and both edgeR analyses (all three temperatures, no 10C)  -->
+
+<!-- ```{r} -->
+<!-- # How many genes are associated with length according to both edgeR & DESeq2?  -->
+<!-- # Here I look for the overlap among genes that were deemed linearly associated with length, while removing those that have temperature-dependent length dependent. I want to make sure I'm only removing genes where length certainly predicts gene expression, not just across one or two temperatures.  -->
+
+<!-- genes.length <- Reduce(intersect, list( -->
+<!--           rownames(diffex.length), #From DESeq2 -->
+<!--           rownames(DEGs.lin.length$table),  #From edgeR all 3 temperatures -->
+<!--           rownames(DEGs.length.no10$table))) # From edgeR no 10C -->
+<!-- length(genes.length) #how many are linearly associated with length? -->
+<!-- ``` -->
+
+<!-- How many genes in the final dataset after removing length-associated ones? -->
+
+<!-- ```{r} -->
+<!-- counts.tk[, !(colnames(counts.tk) %in% genes.length)][-1:-6] %>% ncol() -->
+<!-- ``` -->
+
+<!-- ### Here is a DESeq2 object containing ALL genes (not filtered to remove length-associated ones)  -->
+
+<!-- ```{r} -->
+<!-- dds.temperature.all <- DESeqDataSetFromMatrix(countData = counts.tk[-1:-4] %>% t(), -->
+<!--                               colData = counts.tk[,"temperature", drop=FALSE] , -->
+<!--                               design = ~ temperature) -->
+<!-- dds.DESeq.temperature.all <- DESeq(dds.temperature.all) -->
+
+<!-- vsd.temperature.all <- varianceStabilizingTransformation(dds.temperature.all, blind=FALSE) -->
+<!-- ``` -->
+
+
+```{r}
+genes.length <- c()
+```
+
+#### Back to DESeq analysis
+
+Generate DESeq datasets with various temperature comparisons  - remove genes associated with length from all analyses 
+
+```{r}
+dds.temperature <- DESeqDataSetFromMatrix(countData = counts.tk[, !(colnames(counts.tk) %in% genes.length)][-1:-4] %>% t(),
+                              colData = counts.tk[,"temperature", drop=FALSE] ,
+                              design = ~ temperature)
+
+dds.tank <- DESeqDataSetFromMatrix(countData = counts.tk[, !(colnames(counts.tk) %in% genes.length)][-1:-4] %>% t(),
+                              colData = counts.tk[,"tank_number", drop=FALSE] ,
+                              design = ~ tank_number)
+
+dds.temperature.tank <- DESeqDataSetFromMatrix(countData = counts.tk[, !(colnames(counts.tk) %in% genes.length)][-1:-4] %>% t(),
+                              colData = counts.tk[,"temperature_tank", drop=FALSE] ,
+                              design = ~ temperature_tank)
+```
+
+
+```{r}
+#### Transform data for visualization 
+
+# - Here we transform counts using a variance stabilizing transformation (VST), since we have many samples. 
+# - Here we use `blind=FALSE` b/c we are interested in differences explained by experimental design, and may wish to use this transformed data in downstream analyses. 
+# 
+vsd.temperature <- varianceStabilizingTransformation(dds.temperature, blind=FALSE)
+vsd.tank <- varianceStabilizingTransformation(dds.tank, blind=FALSE)
+vsd.temperature.tank <- varianceStabilizingTransformation(dds.temperature.tank, blind=FALSE)
+
+# Save vsd-transformed count dataframes for later use 
+save(vsd.temperature, file = "../deseq2/vsd.temperature")
+save(vsd.tank, file = "../deseq2/vsd.tank")
+save(vsd.temperature.tank, file = "../deseq2/vsd.temperature.tank")
+```
+
+## Unsupervised analyses 
+
+### Heat maps
+
+```{r, include=F}
+#NOTE: scale="column" b/c range of counts is so huge, so counts have been scaled 
+
+# from raw counts, but scaled by column (aka gene)
+pheatmap(data.matrix(counts.tk[-1:-4]), Rowv=NA, Colv=NA, na.rm = TRUE, xlab = NA,
+                     show_colnames =FALSE, cluster_cols = FALSE, cluster_rows = TRUE,
+                  annotation_colors = list(temperature= c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")),
+         scale="column", #color=c("dodgerblue3", "goldenrod1"),
+         main = "gene counts - not transformed", annotation_row=counts.tk[,c("temperature"), drop=FALSE])
+```
+
+#### Heatmap from all gene counts, variance-stabilization transformed
+
+```{r}
+pheatmap(t(assay(vsd.temperature)), Rowv=NA, Colv=NA, na.rm = TRUE, xlab = NA, scale="column",
+                     show_colnames =FALSE, cluster_cols = FALSE, cluster_rows = TRUE,
+                  annotation_colors = list(temperature= c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")),
+         annotation_row=as.data.frame(colData(vsd.temperature)[,c("temperature"), drop=FALSE]),
+         main = "gene counts - VSD-transformed")
+```
+
+#### Heat map with top 10% most variable genes, VSD-transformed counts
+
+```{r}
+# calculate CV for each gene across all samples 
+most.variable <- assay(vsd.temperature) %>% as.data.frame() %>%
+  rownames_to_column(var = "gene") %>%
+  rowwise() %>% 
+  dplyr::mutate(
+     sd = sd(c_across(-gene)),
+     mean = mean(c_across(-gene)),
+     cv = sd/mean) %>%
+  #column_to_rownames("gene") %>%
+  arrange(desc(cv)) %>% 
+# subset top 10% of most variable genes 
+  head(n=round(0.1*nrow(assay(vsd.temperature)))) %>%
+  select(gene) %>% unlist() %>% as.vector()
+
+length(most.variable)
+
+# Generate heat map / cluster those top 10% most variable genes
+cluster.most.variable <- pheatmap(t(assay(vsd.temperature))[,most.variable], 
+         Rowv=NA, Colv=NA, na.rm = TRUE, xlab = NA, scale="column",
+                     show_colnames =FALSE, cluster_cols = FALSE, cluster_rows = TRUE,
+                  annotation_colors = list(temperature= c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")),
+         annotation_row=as.data.frame(colData(vsd.temperature)[,c("temperature"), drop=FALSE]),
+         main = "gene counts - top 10% most variable\n(VSD-transformed)")
+```
+
+### Hierarchical clustering
+
+NOTE: this was generated by the pheatmap function in the previous code chunk
+
+```{r}
+# Just plot hierarchical cluster, color-code sample by temperature, or by tank number
+cluster.dendo <- as.dendrogram(cluster.most.variable$tree_row) 
+#plot(cluster.dendo) # bare bones dendogram
+#order.dendrogram(cluster.dendo) # to find out the order of the sample labels 
+
+# Create a dataframe ordered the same as the dendogram for annotation purposes 
+dendo.df <- sample.info[match(cluster.most.variable$tree_row$labels, sample.info$sample_name),c("sample_name", "temperature", "tank_number")]
+all(dendo.df$sample_name == cluster.most.variable$tree_row$labels) # Should == TRUE
+
+# Create color coding vectors 
+colorCodes.treat <- c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")
+colorCodes.tank <- colorRampPalette(brewer.pal(12, "Paired"))(length(levels(sample.info$tank_number)))
+
+# # Color code sample names by temperature
+#labels_colors(cluster.dendo) <- colorCodes.treat[as.character(dendo.df$temperature[order.dendrogram(cluster.dendo)])]
+#plot(cluster.dendo, xlab="Sample (color=temperature)") # plot with sample names color coded by temperature 
+
+# Plot dendogram color-code by temperature, but labels are tank number
+labels(cluster.dendo) <- dendo.df$tank_number[order.dendrogram(cluster.dendo)]
+labels_colors(cluster.dendo) <- colorCodes.treat[as.character(dendo.df$temperature[order.dendrogram(cluster.dendo)])]
+plot(cluster.dendo, xlab="Tank Number", cex.lab=0.9) # plot with sample names color coded by tank
+legend("topright", title = "temperature", bty="n", legend =
+         c("3_amb","3_low","6_amb","6_low","10_amb", "10_low"), 
+       fill = c("navyblue","royalblue1","darkgreen","yellow3","firebrick4","sienna2"))
+
+
+# # Color code sample names by tank
+# labels_colors(cluster.dendo) <- colorCodes.tank[dendo.df$tank_number][order.dendrogram(cluster.dendo)]
+# plot(cluster.dendo, xlab="Sample (color=tank_number)") # plot with sample names color coded by tank
+
+# # A sub tree - looking at branches
+# par(cex = 1)
+# plot(cluster.dendo[[1]], horiz = TRUE)
+```
+
+#### **NOTE: Samples 194 & 137 look like outliers!** - therefore they were removed 
+
+```{r}
+
+#### Save variance-stabilization normalized gene counts x sample matrix, annotated for later use 
+
+####**NOTE: Here forward I primarily work with the vsd.temperature object, so I can do pairwise temperature contrasts** 
+
+counts.trans <- assay(vsd.temperature) %>% t() %>% as.matrix() %>% as.data.frame() %>% 
+  rownames_to_column(var = "sample") %>% 
+  left_join(sample.info[,c("sample_name", "temperature", "tank_number")], by = c("sample"="sample_name")) %>%
+  column_to_rownames(var = "sample") %>% 
+  dplyr::select(temperature, tank_number, everything()) %>% 
+  mutate(temperature=factor(temperature, levels=c("0", "5", "9", "16")))
+save(counts.trans, file = "../deseq2/counts.trans")
+```
+
+### PCA's
+
+```{r}
+# To view the the guts of the PlotPCA function in DESeq2, execute this code chunk. It reveals that, by default, it only uses the top 500 most influential genes to plot the PCA! 
+
+#getMethod("plotPCA","DESeqTransform")
+```
+
+#### PCAs using DESeq2
+
+NOTE: Hover over points to see the sample numbers
+
+```{r}
+# Generate PCA with points color coded by pH temperature with various number of top genes to use for principal components, selected by highest row variance  
+
+ggplotly(
+  plotPCA(vsd.temperature, intgroup="temperature", ntop=500) +
+           ggtitle("PCA by temperature (var-stabilizing transformed)\ntop 500 genes") +
+    geom_point(size=2, aes(text=colnames(vsd.temperature))) +
+      scale_color_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) +
+      theme_minimal()+ stat_ellipse() , tooltip = "text")
+
+ggplotly(
+  plotPCA(vsd.temperature, intgroup="temperature", ntop=5000) +
+           ggtitle("PCA by temperature (var-stabilizing transformed)\ntop 5k genes") +
+    geom_point(size=3, aes(text=colnames(vsd.temperature))) +
+      scale_color_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) +
+    theme_minimal()+ stat_ellipse() , tooltip = "text")
+
+ggplotly(
+  plotPCA(vsd.temperature, intgroup="temperature", ntop=nrow(assay(vsd.temperature))) + 
+           ggtitle("PCA by temperature (var-stabilizing transformed)\nall genes") + 
+    geom_point(size=3, aes(text=colnames(vsd.temperature))) + 
+      scale_color_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) +
+    theme_minimal()+ stat_ellipse(), tooltip = "text")
+
+
+# PCA with points color coded by tank
+ggplotly(
+  plotPCA(vsd.tank, intgroup="tank_number") +
+           ggtitle("PCA by Tank (var-stabilizing transformed)") +
+    geom_point(size=3, aes(text=colnames(vsd.tank))) +
+   theme_minimal(), tooltip = "text")
+
+# PCA.data.temperature <- plotPCA(vsd.temperature, intgroup=c("temperature"), returnData=TRUE)
+# save(PCA.data.temperature, file="../PCA.data.temperature")
+```
+
+This PCA also suggests that two samples - 137 and 194 - are outliers. Consider removing. 
+
+### PCAs using prcomp
+
+This enables screeplot to ID significant PCs, calculates variance, etc. 
+
+```{r, warning=F, message=F}
+#pca.princomp <- prcomp(cov(assay(vsd.temperature)), scale=F) #scale=F for variance-covariance matrix
+pca.princomp <- prcomp(t(assay(vsd.temperature))) # using the same code that's under the hood of PlotPCA but using all genes 
+pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+pc.percent <- pca.eigenval(pca.princomp)[2,1:6]*100
+screeplot(pca.princomp, bstick=TRUE) #looks like PC 1-4 are significant 
+pc.percent[1:4] %>% sum()
+```
+
+```{r}
+#### Generate dataframe with prcomp results 
+tab.expr <- data.frame(sample.id = colnames(assay(vsd.temperature)),
+    EV1.all = pca.princomp$x[,1],    # the first eigenvector
+    EV2.all = pca.princomp$x[,2],    # the second eigenvector
+    EV3.all = pca.princomp$x[,3],    # the third eigenvector
+    EV4.all = pca.princomp$x[,4],    # the fourth eigenvector
+    stringsAsFactors = FALSE)
+#shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+#hist(pca.princomp$x) #normal? hard to say, maybe
+tab.expr.annot <- left_join(tab.expr, sample.info, by=c("sample.id"="sample_name")) %>% droplevels()
+```
+
+# Correlation plots, PC scores (from all genes) ~ temperature
+
+```{r}
+pc.num <- c("PC1","PC2","PC3","PC4")
+ev.num <- c("EV1.all","EV2.all","EV3.all","EV4.all")
+for (i in (1:4)) {
+print(ggplot(data= tab.expr.annot, aes(x=as.numeric(as.character((temperature))), y=get(ev.num[i]), color=temperature,
+                  ellipse = FALSE, star.plot = FALSE)) + 
+  geom_jitter(width = 0.5, size=2.5) + 
+  theme_minimal() + xlab("Temperature") + ylab(paste(pc.num[i], " (", round(pc.percent[i], digits = 1), "%)", sep="")) + 
+  scale_x_continuous(breaks = c(3,6,10)) + 
+  scale_color_manual(name="temperature", 
+                     values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4"),
+                     labels=c("0"="0degC","5"="5degC","9"="9degC (optimal)","16"="16degC")) +
+  geom_point(data=tab.expr.annot %>% group_by(temperature) %>% dplyr::summarise(stat = mean(get(ev.num[i]))), 
+      aes(x=as.numeric(as.character((temperature))), y=stat, color=temperature), size = 6) +
+  guides(colour = guide_legend(override.aes = list(size=4, linetype="blank"))) +
+  geom_smooth(method="lm", formula=y~x, alpha=0.2, colour="gray25"))
+}
+```
+
+
+## PCA 1x2
+
+```{r}
+#pdf(file="../deseq2/Figure1_PCA.pdf", height = 5.25, width = 7.5)
+ggscatter(tab.expr.annot %>%
+            mutate(temperature=factor(temperature, 
+                             levels=c("0", "5", "9", "16"), ordered = T)), 
+          group=c("temperature"),
+          x="EV1.all", y="EV2.all", col="temperature", size=3.5, alpha=0.85, #shape="tank_number",  
+          ellipse = FALSE, star.plot = TRUE) +
+  theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+  xlab(paste("PC1 (", round(pc.percent[1], digits = 1), "%)", sep="")) + 
+  ylab(paste("PC2 (", round(pc.percent[2], digits = 1), "%)", sep="")) + 
+  theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+  scale_color_manual(name="temperature", 
+                     values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4"),
+                     labels=c("0"="0degC","5"="5degC","9"="9degC (optimal)","16"="16degC")) +
+  guides(colour = guide_legend(override.aes = list(size=3.5, linetype="blank")))
+#dev.off()
+```
+
+## PCA 1x4
+
+```{r}
+#pdf(file="../deseq2/Figure1_PCA.pdf", height = 5.25, width = 7.5)
+ggscatter(tab.expr.annot %>%
+            mutate(temperature=factor(temperature, 
+                             levels=c("0", "5", "9", "16"), ordered = T)), 
+          group=c("temperature"),
+          x="EV1.all", y="EV4.all", col="temperature", size=3.5, alpha=0.85, #shape="tank_number",  
+          ellipse = FALSE, star.plot = TRUE) +
+  theme_minimal() + ggtitle("Global gene expression PC1xPC4") + 
+  xlab(paste("PC1 (", round(pc.percent[1], digits = 1), "%)", sep="")) + 
+  ylab(paste("PC4 (", round(pc.percent[4], digits = 1), "%)", sep="")) + 
+  theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+  scale_color_manual(name="temperature", 
+                     values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4"),
+                     labels=c("0"="0degC",
+                              "5"="5degC", 
+                              "9"="9degC (optimal)", 
+                              "16"="16degC")) +
+  guides(colour = guide_legend(override.aes = list(size=3.5, linetype="blank")))
+```
+
+
+
+### Heatmap of the sample-to-sample distances
+
+Another use of the transformed data is sample clustering. Here, we apply the dist function to the transpose of the transformed count matrix to get sample-to-sample distances.
+
+A heatmap of this distance matrix gives us an overview over similarities and dissimilarities between samples. We have to provide a hierarchical clustering hc to the heatmap function based on the sample distances, or else the heatmap function would calculate a clustering based on the distances between the rows/columns of the distance matrix.
+
+```{r}
+# colors <- colorRampPalette(rev(brewer.pal(9, "Blues")) )(255)
+# 
+# # Here we show temperature and tank number
+# sampleDistss <- dist(t(assay(vsd.temperature.tank)))
+# sampleDistMatrixs <- as.matrix(sampleDistss)
+# rownames(sampleDistMatrixs) <- vsd.temperature.tank$temperature_tank   #set row names
+# colnames(sampleDistMatrixs) <- colnames(vsd.temperature)
+# 
+# all(colnames(sampleDistMatrixs) == rownames(counts.tk))
+# 
+# pheatmap(sampleDistMatrixs,
+#          clustering_distance_rows=sampleDistss,
+#          clustering_distance_cols=sampleDistss,
+#          col=rev(colors), fontsize = 6.5)
+```
+
+
+```{r}
+### perMANOVA - multivariate analysis of variance
+
+# Effect of temperature
+vsd.t <- t(assay(vsd.temperature)) %>% as.data.frame()
+perm <- adonis(vsd.t ~ temperature, data=sample.info %>% remove_rownames() %>% column_to_rownames("sample_name"), permutations = 1000, method="bray")
+
+# Pairwise comparisons
+vsd.t <- sample.info %>% dplyr::select(sample_name, temperature, tank_number) %>% left_join(t(assay(vsd.temperature)) %>% as.data.frame() %>% rownames_to_column("sample_name"))
+
+# Clustering by temperature? Yes! all temps differ in multivariate space 
+pairwise.adonis(vsd.t[,-1:-5], vsd.t$temperature, perm = 1000)
+
+# Clustering by temp x ph temperature? Yes! temperatures that differ are below. 
+pairwise.adonis(vsd.t[,-1:-3], vsd.t$temperature, perm = 1000) %>% arrange(p.adjusted) %>%
+  filter(p.adjusted<0.05) %>% select(pairs, p.adjusted)
+```
+
+```{r}
+#### How many unique genes were measured per temperature. This takes the mean of each gene by group, and counts up those that have mean >10. 
+
+#Warning: this takes forever 
+# # Counts before filtering 
+# sample.info %>% select(Sample, temperature) %>% left_join(counts.t %>% rownames_to_column("Sample")) %>% 
+#   group_by(temperature) %>% summarise_if(is.numeric, "mean") %>% mutate(genes=rowSums(select_if(., is.numeric)>10)) %>% select(temperature, genes)
+
+# # Counts after filtering
+# sample.info %>% select(Sample, temperature) %>% left_join(counts.tk %>% rownames_to_column("Sample")) %>% 
+#   select(-Sample, -tank_number, -temperature_tank) %>% group_by(temperature) %>% summarise_all("mean") %>% mutate(genes=rowSums(is.numeric(.)>10)) %>% select(temperature, genes)
+```
+
+### Differential Expression Analysis
+
+_This is the core DESeq2 analysis!_ 
+
+```{r, message=F, warning=F, include=F}
+##### Run the function `DESeq` to assess differential expression 
+# NOTE, could consider including 'minReplicatesForReplace=Inf' to keep DESeq2 from replacing outlier values with trimmed means. 
+## The default is for this to happen when there are more than 7 replicates. 
+
+dds.DESeq.temperature <- DESeq(dds.temperature)
+dds.DESeq.tank <- DESeq(dds.tank)
+```
+
+### Identify differentially expressed genes among contrasts
+
+From growth 9 is optimal, compare other temperatures to that 
+
+```{r}
+print("Comparison: 9 vs 0")
+summary(res.0 <- results(dds.DESeq.temperature, contrast=c("temperature", "0", "9"), alpha=0.05))
+paste("No. of genes differentially expressed (padj<0.05) in 0C vs 9C (optimal):",  sum(res.0$padj < 0.05, na.rm=TRUE))
+
+print("Comparison: 9 vs 5")
+summary(res.5 <- results(dds.DESeq.temperature, contrast=c("temperature", "5", "9"), alpha=0.05))
+paste("No. of genes differentially expressed (padj<0.05) in 5C vs 9C (optimal):",  sum(res.5$padj < 0.05, na.rm=TRUE))
+
+print("Comparison: 9 vs 16")
+summary(res.16 <- results(dds.DESeq.temperature, contrast=c("temperature", "9", "16"), alpha=0.05))
+paste("No. of genes differentially expressed (padj<0.05) in 16C vs 9C (optimal):",  sum(res.16$padj < 0.05, na.rm=TRUE))
+```
+
+#### Total number of genes analyzed 
+
+```{r}
+nrow(res.0)
+```
+
+```{r}
+#### Save differential expression results to objects
+
+save(res.0, file = "../deseq2/res.0")
+save(res.5, file = "../deseq2/res.5")
+save(res.16, file = "../deseq2/res.16")
+
+# load(file = "../deseq2/res.0")
+# load(file = "../deseq2/res.5")
+# load(file = "../deseq2/res.16")
+```
+
+```{r}
+#### Subset the DESeq results for only those statistically sign. ones
+# Could also filter to only include those with abs(L2FC)>0.5, but that might filter out interesting genes - 
+
+diffex.0 <- subset(res.0, padj < 0.05) # & abs(log2FoldChange)>0.5
+diffex.5 <- subset(res.5, padj < 0.05)
+diffex.16 <- subset(res.16, padj < 0.05)
+```
+
+### Examine some differentially expressed genes
+
+Plot counts
+NOTE: using the DeSeq2 function `plotCounts` plots original counts, i.e. those that are normalized, but outlier values are NOT replaced with trimmed means.  I'm really interested to see how the counts look that DESeq2 is analyzing, i.e. I want to see the outlier-replaced counts. So, I must include the argument `replaced=TRUE` in the plotCounts function.
+
+ZP3 gene
+Genome location	Chromosome	Strand	Name	Symbol	GeneID	Gene Type	Transcripts	Proteins	Length (aa)
+NC_082390.1:1869790-1873256	9	minus	zona pellucida sperm-binding protein 3-like	LOC132464016	132464016	protein-coding	1 XM_060060171.1	1 XP_059916154.1	414
+
+```{r, warning=FALSE, message=F}
+#b <- c("3_amb", "3_low")
+#b <- c("6_amb", "6_low")
+#b <- c("10_amb", "10_low")
+
+#test <- 
+#  diffex.pH.3 %>% as.data.frame() %>% rownames()
+#  diffex.pH.6 %>% as.data.frame() %>% rownames()
+#  diffex.pH.10 %>% as.data.frame() %>% rownames()
+
+
+# Plot genes using Uniprot IDs
+
+# test <- counts.annot.gadmor %>% 
+#   filter(spid %in%
+#            c("P49285"))
+
+test <- "LOC132464016" # ZP3 gene on P. cod genome 
+
+test <- "rereb" # other genes
+
+for (i in 1:length(test)) {
+a <-  plotCounts(dds.DESeq.temperature, gene=test, intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info[,c("sample_name", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
+  mutate(temperature=fct_relevel(temperature, c("0", "5", "9", "16")))
+
+print(
+  ggplot(a,
+       aes(x=temperature, y=count, color=temperature, label=sample)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(aes(color=temperature), size=2.5, position=position_jitter(w = 0.15,h = 0)) +
+    #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_bw() +
+    ggtitle(str_wrap(test)) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none") +
+  scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
+}
+```
+
+Look for Outliers 
+
+Inspect Cook's distances for all genes: 
+
+```{r}
+par(mar=c(8,5,2,2))
+boxplot(log10(assays(dds.DESeq.temperature)[["cooks"]]), range=0, las=2)
+```
+'
+
+
+### Outlier detection using the iterative Leave-One-Out method (iLOO)
+
+Outlier detection using the iterative Leave-One-Out method (iLOO) and script from [George et al. 2015](https://doi.org/10.1371/journal.pone.0125224), see [iLOO.R script](../references/iLOO.R)
+
+Note: The function iLOO requires an input  matrix, which represents a matrix of read counts for a temperature or homogeneous group containing   samples and  features. iLOO returns a  matrix, where only the outlier read counts are present (all non-outlier values have been NA’ed). 
+
+RESULT: Samples 31, 41 & 149 are outliers in quite a few DEGs - REMOVED THOSE SAMPLES FROM ANALYSIS 
+
+```{r}
+# Create vectors of sample IDs per temperature
+samples.0 <- (sample.info[c("sample_name", "temperature")] %>% filter(temperature=="0"))$sample_name
+samples.5 <- (sample.info[c("sample_name", "temperature")] %>% filter(temperature=="5"))$sample_name
+samples.9 <- (sample.info[c("sample_name", "temperature")] %>% filter(temperature=="9"))$sample_name
+samples.16 <- (sample.info[c("sample_name", "temperature")] %>% filter(temperature=="16"))$sample_name
+
+# Create vector of all DEGs identified among any contrast 
+degs <- unique(c(rownames(diffex.0),rownames(diffex.5),rownames(diffex.16)))
+
+# Extract gene counts that have outliers replaced with trimmed means, and filter for DEGs
+degs.counts <- assays(dds.DESeq.temperature)[["replaceCounts"]] %>% as.data.frame() %>% rownames_to_column("gene") %>% filter(gene %in% degs)
+
+# Extract counts for 
+counts.0 <- degs.counts %>% select(gene, all_of(samples.0)) %>% column_to_rownames("gene")
+counts.5 <- degs.counts %>% select(gene, all_of(samples.5)) %>% column_to_rownames("gene")
+counts.9 <- degs.counts %>% select(gene, all_of(samples.9)) %>% column_to_rownames("gene")
+counts.16 <- degs.counts %>% select(gene, all_of(samples.16)) %>% column_to_rownames("gene")
+
+# Run the iterative Leave-One-Out function on gene counts for each temperature 
+iLOO.0 <- iLOO(counts.0)
+iLOO.5 <- iLOO(counts.5)
+iLOO.9 <- iLOO(counts.9)
+iLOO.16 <- iLOO(counts.16)
+
+# find samples with lots of outliers in DEG lists 
+iLOO.0 %>% as.data.frame() %>% rownames_to_column("gene") %>% 
+  pivot_longer(-gene) %>% filter(!is.na(value)) %>%
+  mutate(name=as.factor(name)) %>%
+  filter(gene %in% rownames(diffex.0)) %>% 
+  group_by(name) %>% tally() %>% arrange(desc(n))
+
+iLOO.5 %>% as.data.frame() %>% rownames_to_column("gene") %>% 
+  pivot_longer(-gene) %>% filter(!is.na(value)) %>%
+  mutate(name=as.factor(name)) %>%
+  filter(gene %in% rownames(diffex.5)) %>% 
+  group_by(name) %>% tally() %>% arrange(desc(n))
+
+iLOO.16 %>% as.data.frame() %>% rownames_to_column("gene") %>% 
+  pivot_longer(-gene) %>% filter(!is.na(value)) %>%
+  mutate(name=as.factor(name)) %>%
+  filter(gene %in% rownames(diffex.16)) %>% 
+  group_by(name) %>% tally() %>% arrange(desc(n))
+```
+
+### Generate lists of degs that have an outlier in at least one sample
+
+```{r}
+# 0C vs 9C
+(outs.diffex.0 <- full_join(
+  iLOO.0[rowSums(is.na(iLOO.0)) != ncol(iLOO.0), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.0)),
+
+iLOO.9[rowSums(is.na(iLOO.9)) != ncol(iLOO.9), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.0)),
+by="gene"))
+
+# 5C vs 9C
+(outs.diffex.5 <- full_join(
+  iLOO.5[rowSums(is.na(iLOO.5)) != ncol(iLOO.5), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.5)),
+
+iLOO.9[rowSums(is.na(iLOO.9)) != ncol(iLOO.9), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.5)),
+by="gene"))
+
+# 16C vs 9C
+(outs.diffex.16 <- full_join(
+  iLOO.16[rowSums(is.na(iLOO.16)) != ncol(iLOO.16), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.16)),
+
+iLOO.9[rowSums(is.na(iLOO.9)) != ncol(iLOO.9), ] %>% 
+  as.data.frame() %>% rownames_to_column("gene") %>%
+  filter(gene %in% rownames(diffex.16)),
+by="gene"))
+```
+
+For all genes with outliers identified in at least one sample, visually inspect the counts (with trimmed means replaced for DESeq2-identified outliers). Convincing? 
+
+To look at genes with outliers identified in DEG sets, comment out the different "b" and "test" lines of code, then run for loop to plot genes 
+
+Samples 31 & 41 looks weird, consider removing from dataset (?)
+
+```{r}
+# b <- c("0", "9")
+# test <- outs.diffex.0$gene
+
+b <- c("5", "9")
+test <- outs.diffex.5$gene
+
+b <- c("16", "9")
+test <- outs.diffex.16$gene
+
+for (i in 50:75) {
+a <-  plotCounts(dds.DESeq.temperature, gene=test[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info[,c("sample_name", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
+  filter(temperature %in% b)
+
+print(ggplot(a,
+       aes(x=temperature, y=count, color=temperature, label=sample)) +
+    geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_bw() +
+    ggtitle(test[i]) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none"))
+}
+```
+
+
+### Control for tank! 
+
+Generate lists of DEGs that differ among tanks
+
+```{r}
+# here are the tanks by temperature
+sample.info %>% select(tank_number, temperature) %>% distinct() %>% arrange(temperature)
+```
+
+#### Generate list of DEGs among tanks within each temperature. Here I set alpha=0.01, to ensure that tank-effect DEGs are highly significant. 
+
+```{r}
+# 0 deg C
+diffex.0.1 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "12", "11"), alpha=0.01), padj < 0.01)
+diffex.0.2 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "12", "10"), alpha=0.01), padj < 0.01)
+diffex.0.3 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "12", "9"), alpha=0.01), padj < 0.01)
+diffex.0.4 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "11", "10"), alpha=0.01), padj < 0.01)
+diffex.0.5 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "11", "9"), alpha=0.01), padj < 0.01)
+diffex.0.6 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "10", "9"), alpha=0.01), padj < 0.01)
+diffex.tank.0 <- unique(c(rownames(diffex.0.1), rownames(diffex.0.2), rownames(diffex.0.3), 
+                     rownames(diffex.0.4), rownames(diffex.0.5), rownames(diffex.0.6)))
+
+# 5 deg C
+diffex.5.1 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "5", "6"), alpha=0.01), padj < 0.01)
+diffex.5.2 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "5", "7"), alpha=0.01), padj < 0.01)
+diffex.5.3 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "5", "8"), alpha=0.01), padj < 0.01)
+diffex.5.4 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "6", "7"), alpha=0.01), padj < 0.01)
+diffex.5.5 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "6", "8"), alpha=0.01), padj < 0.01)
+diffex.5.6 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "7", "8"), alpha=0.01), padj < 0.01)
+diffex.tank.5 <- unique(c(rownames(diffex.5.1), rownames(diffex.5.2), rownames(diffex.5.3), 
+                     rownames(diffex.5.4), rownames(diffex.5.5), rownames(diffex.5.6)))
+
+# 9 deg C
+diffex.9.1 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "13", "14"), alpha=0.01), padj < 0.01)
+diffex.9.2 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "13", "15"), alpha=0.01), padj < 0.01)
+diffex.9.3 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "13", "16"), alpha=0.01), padj < 0.01)
+diffex.9.4 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "14", "15"), alpha=0.01), padj < 0.01)
+diffex.9.5 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "14", "16"), alpha=0.01), padj < 0.01)
+diffex.9.6 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "15", "16"), alpha=0.01), padj < 0.01)
+diffex.tank.9 <- unique(c(rownames(diffex.9.1), rownames(diffex.9.2), rownames(diffex.9.3), 
+                     rownames(diffex.9.4), rownames(diffex.9.5), rownames(diffex.9.6)))
+
+# 16 deg C
+diffex.16.1 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "1", "2"), alpha=0.01), padj < 0.01)
+diffex.16.2 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "1", "3"), alpha=0.01), padj < 0.01)
+diffex.16.3 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "1", "4"), alpha=0.01), padj < 0.01)
+diffex.16.4 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "2", "3"), alpha=0.01), padj < 0.01)
+diffex.16.5 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "2", "4"), alpha=0.01), padj < 0.01)
+diffex.16.6 <- subset(results(dds.DESeq.tank, contrast=c("tank_number", "3", "4"), alpha=0.01), padj < 0.01)
+diffex.tank.16 <- unique(c(rownames(diffex.16.1), rownames(diffex.16.2), rownames(diffex.16.3), 
+                     rownames(diffex.16.4), rownames(diffex.16.5), rownames(diffex.16.6)))
+```
+
+How many genes are going to be removed due to "tank effect?"
+
+```{r}
+c(diffex.tank.0, diffex.tank.5, diffex.tank.9, diffex.tank.16) %>% unique() %>% length()
+```
+
+```{r}
+# Remove genes from DEG lists that: 
+#  1)  are DEGs among tanks within temperatures. 
+# then save to file. This is the final list of DEGs I will use for downstream analyses.
+
+#  X)  contain iLOO-identified outliers from DEG objects, and <---- NO, would need to look at these more closely!!! 
+
+(diffex.0.filt <- subset(diffex.0, rownames(diffex.0) %!in% c(diffex.tank.0, diffex.tank.9)))
+(diffex.5.filt <- subset(diffex.5, rownames(diffex.5) %!in% c(diffex.tank.5, diffex.tank.9)))
+(diffex.16.filt <- subset(diffex.16, rownames(diffex.16) %!in% c(diffex.tank.16, diffex.tank.9)))
+
+save(diffex.0.filt, file = "../deseq2/diffex.0.filt")
+save(diffex.5.filt, file = "../deseq2/diffex.5.filt")
+save(diffex.16.filt, file = "../deseq2/diffex.16.filt")
+```
+
+### Summary stats for the number of Differentially Expressed Genes (DEGs)
+
+#### Bar plot of the number of DEGs identified in each contrast 
+
+```{r}
+# write simple function to return the name of an object as a string
+
+# Here is a list containing all DEG sets - this will be used in subsequent code chunks, too! 
+degs <- list(diffex.0.filt, diffex.5.filt, diffex.16.filt)
+
+names(degs) <- c("0 degC", "5 degC", "16 degC")
+
+n.degs <- data.frame(matrix(NA, nrow = length(degs), ncol = 3))
+names(n.degs) <- c("contrast", "n.degs", "perc")
+for (i in (1:length(degs))) {
+  n.degs[i,1] <- names(degs[i])
+  n.degs[i,2] <- nrow(degs[[i]])
+  n.degs[i,3] <- 100*round(nrow(degs[[i]])/ncol(counts.ts), digits = 3)
+}
+n.degs$contrast <- factor(n.degs$contrast, levels=n.degs$contrast, ordered = T)
+save(degs, file = "../deseq2/degs")
+```
+
+Barplot of the number of DEGs 
+
+```{r}
+# single stressors vs. multiple stressors 
+#pdf(file="../deseq2/DEGs_barplot_single-vs-double-stressor.pdf", height = 2, width = 7)
+ggplot(n.degs %>% mutate(contrast=factor(contrast, ordered = T, levels=c("0 degC", "5 degC", "16 degC"))), 
+       aes(x=contrast, y=n.degs, fill=contrast)) + 
+  geom_bar(alpha=0.65, stat = "identity", color="gray20", size=0.1) +
+  geom_text(hjust=-0.1, size=3.5, aes(label=paste(comma(n.degs), " (", perc, "%)", sep=""))) + 
+  xlab("Contrast") + ylab("Number Differentially Expressed Genes (% of all genes)") + 
+  xlab(NULL) + ylab(NULL) + coord_flip() + ggtitle("Number Differentially Expressed Genes (% of all genes)") +
+  theme_minimal() + ylim(c(0,7500)) + 
+  theme(legend.position = "none", plot.title = element_text(size = 10)) +
+  scale_fill_manual(values=c(`0 degC`="royalblue1",`5 degC`="darkgreen", `16 degC`="firebrick4")) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE,reverse=TRUE)) 
+#dev.off()
+```
+
+Regenerate barplot for paper (Figure 3) with the number of upregulated / downregualted DEGs by temperature 
+
+```{r}
+degs.updown <- list(
+diffex.0.filt %>% data.frame() %>% filter(log2FoldChange > 0),  #higher in 0C
+diffex.0.filt %>% data.frame() %>% filter(log2FoldChange < 0), #lower in 0C
+diffex.5.filt %>% data.frame() %>% filter(log2FoldChange > 0),  #lower in 5C
+diffex.5.filt %>% data.frame() %>% filter(log2FoldChange < 0), #higher in 5C
+diffex.16.filt %>% data.frame() %>% filter(log2FoldChange > 0),  #higher in 16C
+diffex.16.filt %>% data.frame() %>% filter(log2FoldChange < 0)) #lower in 16C
+
+names(degs.updown) <- c("0 degC", "0 degC", "5 degC", "5 degC", "16 degC", "16 degC")
+response <- c("upregulated", "downregulated", "downregulated", "upregulated", "upregulated", "downregulated")
+
+
+n.degs.updown <- data.frame(matrix(NA, nrow = length(degs.updown), ncol = 4))
+names(n.degs.updown) <- c("temperature", "n.degs", "perc", "response")
+for (i in (1:length(degs.updown))) {
+  n.degs.updown[i,1] <- names(degs.updown[i])
+  n.degs.updown[i,2] <- nrow(degs.updown[[i]])
+  n.degs.updown[i,3] <- 100*round(nrow(degs.updown[[i]])/ncol(counts.ts), digits = 2)
+  n.degs.updown[i,4] <- response[i]
+}
+
+n.degs.updown <- n.degs.updown %>%
+  mutate(temperature=factor(temperature, levels=c("0 degC","5 degC","16 degC")),
+         response=factor(response, ordered = T))
+
+n.degs.updown
+
+# Barplot with no. of DEGs by single stressors vs. multiple stressors, including up/down regulation 
+#pdf(file="../deseq2/DEGs_barplot_single-vs-double-stressor-up-down.pdf", height = 2, width = 7)
+ggplot(n.degs.updown, 
+       aes(x=temperature, y=n.degs, fill=temperature)) + 
+  geom_bar_pattern(aes(pattern=response), stat = "identity", color="gray20", size=0.05, alpha=0.65,
+                   pattern_fill="black", pattern_alpha=0.2, pattern_density=0.01, pattern_spacing=0.025) +
+  xlab("Contrast") + ylab("Number Differentially Expressed Genes (% of all genes)") + 
+  xlab(NULL) + ylab(NULL) + coord_flip() + ggtitle("Number Differentially Expressed Genes (% of all genes)") +
+  theme_pubr() + scale_y_continuous(label=comma, limits = c(0,7500)) +
+  theme(legend.position = "none", plot.title = element_text(size = 10)) +
+  scale_fill_manual(values=c("0 degC"="royalblue1","5 degC"="darkgreen", "16 degC"="firebrick4")) +
+  scale_pattern_manual(values = c("stripe","none")) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE,reverse=TRUE)) 
+#dev.off()
+
+```
+
+### Heat maps of DEGs 
+
+#### Single heatmap with all DEGs among any pH temperature 
+NOTE: There are 4,525 DEGs among pH temperature in the 6C group, but only 2 and 58 among the 3C and 10C groups, respectively. This is visible in the heat map- there are clear differences in expression in the 6_amb (green) and 6_low (yellow) temperatures. 
+
+Kinda interesting - below are only DEGs among pH temperature (mostly 6amb and 6low), but the expressoin patterns look similar among 6low, 10amb and 10low, compared to 6amb, 3amb and 3low. 
+
+```{r}
+# NOTE THIS DOESN'T EXCLUDE LENGTH-ASSOCIATED GENES
+# Generate counts matrix With DEGs among any pH temperature 
+
+diffex.counts <- subset(assay(vsd.temperature), rownames(dds.DESeq.temperature) %in% unique(c(rownames(diffex.0.filt),rownames(diffex.5.filt),rownames(diffex.16.filt))))
+
+# Create a dataframe to annotate heatmap with temperatures 
+dds.df <- sample.info[match(colnames(diffex.counts), sample.info$sample_name),c("sample_name", "temperature", "tank_number")] %>%
+  remove_rownames() %>% column_to_rownames(var = "sample_name")
+
+# Make sure temperature order is correct
+all(colnames(diffex.counts) == rownames(dds.df)) #double check that samples are still in same order 
+
+# All DEGs among any pH temperature (within temperatures)
+pheatmap(diffex.counts, cluster_rows=TRUE, cluster_cols=FALSE,
+         show_rownames=FALSE, na.rm=TRUE, annotation_colors = list(temperature=
+             c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")),
+         scale="row", main = "Differentially expressed genes (DEGs) among any pH temperature", 
+         annotation_col=dds.df[,"temperature", drop=FALSE], fontsize = 8,
+         cutree_rows = 4,  border_color=F)
+```
+
+### Venn Diagrams of DEGs
+
+
+## MOST important venn diagram, potentially for paper - Show effect of warming, cooling, and high pCO2 all in contrast to the optimal conditions (6C-ambient)
+
+```{r, include=F, echo=F, message=F}
+
+#install.packages("eulerr")
+library(eulerr)
+
+`Cold` <- row.names(degs$`0 degC`)
+`Cool`  <- row.names(degs$`5 degC`)
+`Hot` <- row.names(degs$`16 degC`)
+
+venn.stressors <- data.frame(dat = 
+             unique(c(`Cold`, `Cool`, `Hot`))) %>%
+  mutate(`Cold` = dat %in% `Cold`,
+         `Cool` = dat %in% `Cool`,
+         `Hot` = dat %in% `Hot`) %>%
+  select(`Cold`, `Cool`, `Hot`) %>%
+  euler()
+
+#pdf(file="../deseq2/venn_single-stressors_no-values.pdf", height = 5.2, width = 6)
+eulerr:::plot.euler(venn.stressors, counts = T, quantities = T, 
+                      legend = T, edges=F, fontzie=8,
+                      font=1, cex=1, alpha=0.5,
+                      #fills=list(fill=c("navyblue","firebrick4", "darkorange2")))
+                      fills=list(fill=c("royalblue1","darkgreen", "firebrick4")))
+#dev.off()
+
+# lighten("navyblue", amount = .25)
+# lighten("firebrick4", amount = .25)
+# lighten("darkorange2", amount = .25)
+```
+
+###  DAVID enrichment analysis
+
+It is a little clunky, but the DAVID functional analysis tool is one of the best ways to perform enrichment analysis (that I have found to date). To use, you copy a list of Uniprot IDs (or other gene identifier) to clipboard, then paste it into their tool. You then do the same for all genes in the analysis, providing an accurate background list of genes.  Here is code to copy all genes, then upregulated and downregulated DEGs identified by each contrast.
+
+#### GENERATE LIST OF DEGS WITH ABS(L2FC)>0.5
+
+```{r, include=F, echo=F, message=F}
+names(degs)
+
+# BACKGROUND - all genes submitted to DESeq2 analysis 
+enrich.background <- res.pH.6 %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>% View()
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names, protein_names), by = "gene_gadmor") %>%
+  dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector()
+
+# ------- "Effect of low pH"
+print(paste("DEGs, ", names(degs[2])))
+enrich.Amb.Low.6 <- degs[2] %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>%
+  filter(abs(select(., contains("log2FoldChange")))>0.5) %>% #filter for genes with abs(L2FC)>0.5
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names), by = "gene_gadmor")
+#enrich.Amb.Low.6  %>% dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# ------- "Effect of Cold temperature"
+print(paste("DEGs, ", names(degs[4])))
+enrich.3.6.Amb <- degs[4] %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>%
+  filter(abs(select(., contains("log2FoldChange")))>0.5) %>% #filter for genes with abs(L2FC)>0.5
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names), by = "gene_gadmor")
+#enrich.3.6.Amb %>% dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# ------- "Effect of Warm temperature"
+print(paste("DEGs, ", names(degs[5])))
+enrich.6.10.Amb <- degs[5] %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>%
+  filter(abs(select(., contains("log2FoldChange")))>0.5) %>% #filter for genes with abs(L2FC)>0.5
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names), by = "gene_gadmor")
+#enrich.6.10.Amb %>% dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# ------- "Effect of combined Cold + Low pH"
+print(paste("DEGs, ", names(degs[8])))
+enrich.both.3low.6amb <- degs[8] %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>%
+  filter(abs(select(., contains("log2FoldChange")))>0.5) %>% #filter for genes with abs(L2FC)>0.5
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names), by = "gene_gadmor")
+#enrich.both.3low.6amb %>% dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# ------- "Effect of combined Warm + Low pH"
+print(paste("DEGs, ", names(degs[9])))
+enrich.both.10low.6amb <- degs[9] %>% as.data.frame() %>% rownames_to_column("gene_gadmor") %>%
+  filter(abs(select(., contains("log2FoldChange")))>0.5) %>% #filter for genes with abs(L2FC)>0.5
+  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names), by = "gene_gadmor")
+#enrich.both.10low.6amb %>% dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+```
+
+#### FIGURE OUT UP/DOWN-REGULATED GENES 
+
+Here I determine which LFC direction (>0 or <0) refers to higher/lower expression for temperatures in each contrast
+
+```{r}
+test <- ((
+  enrich.both.10low.6amb %>% 
+#    filter(select(., contains("log2FoldChange"))>.5))$gene_gadmor)[1:200]
+    filter(select(., contains("log2FoldChange"))<(-0.5)))$gene_gadmor)[1:100]
+
+
+a <- c("10_low", "6_amb")
+c <- data.frame(gene=character(), temperature=character(), mean=numeric())
+d <- list()
+
+for (i in 1:length(test)) {
+b <-  plotCounts(dds.DESeq.temperature, gene=test[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info[,c("sample_name", "temperature", "ph", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
+  filter(temperature %in% a)
+
+c[1:2,1] <- test[i]
+c[1:2,2:3] <- summarySE(measurevar = "count", groupvars = "temperature", data = b)[,c("temperature", "count")] %>% 
+  mutate(temperature=as.character(temperature))
+
+d[[i]] <- c
+}
+
+# 
+bind_rows(d, .id = "i") %>% mutate(treat.num=factor(temperature, levels = a, ordered = T) %>% as.numeric()) %>%
+  ggplot(aes(x=treat.num, y=log(mean, base = 2), group=gene)) + geom_line(size=.01) +
+  theme_minimal() + 
+  scale_x_continuous(breaks=c(1,2), labels=a) +
+  theme(axis.title.x = element_blank(), plot.title = element_text(size=10), axis.text.x = element_text(hjust = 0.2))
+
+# RESULTS
+# enrich.Amb.Low.6 - LFC > 0.5 - LOWER IN LOW PH
+# enrich.Amb.Low.6 - LFC < (-0.5) - HIGHER IN LOW PH
+# enrich.3.6.Amb - LFC > 0.5 - HIGHER IN 3C
+# enrich.3.6.Amb - LFC < (-0.5) - LOWER IN 3C 
+# enrich.6.10.Amb - LFC > 0.5 - LOWER IN 10C
+# enrich.6.10.Amb - LFC < (-0.5) - HIGHER IN 10C
+# enrich.both.3low.6amb - LFC > 0.5 - HIGHER IN 3C-LOW PH
+# enrich.both.3low.6amb - LFC < (-0.5) - LOWER IN 3C-LOW PH
+# enrich.both.10low.6amb - LFC > 0.5 - LOWER IN 10C-LOW PH
+# enrich.both.10low.6amb - LFC < (-0.5) - HIGHER IN 10C-LOW PH
+
+# Others not used in analysis
+# enrich.3.10.Amb - LFC > 0.5 - LOWER IN 10C
+# enrich.3.10.Amb - LFC < (-0.5) - HIGHER IN 10C
+# enrich.3.6.Low - LFC > 0.5 - HIGHER IN 3C
+# enrich.3.6.Low - LFC < (-0.5) - LOWER IN 3C
+# enrich.3.10.Low - LFC > 0.5 - LOWER IN 10C
+# enrich.3.10.Low - LFC < (-0.5) - HIGHER IN 10C
+# enrich.6.10.Low - LFC > 0.5 - LOWER IN 10C
+# enrich.6.10.Low - LFC < (-0.5) - HIGHER IN 10C
+```
+
+Generate .tab file with lists of DEGs that are upregulated/downregulated in response to each temperature for DAVID enrichment analysis
+
+```{r}
+DEGs.4David <- list(
+  
+  "OA_Downregulated" = 
+    # enrich.Amb.Low.6 - LFC>0.5 - LOWER IN LOW PH - Downregulated in OA
+    enrich.Amb.Low.6 %>%
+    filter(dplyr::select(., contains("log2FoldChange"))>0.5) %>%
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "OA_Upregulated" =  
+    # enrich.Amb.Low.6 - LFC<0.5 - HIGHER IN LOW PH - Upregulated in OA
+    enrich.Amb.Low.6 %>%
+    filter(dplyr::select(., contains("log2FoldChange"))<(-0.5)) %>% 
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(), 
+
+  "Cold_Upregulated" = 
+    # enrich.3.6.Amb - LFC>0.5 - HIGHER IN 3C - Upregulated in Cold Temperature
+    enrich.3.6.Amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))>0.5) %>%
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Cold_Downregulated"  =
+    # enrich.3.6.Amb - LFC<0.5 - LOWER IN 3C - Downregulated in Cold Temperature
+    enrich.3.6.Amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))<(-0.5)) %>% 
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Warm_Downregulated" = 
+    # enrich.6.10.Amb - LFC>0.5 - LOWER IN 10C - Downregulated in Warm Temperature
+    enrich.6.10.Amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))>0.5) %>%
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Warm_Upregulated" = 
+    # enrich.6.10.Amb - LFC<0.5 - HIGHER IN 10C - Upregulated in Warm Temperature
+    enrich.6.10.Amb %>%
+     filter(dplyr::select(., contains("log2FoldChange"))<(-0.5)) %>% 
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Cold-OA_Upregulated" = 
+    # enrich.both.3low.6amb - LFC>0.5 - HIGHER IN 3C-LOW PH - Upregulated in Cold+OA
+    enrich.both.3low.6amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))>0.5) %>%
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Cold-OA_Downregulated" = 
+    # enrich.both.3low.6amb - LFC<0.5 - LOWER IN 3C-LOW PH - Downregulated in Cold+OA
+    enrich.both.3low.6amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))<(-0.5)) %>% 
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Warm-OA_Upregualted" = 
+    # enrich.both.10low.6amb - lfc<0.5 - HIGHER IN 10C-LOW PH - Upregulated in Warm+OA
+    enrich.both.10low.6amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))<(-0.5)) %>% 
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector(),
+  
+  "Warm-OA_Downregulated" = 
+    # enrich.both.10low.6amb - lfc>0.5 - LOWER IN 10C-LOW PH - Downregulated in Warm+OA
+    enrich.both.10low.6amb %>%
+    filter(dplyr::select(., contains("log2FoldChange"))>0.5) %>%
+    dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector()
+  ) 
+
+# Write tab-delimited file with each column containing Uniprot IDs for each set of DEGs 
+write_delim(x = ldply(DEGs.4David, rbind) %>% t() %>% as.data.frame(), delim = "\t", col_names = F, na="", 
+            file = "../GO-enrichment/DEGs-4David-final.tab")
+            
+# BACKGROUND - all genes submitted to DESeq2 analysis 
+enrich.background %>% write_clip(allow_non_interactive = TRUE)
+```
+
+NOTE: outside of R I created a .tab file with the first column containing file names for enrichment results, and second column containing the contrast + which temperature was upregulated (for grouping in R). 
+Example: the following row refers to the file contains enrichment results for genes upregulated in 10C in the contrast 6C vs. 10C at Low pH
+
+`GO-enrich_6Cvs10C-Low-pH_up-in-10.txt	6Cvs10C-Low-pH_10`
+
+```{r}
+#### Read in enriched biological functions for all contrasts
+
+filenames <- read_delim(file="../GO-enrichment/Final-DAVID/GO_filenames.txt", delim = "\t", col_names = c("filename", "gene_set"))
+file_list <- vector(mode = "list", length = nrow(filenames))
+names(file_list) <- c(filenames$gene_set)
+
+for (i in 1:nrow(filenames)) {
+    file_list[[i]] <- data.frame(read_delim(file=paste("../GO-enrichment/Final-DAVID/", filenames[i,"filename"], sep=""), delim = "\t"))}
+
+
+david <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>%  # Bind dataframe for each gene_set together
+    #filter(category=="GOTERM_BP_DIRECT") %>%
+    filter(p_value<0.05) %>%
+    dplyr::rename(percent=x) %>%
+    separate(term, into = c("term", "process"), sep = "~") %>%
+    separate(gene_set, sep = "_", into = c("stress", "response"), remove = F) %>%
+    mutate(stress=factor(stress, ordered = TRUE, levels=c("OA","Warm", "Warm-OA", "Cold","Cold-OA")),
+           response=as.factor(response)) %>% 
+  tidyr::complete(stress, response, category) # add rows for gene_sets that are missing from dataframe
+
+save(david, file="../GO-enrichment/Final-DAVID/david")
+```
+
+Copy DAVID results (Uniprot Kewords and Gene Ontology terms) to paste into Google Spreadsheet 
+
+```{r}
+# Uniprot KW
+david %>% 
+  filter(p_value<0.05) %>%
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  arrange(response, stress, p_value) %>%
+  mutate_at(c("p_value", "fdr"), funs(signif(.,2))) %>%
+  dplyr::select(response, stress, term, process, count, p_value, fdr, genes) %>%
+  write_clip()
+
+# GO terms
+david %>% 
+  filter(p_value<0.05) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>%
+  arrange(response, stress, p_value) %>%
+  mutate_at(c("p_value", "fdr"), funs(signif(.,2))) %>%
+  dplyr::select(response, stress, term, process, count, p_value, fdr, genes) %>%
+  write_clip()
+```
+
+Up-regulated Uniprot Keywords
+
+```{r}
+# Bubble plot, Upregulated processes
+
+pdf(file="../GO-enrichment/Final-DAVID/Upregulated-KW-bubble.pdf", height = 3.05, width = 4)
+
+david %>% 
+  #filter(count>=3) %>% 
+  filter(p_value<0.05) %>%
+#  filter(category=="GOTERM_BP_DIRECT") %>% 
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
+  filter(response=="Upregulated") %>% 
+
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4", 
+                              "Cold"=lighten("navyblue", 0.45),
+                              "Cold-OA"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Upregulated Biological Processes")
+dev.off()
+```
+
+Up-regulated Gene Ontology terms
+
+```{r}
+# Bubble plot, Upregulated processes
+pdf(file="../GO-enrichment/Final-DAVID/Upregulated-GO-bubble.pdf", height = 9, width = 7.5)
+david %>% 
+#  filter(count>=3) %>% 
+  filter(p_value<0.05) %>% filter(count>=3) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+#  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
+  filter(response=="Upregulated") %>% 
+
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4", 
+                              "Cold"=lighten("navyblue", 0.45),
+                              "Cold-OA"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Upregulated Biological Processes\n(GO terms)")
+```
+
+Down-regulated Uniprot Keywords
+
+```{r}
+# Bubble plot, downregulated processes
+pdf(file="../GO-enrichment/Final-DAVID/Downregulated-KW-bubble.pdf", height = 1.75, width = 2.8)
+david %>% 
+  #filter(count>=3) %>% 
+  filter(p_value<0.05) %>%
+#  filter(category=="GOTERM_BP_DIRECT") %>% 
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
+  filter(response=="Downregulated") %>% 
+
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4", 
+                              "Cold"=lighten("navyblue", 0.45),
+                              "Cold-OA"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "none", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Downregulated Biological Processes")
+dev.off()
+```
+Down-regulated Gene Ontology terms
+
+```{r}
+# Bubble plot, downregulated processes
+pdf(file="../GO-enrichment/Final-DAVID/Downregulated-GO-bubble.pdf", height = 4, width = 5.75)
+david %>% 
+#  filter(count>=3) %>% 
+  filter(p_value<0.05) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+#  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
+  filter(response=="Downregulated") %>% 
+
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4", 
+                              "Cold"=lighten("navyblue", 0.45),
+                              "Cold-OA"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Downregulated Biological Processes\n(GO terms)")
+dev.off()
+```
+MAKE UNIPROT BUBBLE PLOTS FOR PRESENTATION - ONLY WARMING AND ACIDIFICATION temperatureS
+
+```{r}
+david %>% 
+  filter(p_value<0.05) %>%
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+  filter(response=="Upregulated") %>% 
+
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  filter(stress %!in% c("Cold", "Cold-OA")) %>%
+  mutate(stress = factor(stress, c("Warm", "Warm-OA", "OA"), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Upregulated Biological Processes")
+
+
+
+david %>% 
+  filter(p_value<0.05) %>%
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  group_by(stress, response, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
+  filter(response=="Downregulated") %>% 
+  ungroup() %>% arrange(stress, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  filter(stress %!in% c("Cold", "Cold-OA")) %>%
+  mutate(stress = factor(stress, c("Warm", "Warm-OA", "OA"), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=stress, col=stress)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("OA"=lighten("darkorange2", 0.25), 
+                              "Warm"=lighten("firebrick4", 0.45), 
+                              "Warm-OA"="firebrick4"),
+             guide = guide_legend(order = 1, override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        #legend.position = "none", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Downregulated Biological Processes")
+```
+
+
+
+
+
+
+
+
+
+Enriched GO biological processes - Network Diagrams using metacoder
+
+Here I prep R objects from GO enrichment results to visualize in network plots - the visualization is done in RStudio Cloud, as it requires a specific older version of R and some R packages. 
+
+```{r}
+filenames <- read_delim(file="../GO-enrichment/GO_filenames_upregulated.txt", delim = "\t", col_names = c("filename", "gene_set"))
+file_list <- vector(mode = "list", length = nrow(filenames))
+names(file_list) <- c(filenames$gene_set)
+
+for (i in 1:nrow(filenames)) {
+    file_list[[i]] <- data.frame(read_delim(file=paste("../GO-enrichment/", filenames[i,"filename"], sep=""), delim = "\t"))}
+
+enriched.bp.degs.network <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>%  # Bind dataframe for each gene_set together
+    #filter(category=="GOTERM_BP_DIRECT") %>%
+    filter(p_value<0.05) %>%
+    dplyr::rename(percent=x) %>%
+    separate(term, into = c("go", "process"), sep = "~") %>%
+    separate(gene_set, sep = "_", into = c("contrast", "upregulated"), remove = F) %>%
+    mutate(contrast=factor(contrast, ordered = TRUE,
+                           levels=c("AmbvsLow.3C", "AmbvsLow.6C", "AmbvsLow.10C", 
+                                    "3vs6.Amb-pH", "3vs6.Low-pH",
+                                    "3vs10.Amb-pH", "3vs10.Low-pH",
+                                    "6vs10.Amb-pH", "6vs10.Low-pH"))) %>% #Convert gene_set column to factor, define all gene_sets levels
+  #tidyr::complete(contrast, upregulated, category) %>% # add rows for gene_sets that are missing from dataframe
+  mutate(upregulated=factor(upregulated, levels = c("3C", "6C", "10C", "Ambient-pH", "Low-pH"), ordered = T)) %>%
+# 
+#   # remove upregulated temperature that doesn't exist in given contrast
+#   filter(!( (contrast=="AmbvsLow.3C" | contrast=="AmbvsLow.6C"| contrast=="AmbvsLow.10C") & (upregulated=="3C" | upregulated=="6C" | upregulated=="10C"))) %>%
+#   filter(!( (contrast=="3vs6.Amb-pH" | contrast=="3vs10.Amb-pH" | contrast=="6vs10.Amb-pH" | contrast=="3vs6.Low-pH" | contrast=="3vs10.Low-pH" | contrast=="6vs10.Low-pH") & (upregulated=="Ambient-pH" | upregulated=="Low-pH"))) %>%
+#   filter(!( (contrast=="3vs6.Amb-pH" | contrast=="3vs6.Low-pH") & upregulated=="10C")) %>%
+#   filter(!( (contrast=="3vs10.Amb-pH" | contrast=="3vs10.Low-pH") & upregulated=="6C")) %>%
+#   filter(!( (contrast=="6vs10.Amb-pH" | contrast=="6vs10.Low-pH") & upregulated=="3C")) %>%
+  
+  separate(contrast, sep="\\.", into = c("comparison", "background"), remove = FALSE) %>% select(-comparison) %>%
+  mutate(background=factor(background, ordered = T, levels=c("Low-pH", "Amb-pH", "3C", "6C", "10C")))
+
+# Save R object to then import to RStudio Cloud for use in metacoder 
+save(enriched.bp.degs.network, file="../GO-enrichment/enriched.bp.degs.network")
+
+enriched.bp.degs.network
+enriched.bp.linear.nonlinear_all
+```
+
+Which biological processes are enriched in genes associated with fish length? 
+
+```{r}
+# Copy Uniprot IDs for length-associated genes
+gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names) %>%
+  filter(gene_gadmor %in% genes.length) %>% View()
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# BACKGROUND - all genes submitted to DESeq2 analysis 
+enrich.background %>% write_clip(allow_non_interactive = TRUE)
+
+david.length <- data.frame(read_delim(file="../GO-enrichment/Final-DAVID/Length-associated-genes.txt", delim = "\t")) %>% 
+  clean_names() %>% 
+    filter(p_value<0.05) %>%
+    dplyr::rename(percent=x) %>%
+    separate(term, into = c("term", "process"), sep = "~")
+
+# Look at enriched Uniprot Keywords or Gene Ontology terms (biological processes)
+david.length %>% 
+  #filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  filter(category=="GOTERM_BP_DIRECT", count>=3) %>%  
+  arrange(p_value) %>%
+  mutate_at(c("p_value", "fdr"), funs(signif(.,2))) %>%
+  dplyr::select(term, process, count, p_value, fdr, genes) %>%
+  write_clip()
+```
+
+```{r}
+david %>% 
+  filter(gene_set%in%c("Cold_Downregulated", "Cold_Upregulated")) %>%
+  View()
+```
+
+
+
+
+# Lots of old bubble plot code 
+
+### Bubble plot of enriched GO term Biological Processes
+
+single stressor vs. combined stressor, DOWNREGULATED 
+
+```{r}
+pdf(file="../GO-enrichment/GO-enriched-BP-DOWNREGULATED-bubble.pdf", height = 7, width = 7)
+
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+#  filter(fdr<0.1) %>%
+  filter(p_value<0.05) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+  #filter(category=="GOTERM_MF_DIRECT") %>%
+
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.degs.upregulated %>% select(contrast, upregulated, category, background, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:15) %>%
+
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.6C" ~ "High pCO2",
+      x == "3vs6.Amb-pH" ~ "Cold Temperature",
+      x == "6vs10.Amb-pH" ~ "Warm Temperature",
+      x == "6ambvs3low" ~ "Cold Temperature + High pCO2", 
+      x == "6ambvs10low" ~ "Warm Temperature + High pCO2")}) %>%
+  mutate(group=factor(group, ordered=TRUE, 
+                      levels=c("High pCO2", "Warm Temperature", "Warm Temperature + High pCO2",
+                               "Cold Temperature", "Cold Temperature + High pCO2"))) %>% 
+
+  mutate(upregulated=factor(upregulated, ordered = TRUE)) %>% 
+  
+  # Add column indicating that all responses upregulated in 6amb are downregulated in the stressors 
+  mutate(Response=case_when(upregulated == "6amb" ~ "Downregulated", TRUE ~ "Upregulated")) %>%
+
+  filter(upregulated=="6amb") %>% # Filter for only genes that were upregulated in optimal conditions (6amb) aka downregulated in stressor
+
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+#  ungroup() %>% arrange(term) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=group, col=group)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("High pCO2"=lighten("darkorange2", 0.25), 
+                              "Warm Temperature"=lighten("firebrick4", 0.45), 
+                              "Warm Temperature + High pCO2"="firebrick4", 
+                              "Cold Temperature"=lighten("navyblue", 0.45),
+                              "Cold Temperature + High pCO2"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Downregulated Biological Processes\n(GO terms)") +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) #+
+  coord_cartesian(clip = "off", ylim = c(-3, 53)) +
+  annotate("text", x = 1, y = -1.3, label = "OA", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -1.3, label = "Warm", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -1.3, label = "Warm +\nOA", size=2.5, col="gray15") +
+  annotate("text", x = 4, y = -1.3, label = "Cold", size=2.5, col="gray15") +
+  annotate("text", x = 5, y = -1.3, label = "Cold +\nOA", size=2.5, col="gray15") +
+
+  annotate("text", x = 3, y = 52, label = "Downregulated Biological Processes\n(GO terms)", size=3, col="gray15")
+dev.off()
+```
+
+single stressor vs. combined stressor, UPREGULATED 
+
+```{r}
+pdf(file="../GO-enrichment/GO-enriched-BP-UPREGULATED-bubble.pdf", height = 7, width = 7)
+
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+#  filter(fdr<0.1) %>%
+  filter(p_value<0.01) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+  #filter(category=="GOTERM_MF_DIRECT") %>%
+
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.degs.upregulated %>% select(contrast, upregulated, category, background, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:15) %>%
+
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.6C" ~ "High pCO2",
+      x == "3vs6.Amb-pH" ~ "Cold Temperature",
+      x == "6vs10.Amb-pH" ~ "Warm Temperature",
+      x == "6ambvs3low" ~ "Cold Temperature + High pCO2", 
+      x == "6ambvs10low" ~ "Warm Temperature + High pCO2")}) %>%
+  mutate(group=factor(group, ordered=TRUE, 
+                      levels=c("High pCO2", "Warm Temperature", "Warm Temperature + High pCO2",
+                               "Cold Temperature", "Cold Temperature + High pCO2"))) %>% 
+
+  mutate(upregulated=factor(upregulated, ordered = TRUE)) %>% #, levels = c("Low-pH", "Ambient-pH")
+  
+  # Add column indicating that all responses upregulated in 6amb are downregulated in the stressors 
+  mutate(Response=case_when(upregulated == "6amb" ~ "Downregulated", TRUE ~ "Upregulated")) %>%
+
+  filter(upregulated !="6amb") %>% # Filter for only genes that were NOT upregulated in optimal conditions (6amb) aka upregulated in stressor
+
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+#  ungroup() %>% arrange(term) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=group, col=group)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("High pCO2"=lighten("darkorange2", 0.25), 
+                              "Warm Temperature"=lighten("firebrick4", 0.45), 
+                              "Warm Temperature + High pCO2"="firebrick4", 
+                              "Cold Temperature"=lighten("navyblue", 0.45),
+                              "Cold Temperature + High pCO2"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Upregulated Biological Processes\n(GO terms)") +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) #+
+  coord_cartesian(clip = "off", ylim = c(-3, 53)) +
+  annotate("text", x = 1, y = -1.3, label = "OA", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -1.3, label = "Warm", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -1.3, label = "Warm +\nOA", size=2.5, col="gray15") +
+  annotate("text", x = 4, y = -1.3, label = "Cold", size=2.5, col="gray15") +
+  annotate("text", x = 5, y = -1.3, label = "Cold +\nOA", size=2.5, col="gray15") +
+
+  annotate("text", x = 3, y = 52, label = "Upregulated Biological Processes\n(GO terms)", size=3, col="gray15")
+dev.off()
+```
+
+```{r}
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+#  filter(fdr<0.1) %>%
+  filter(p_value<0.05) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% View()
+  filter(contrast=="AmbvsLow.6C", upregulated=="6low")
+```
+
+
+### Bubble plot of enriched Uniprot Keyword Biological Processes
+
+single stressor vs. combined stressor, up & down regulated
+
+```{r}
+pdf(file="../GO-enrichment/Enriched-Uniprot-Keywords_single-vs-double-stressors_Bubble-plot.pdf", height = 8, width = 4.25)
+
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  #filter(category=="UP_KW_CELLULAR_COMPONENT") %>%
+
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.degs.upregulated %>% select(contrast, upregulated, category, background, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>%
+  #dplyr::slice(1:15) %>%
+
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.6C" ~ "High pCO2",
+      x == "3vs6.Amb-pH" ~ "Cold Temperature",
+      x == "6vs10.Amb-pH" ~ "Warm Temperature",
+      x == "6ambvs3low" ~ "Cold Temperature + High pCO2", 
+      x == "6ambvs10low" ~ "Warm Temperature + High pCO2")}) %>%
+  mutate(group=factor(group, ordered=TRUE, 
+                      levels=c("Cold Temperature", "Cold Temperature + High pCO2",
+                               "Warm Temperature", "Warm Temperature + High pCO2",
+                               "High pCO2"))) %>% 
+
+  mutate(upregulated=factor(upregulated, ordered = TRUE)) %>% #, levels = c("Low-pH", "Ambient-pH")
+
+  # Add column indicating that all responses upregulated in 6amb are downregulated in the stressors 
+  mutate(Response=case_when(upregulated == "6amb" ~ "Downregulated", TRUE ~ "Upregulated")) %>%
+
+  #ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  ungroup() %>% arrange(upregulated, term) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=contrast, col=Response)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2, 
+            labeller = as_labeller(c(`GOTERM_BP_DIRECT`="Enriched Uniprot Keywords\nBiological Processes"))) +
+ scale_color_manual(name="Response to Stressor",
+                    values=c(`Upregulated`="dodgerblue4",
+                             `Downregulated`="firebrick4"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  coord_cartesian(clip = "off", ylim = c(-2, 53.5)) +
+  ggtitle(NULL) +
+  geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), size=.1, color="gray75") +
+  annotate("text", x = 1, y = -1, label = "OA", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -1, label = "Cold", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -1, label = "Cold\n+OA", size=2.5, col="gray15") +
+  annotate("text", x = 4, y = -1, label = "Warm", size=2.5, col="gray15") +
+  annotate("text", x = 5, y = -1, label = "Warm\n+OA", size=2.5, col="gray15") +
+  ggtitle("Enriched Uniprot Keywords\nBiological Processes") #+
+  # annotate("text", x = 3, y = 55, label = "Enriched Uniprot Keywords\nBiological Processes", size=3, col="gray15") #+
+  # annotate("text", x = 2, y = 53.5, label = "Ambient vs. Low pH contrasts", size=3.25, col="gray15", fontface = 'bold') +
+  # annotate("text", x = 2, y = 52, label = "by temperature", size=3, col="gray15", fontface = 'italic')
+dev.off()
+```
+
+single stressor vs. combined stressor
+
+DOWNREGULATED ONLY 
+
+```{r}
+pdf(file="../GO-enrichment/Enriched-Uniprot-Keywords_single-vs-double-stressors_Bubble-plot-DOWNREGULATED.pdf", height = 5.85, width = 4.8)
+
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  #filter(category=="UP_KW_CELLULAR_COMPONENT") %>%
+
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.degs.upregulated %>% select(contrast, upregulated, category, background, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>%
+  #dplyr::slice(1:15) %>%
+
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.6C" ~ "High pCO2",
+      x == "3vs6.Amb-pH" ~ "Cold Temperature",
+      x == "6vs10.Amb-pH" ~ "Warm Temperature",
+      x == "6ambvs3low" ~ "Cold Temperature + High pCO2", 
+      x == "6ambvs10low" ~ "Warm Temperature + High pCO2")}) %>%
+  mutate(group=factor(group, ordered=TRUE, 
+                      levels=c("High pCO2", "Warm Temperature", "Warm Temperature + High pCO2",
+                               "Cold Temperature", "Cold Temperature + High pCO2"))) %>% 
+
+  mutate(upregulated=factor(upregulated, ordered = TRUE)) %>% #, levels = c("Low-pH", "Ambient-pH")
+
+  # Add column indicating that all responses upregulated in 6amb are downregulated in the stressors 
+  mutate(Response=case_when(upregulated == "6amb" ~ "Downregulated", TRUE ~ "Upregulated")) %>%
+
+  filter(upregulated=="6amb") %>% # Filter for only genes that were upregulated in optimal conditions (6amb) aka downregulated in stressor
+
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  #ungroup() %>% arrange(upregulated, term) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  
+ggplot(aes(y = process, x=group, col=group)) + 
+ geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("High pCO2"=lighten("darkorange2", 0.25), 
+                              "Warm Temperature"=lighten("firebrick4", 0.45), 
+                              "Warm Temperature + High pCO2"="firebrick4", 
+                              "Cold Temperature"=lighten("navyblue", 0.45),
+                              "Cold Temperature + High pCO2"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  guides(colour = guide_legend(override.aes = list(size=4, linetype="blank"), order=1)) +
+  coord_cartesian(clip = "off", ylim = c(-2, 35.5)) +
+  ggtitle(NULL) +
+  geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), size=.1, color="gray75") +
+  annotate("text", x = 1, y = -1, label = "OA", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -1, label = "Warm", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -1, label = "Warm\n+OA", size=2.5, col="gray15") +
+  annotate("text", x = 4, y = -1, label = "Cold", size=2.5, col="gray15") +
+  annotate("text", x = 5, y = -1, label = "Cold\n+OA", size=2.5, col="gray15") +
+  ggtitle("Downregulated Biological Processes\n(Enriched Uniprot Keywords)")
+dev.off()
+```
+
+UPREGULATED ONLY 
+
+```{r}
+pdf(file="../GO-enrichment/Enriched-Uniprot-Keywords_single-vs-double-stressors_Bubble-plot-UPREGULATED.pdf", height = 4.4, width = 4.5)
+
+enriched.degs.upregulated %>% filter(count>=3) %>% 
+  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>% View()
+  #filter(category=="UP_KW_CELLULAR_COMPONENT") %>%
+
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.degs.upregulated %>% select(contrast, upregulated, category, background, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>%
+  #dplyr::slice(1:15) %>%
+
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.6C" ~ "High pCO2",
+      x == "3vs6.Amb-pH" ~ "Cold Temperature",
+      x == "6vs10.Amb-pH" ~ "Warm Temperature",
+      x == "6ambvs3low" ~ "Cold Temperature + High pCO2", 
+      x == "6ambvs10low" ~ "Warm Temperature + High pCO2")}) %>%
+  mutate(group=factor(group, ordered=TRUE, 
+                      levels=c("High pCO2", "Warm Temperature", "Warm Temperature + High pCO2",
+                               "Cold Temperature", "Cold Temperature + High pCO2"))) %>% 
+
+  mutate(upregulated=factor(upregulated, ordered = TRUE)) %>% #, levels = c("Low-pH", "Ambient-pH")
+
+  # Add column indicating that all responses upregulated in 6amb are downregulated in the stressors 
+  mutate(Response=case_when(upregulated == "6amb" ~ "Downregulated", TRUE ~ "Upregulated")) %>%
+
+  filter(upregulated!="6amb") %>% # Filter for only genes that were upregulated in optimal conditions (6amb) aka downregulated in stressor
+
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  #ungroup() %>% arrange(upregulated, term) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  
+ggplot(aes(y = process, x=group, 
+           #col=Response,
+           col=group)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+ scale_color_manual(name="Stressor",
+                     values=c("High pCO2"=lighten("darkorange2", 0.25), 
+                              "Warm Temperature"=lighten("firebrick4", 0.45), 
+                              "Warm Temperature + High pCO2"="firebrick4", 
+                              "Cold Temperature"=lighten("navyblue", 0.45),
+                              "Cold Temperature + High pCO2"="navyblue"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  coord_cartesian(clip = "off", ylim = c(-2, 24.5)) +
+  ggtitle(NULL) +
+  geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), size=.1, color="gray75") +
+  annotate("text", x = 1, y = -1, label = "OA", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -1, label = "Warm", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -1, label = "Warm\n+OA", size=2.5, col="gray15") +
+  annotate("text", x = 4, y = -1, label = "Cold", size=2.5, col="gray15") +
+  annotate("text", x = 5, y = -1, label = "Cold\n+OA", size=2.5, col="gray15") +
+  ggtitle("Upregulated Biological Processes\n(Enriched Uniprot Keywords)")
+dev.off()
+```
+
+Enriched GO biological processes - Network Diagrams using metacoder
+
+Here I save an R objects from GO enrichment results of the DEGs in response to single and combined stressors to visualize in network plots - the visualization is done in RStudio Cloud, as it requires a specific older version of R and some R packages. 
+
+```{r}
+# Save R object to then import to RStudio Cloud for use in metacoder 
+save(enriched.degs.upregulated, file="../GO-enrichment/enriched.degs.upregulated")
+```
+
+```{r}
+enriched.degs.upregulated %>% filter(category=="GOTERM_BP_DIRECT") %>% filter(count>=3, p_value<0.05) %>%
+  filter(contrast %in% c("AmbvsLow.6C", "6vs10.Amb-pH")) %>% 
+#  group_by(contrast, upregulated) %>% tally() 
+# filter(contrast=="6vs10.Amb-pH", upregulated=="10amb") %>% arrange(p_value) #upregulated in warming
+# filter(contrast=="6vs10.Amb-pH", upregulated=="6amb") %>% arrange(p_value)  #downregulated in warming
+#  filter(contrast=="AmbvsLow.6C", upregulated=="6low") %>% arrange(p_value) #upregulated in OA
+  filter(contrast=="AmbvsLow.6C", upregulated=="6amb") %>% arrange(p_value) #downregulated in OA
+```
+
+#### Temperature contrasts for each pH 
+
+```{r}
+pdf(file="../GO-enrichment/BP-temperature-upregulated-enriched-bubble.pdf", height = 16, width = 8)
+
+enriched.bp.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.bp.degs.upregulated %>% select(contrast, upregulated, category, background, go, process, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>% 
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  #mutate(upregulated=factor(upregulated, ordered = TRUE, levels = c("Low-pH", "Ambient-pH"))) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+  
+ggplot(aes(y = process, x=contrast, col=upreg_ph)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2, labeller = as_labeller(c(`GOTERM_BP_DIRECT`="Enriched Biological Processes\nAmbient vs. Low pH\nby temperature"))) +
+  scale_color_manual(name="Upregulated",
+                     values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+                              "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+                              "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+                     guide = guide_legend(override.aes = list(size=4))) +
+  #scale_color_manual(guide="none", values=c("#ffffb3","#8dd3c7","#bebada")) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  coord_cartesian(clip = "off", ylim = c(-6, 108)) +
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 3, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 4, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 5, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 6, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) +
+
+  annotate("text", x = 1.5, y = -5, label = "3°C vs. 6°C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 3.5, y = -5, label = "3°C vs. 10°C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 5.5, y = -5, label = "6°C vs. 10°C", size=2.75, col="gray15", fontface = 'bold') +  
+  
+  annotate("text", x = 3.5, y = 108, label = "Enriched Biological Processes", size=3, col="gray15") +
+  annotate("text", x = 3.5, y = 106.5, label = "Temperature contrasts", size=3.25, col="gray15", fontface = 'bold') +
+  annotate("text", x = 3.5, y = 105, label = "by pH", size=3, col="gray15", fontface = 'italic') +
+  geom_segment(aes(x = 2.5, y = -6, xend = 2.5, yend = 104), linetype="dashed", color = "gray65", size=0.75) +
+  geom_segment(aes(x = 4.5, y = -6, xend = 4.5, yend = 104), linetype="dashed", color = "gray65", size=0.75)
+dev.off()
+```
+
+Wow- that bubble plot showing enriched bio. functions among temperature contrasts is huge. Break it up into 3 diff. temperature plots? 
+
+```{r}
+# 3C vs. 6C contrasts 
+pdf(file="../GO-enrichment/BP-3vs6-upregulated-enriched-bubble.pdf", height = 9, width = 6.5)
+
+enriched.bp.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.bp.degs.upregulated %>% select(contrast, upregulated, category, background, go, process, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>% 
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  #mutate(upregulated=factor(upregulated, ordered = TRUE, levels = c("Low-pH", "Ambient-pH"))) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+
+  filter(grepl("3", contrast)) %>% filter(grepl("6", contrast)) %>%  #filter for 3 vs 6 contrasts
+  
+ggplot(aes(y = process, x=contrast, col=upreg_ph)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+  scale_color_manual(name="Upregulated",
+                     values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+                              "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+                              "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+                     guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  coord_cartesian(clip = "off", ylim = c(-2, 50)) +
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -.5, label = "Low", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 1.5, y = -1.75, label = "3C vs. 6C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 50, label = "Enriched Biological Processes", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 48.5, label = "3C vs 6C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+```{r}
+# 3C vs. 10C contrasts 
+pdf(file="../GO-enrichment/BP-3vs10-upregulated-enriched-bubble.pdf", height = 9, width = 6.5)
+
+enriched.bp.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.bp.degs.upregulated %>% select(contrast, upregulated, category, background, go, process, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>% 
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+
+  filter(grepl("3", contrast)) %>% filter(grepl("10", contrast)) %>%  #filter for 3 vs 10 contrasts
+  
+ggplot(aes(y = process, x=contrast, col=upreg_ph)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + 
+ facet_wrap(~category,scales="free", nrow = 2) + 
+  scale_color_manual(name="Upregulated",
+                     values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+                              "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+                              "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+                     guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), 
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+  coord_cartesian(clip = "off", ylim = c(-2, 45)) +
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -.5, label = "Low", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 1.5, y = -1.75, label = "3C vs. 10C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 45, label = "Enriched Biological Processes", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 43.5, label = "3C vs 10C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+
+```{r}
+# 6C vs. 10C contrasts 
+pdf(file="../GO-enrichment/BP-6vs10-upregulated-enriched-bubble.pdf", height = 9, width = 6.5)
+
+enriched.bp.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.bp.degs.upregulated %>% select(contrast, upregulated, category, background, go, process, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>% 
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+
+  filter(grepl("6", contrast)) %>% filter(grepl("10", contrast)) %>%  #filter for 6 vs 10 contrasts
+  
+ggplot(aes(y = process, x=contrast, col=upreg_ph)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) +
+ facet_wrap(~category,scales="free", nrow = 2) + 
+  scale_color_manual(name="Upregulated",
+                     values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+                              "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+                              "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+                     guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), 
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) +
+
+  coord_cartesian(clip = "off", ylim = c(-2, 59.5)) + #set plot dimensions
+  
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -.5, label = "Amb", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -.5, label = "Low", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 1.5, y = -1.75, label = "6C vs. 10C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 59.5, label = "Enriched Biological Processes", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 58, label = "6C vs 10C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+#### Enriched Uniprot Keywords 
+
+```{r}
+enriched.results <- function(contrast1, upreg, david.category, GO.results, GO.type, alpha, ngenes) {
+  
+  print(GO.results %>%
+      filter(category == david.category) %>% 
+      filter(contrast %in% contrast1) %>% 
+      filter(upregulated %in% upreg) %>%
+      filter(count>=ngenes) %>%
+      filter(fdr<alpha) %>% 
+      select(contrast, upregulated, go, process, p_value) %>% 
+      arrange(upregulated, p_value))
+}
+
+enriched.results(contrast1 = ,)
+
+# Uniprot Keywords: "UP_KW_BIOLOGICAL_PROCESS"
+# GO Biological Processes: "GOTERM_BP_DIRECT"
+
+enriched.results(contrast1 = "AmbvsLow.6C", upreg = c("Ambient-pH", "Low-pH"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+
+enriched.results(contrast1 = "3vs6.Amb-pH", upreg = c("3C", "6C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+enriched.results(contrast1 = "3vs6.Low-pH", upreg = c("3C", "6C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+
+enriched.results(contrast1 = "3vs10.Amb-pH", upreg = c("3C", "10C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+enriched.results(contrast1 = "3vs10.Low-pH", upreg = c("3C", "10C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+
+enriched.results(contrast1 = "6vs10.Amb-pH", upreg = c("6C", "10C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+enriched.results(contrast1 = "6vs10.Low-pH", upreg = c("6C", "10C"), david.category = "UP_KW_BIOLOGICAL_PROCESS", GO.results = enriched.bp.degs.network, alpha = 0.1, ngenes=3) %>% write_clip()
+
+
+```
+
+### Uniprot Keyword Bubble Plots
+
+```{r}
+#### Read in enriched Uniprot Keyword biological processes for all contrasts
+
+filenames <- read_delim(file="../GO-enrichment/GO_filenames_upregulated.txt", delim = "\t", col_names = c("filename", "gene_set"))
+file_list <- vector(mode = "list", length = nrow(filenames))
+names(file_list) <- c(filenames$gene_set)
+
+for (i in 1:nrow(filenames)) {
+    file_list[[i]] <- data.frame(read_delim(file=paste("../GO-enrichment/", filenames[i,"filename"], sep=""), delim = "\t"))}
+
+enriched.kw.degs.upregulated <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>%  # Bind dataframe for each gene_set together
+    filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+    filter(p_value<0.05) %>%
+    dplyr::rename(percent=x) %>%
+    separate(term, into = c("kw_id", "kw"), sep = "~") %>%
+    separate(gene_set, sep = "_", into = c("contrast", "upregulated"), remove = F) %>%
+    mutate(contrast=factor(contrast, ordered = TRUE,
+                           levels=c("AmbvsLow.3C", "AmbvsLow.6C", "AmbvsLow.10C", 
+                                    "3vs6.Amb-pH", "3vs6.Low-pH",
+                                    "3vs10.Amb-pH", "3vs10.Low-pH",
+                                    "6vs10.Amb-pH", "6vs10.Low-pH"))) %>% #Convert gene_set column to factor, define all gene_sets levels
+  tidyr::complete(contrast, upregulated, category) %>% # add rows for gene_sets that are missing from dataframe
+  mutate(upregulated=factor(upregulated, levels = c("3C", "6C", "10C", "Ambient-pH", "Low-pH"), ordered = T)) %>%
+
+  # remove upregulated temperature that doesn't exist in given contrast
+  filter(!( (contrast=="AmbvsLow.3C" | contrast=="AmbvsLow.6C"| contrast=="AmbvsLow.10C") & (upregulated=="3C" | upregulated=="6C" | upregulated=="10C"))) %>%
+  filter(!( (contrast=="3vs6.Amb-pH" | contrast=="3vs10.Amb-pH" | contrast=="6vs10.Amb-pH" | contrast=="3vs6.Low-pH" | contrast=="3vs10.Low-pH" | contrast=="6vs10.Low-pH") & (upregulated=="Ambient-pH" | upregulated=="Low-pH"))) %>%
+  filter(!( (contrast=="3vs6.Amb-pH" | contrast=="3vs6.Low-pH") & upregulated=="10C")) %>%
+  filter(!( (contrast=="3vs10.Amb-pH" | contrast=="3vs10.Low-pH") & upregulated=="6C")) %>%
+  filter(!( (contrast=="6vs10.Amb-pH" | contrast=="6vs10.Low-pH") & upregulated=="3C")) %>%
+  
+  separate(contrast, sep="\\.", into = c("comparison", "background"), remove = FALSE) %>% select(-comparison) %>%
+  mutate(background=factor(background, ordered = T, levels=c("Low-pH", "Amb-pH", "3C", "6C", "10C")))
+```
+
+#### Enriched Uniprot Keyword Bubble Plot - Ambient vs Low pH @ 6C 
+
+```{r}
+pdf(file="../GO-enrichment/Keywords-pH-upregulated-enriched-bubble.pdf", height = 5, width = 4)
+
+enriched.kw.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.kw.degs.upregulated %>% select(contrast, upregulated, category, background, kw_id, kw, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:25) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>% 
+  filter(background %in% c("3C","6C","10C")) %>%
+  mutate(upregulated=factor(upregulated, ordered = TRUE, levels = c("Low-pH", "Ambient-pH"))) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(kw = factor(kw, rev(unique(kw)), ordered = TRUE)) %>%
+
+ggplot(aes(y = kw, x=contrast, col=upregulated)) + 
+  geom_point(alpha=0.5, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+  scale_color_manual(name="Upregulated", values=c(`Ambient-pH`="#2c7bb6", `Low-pH`="#d7191c"),
+             guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Uniprot Keywords") + xlab(NULL) +
+  
+  # Set plot dimensions
+  coord_cartesian(clip = "off", ylim = c(-.1, 28)) +
+  
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -.05, label = "3C", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = -.05, label = "6C", size=2.5, col="gray15") +
+  annotate("text", x = 3, y = -.05, label = "10C", size=2.5, col="gray15") +
+  annotate("text", x = 2, y = 28, label = "Enriched Uniprot Keywords", size=3, col="gray15") + 
+  annotate("text", x = 2, y = 27, label = "Ambient vs. Low pH contrasts", size=3.25, col="gray15", fontface = 'bold') + 
+  annotate("text", x = 2, y = 26, label = "by temperature", size=3, col="gray15", fontface = 'italic') +
+  geom_segment(aes(x = 1.5, y = -.5, xend = 1.5, yend = 25), linetype="solid", color = "gray65", size=0.25) +
+  geom_segment(aes(x = 2.5, y = -.5, xend = 2.5, yend = 25), linetype="solid", color = "gray65", size=0.25)
+dev.off()
+```
+
+#### Enriched Uniprot Keyword Bubble Plot - 3C vs. 6C
+
+```{r}
+# 3C vs. 6C contrasts 
+#pdf(file="../GO-enrichment/Keywords-3vs6-upregulated-enriched-bubble.pdf", height = 6.25, width = 4)
+pdf(file="../GO-enrichment/Keywords-3vs6-upregulated-enriched-bubble-simplecolors.pdf", height = 6.25, width = 4)
+
+# prepare data for bubble plot
+enriched.kw.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.kw.degs.upregulated %>% select(contrast, upregulated, category, background, kw_id, kw, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:10) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(kw = factor(kw, rev(unique(kw)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+  filter(grepl("3", contrast)) %>% filter(grepl("6", contrast)) %>% droplevels() %>% #filter for 3 vs 6 contrasts
+  mutate(upreg_ph=factor(upreg_ph, ordered=TRUE, levels=c("3C Amb-pH", "6C Amb-pH", "3C Low-pH", "6C Low-pH"))) %>% 
+
+# Plot  
+ggplot(aes(y = kw, x=contrast, 
+#           col=upreg_ph)) + 
+           col=upregulated)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) +
+ facet_wrap(~category,scales="free", nrow = 2) + 
+  scale_color_manual(
+       # name="Upregulated",
+       # values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+       # "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+       # "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+       name=NULL,
+       values=c("3C"= "navyblue", "6C"="darkgreen"), 
+       labels=c("3C"="Upregulated in 3C", "6C"="Downregulated in 3C"),
+       guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), 
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Uniprot Keyword") + xlab(NULL) +
+
+  coord_cartesian(clip = "off", ylim = c(-1.75, 36)) + #set plot dimensions
+  
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -.75, label = "Amb pH", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -.75, label = "Low pH", size=2.75, col="gray15", angle=90) +
+  #annotate("text", x = 1.5, y = -1.75, label = "3C vs. 6C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 36, label = "Enriched Uniprot Keywords", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 34.5, label = "3C vs 6C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+#### Enriched Uniprot Keyword Bubble Plot - 3C vs. 10C
+
+```{r}
+# # 3C vs. 10C contrasts 
+# pdf(file="../GO-enrichment/Keywords-3vs10-upregulated-enriched-bubble.pdf", height = 8.5, width = 4)
+# 
+# # prepare data for bubble plot
+# enriched.kw.degs.upregulated %>% 
+#   group_by(contrast, upregulated, genes, count) %>%
+#   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+#   left_join(enriched.kw.degs.upregulated %>% select(contrast, upregulated, category, background, kw_id, kw, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+#   ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:15) %>%
+#   mutate(group=contrast) %>%
+#   mutate_at("group", function(x) {
+#     case_when(
+#       x == "AmbvsLow.3C" ~ "pH",
+#       x == "AmbvsLow.6C" ~ "pH",
+#       x == "AmbvsLow.10C" ~ "pH",
+#       x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+#       x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+#       x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+#       x == "3vs6.Low-pH" ~ "Temp, Low pH",
+#       x == "3vs10.Low-pH" ~ "Temp, Low pH",
+#       x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+#   filter(background %in% c("Low-pH","Amb-pH")) %>%
+#   ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+#   mutate(kw = factor(kw, rev(unique(kw)), ordered = TRUE)) %>%
+#   mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+#   filter(grepl("3", contrast)) %>% filter(grepl("10", contrast)) %>% droplevels() %>% #filter for 3 vs 10 contrasts
+#   mutate(upreg_ph=factor(upreg_ph, ordered=TRUE, levels=c("10C Amb-pH", "3C Amb-pH", "10C Low-pH", "3C Low-pH"))) %>% 
+# 
+# # Plot  
+# ggplot(aes(y = kw, x=contrast, col=upreg_ph)) + 
+#   geom_point(alpha=0.65, aes(size=-log10(p_value))) +
+#  facet_wrap(~category,scales="free", nrow = 2) + 
+#   scale_color_manual(name="Upregulated",
+#                      values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+#                               "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+#                               "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+#                      guide = guide_legend(override.aes = list(size=4))) +
+#   scale_size("-Log10 P-value", range = c(2,8), 
+#              guide = guide_legend(override.aes = list(col="gray50"))) +
+#   scale_x_discrete(drop=T) + #Do drop empty factors
+#   theme_cleveland() + 
+#   theme(
+#         legend.position = "right", 
+#         axis.text.x=element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.text.y=element_text(size=7.25), 
+#         plot.title = element_text(size=10),
+#         legend.text=element_text(size=6), 
+#         legend.title = element_text(size=6),
+#         strip.background = element_blank(),
+#         strip.text.x = element_blank()) +
+#   ylab("Enriched Uniprot Keyword") + xlab(NULL) +
+# 
+#   coord_cartesian(clip = "off", ylim = c(-2, 56)) + #set plot dimensions
+#   
+#   ggtitle(NULL) +
+#   annotate("text", x = 1, y = -.75, label = "Amb pH", size=2.75, col="gray15", angle=90) +
+#   annotate("text", x = 2, y = -.75, label = "Low pH", size=2.75, col="gray15", angle=90) +
+#   #annotate("text", x = 1.5, y = -1.75, label = "3C vs. 10C", size=2.75, col="gray15", fontface = 'bold') +
+#   annotate("text", x = 1.5, y = 56, label = "Enriched Uniprot Keywords", size=3, col="gray15") +
+#   annotate("text", x = 1.5, y = 54.5, label = "3C vs 10C by pH", size=3.25, col="gray15", fontface = 'bold')
+# dev.off()
+```
+
+```{r}
+# 6C vs. 10C contrasts 
+#pdf(file="../GO-enrichment/Keywords-6vs10-upregulated-enriched-bubble.pdf", height = 6.5, width = 4)
+pdf(file="../GO-enrichment/Keywords-6vs10-upregulated-enriched-bubble-simplecolors.pdf", height = 6.5, width = 4)
+
+# prepare data for bubble plot
+enriched.kw.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.kw.degs.upregulated %>% select(contrast, upregulated, category, background, kw_id, kw, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  filter(background %in% c("Low-pH","Amb-pH")) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(kw = factor(kw, rev(unique(kw)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+  filter(grepl("6", contrast)) %>% filter(grepl("10", contrast)) %>% droplevels() %>% #filter for 6 vs 10 contrasts
+  mutate(upreg_ph=factor(upreg_ph, ordered=TRUE, levels=c("10C Amb-pH", "6C Amb-pH", "10C Low-pH", "6C Low-pH"))) %>% 
+
+# Plot  
+ggplot(aes(y = kw, x=contrast, 
+#           col=upreg_ph)) + 
+           col=upregulated)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) +
+ facet_wrap(~category,scales="free", nrow = 2) + 
+  scale_color_manual(
+   #  name="Upregulated",
+   #  values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+   #           "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+   #            "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+       name=NULL,
+       values=c("10C"= "firebrick4", "6C"="darkgreen"), 
+       labels=c("10C"="Upregulated in 10C", "6C"="Downregulated in 10C"),
+       guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), 
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Uniprot Keyword") + xlab(NULL) +
+
+  coord_cartesian(clip = "off", ylim = c(-2.5, 45)) + #set plot dimensions
+  
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -1, label = "Amb pH", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -1, label = "Low pH", size=2.75, col="gray15", angle=90) +
+  #annotate("text", x = 1.5, y = -1.75, label = "6C vs. 6C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 45, label = "Enriched Uniprot Keywords", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 43.5, label = "6C vs 10C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+```{r}
+# Single vs. Double Stressors 
+#pdf(file="../GO-enrichment/Keywords-6vs10-upregulated-enriched-bubble.pdf", height = 6.5, width = 4)
+#pdf(file="../GO-enrichment/Keywords-6vs10-upregulated-enriched-bubble-simplecolors.pdf", height = 6.5, width = 4)
+
+# prepare data for bubble plot
+enriched.kw.degs.upregulated %>% 
+  group_by(contrast, upregulated, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(enriched.kw.degs.upregulated %>% select(contrast, upregulated, category, background, kw_id, kw, count, percent, p_value, fold_enrichment, fdr, genes), by = c("contrast", "upregulated", "genes", "p_value", "count")) %>%  #re-add data
+  ungroup() %>% arrange(contrast, upregulated, p_value) %>% group_by(contrast, upregulated) %>% #dplyr::slice(1:15) %>%
+  mutate(group=contrast) %>%
+  mutate_at("group", function(x) {
+    case_when(
+      x == "AmbvsLow.3C" ~ "pH",
+      x == "AmbvsLow.6C" ~ "pH",
+      x == "AmbvsLow.10C" ~ "pH",
+      x == "3vs6.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "6vs10.Amb-pH" ~ "Temp, Amb pH",
+      x == "3vs6.Low-pH" ~ "Temp, Low pH",
+      x == "3vs10.Low-pH" ~ "Temp, Low pH",
+      x == "6vs10.Low-pH" ~ "Temp, Low pH")}) %>%
+  #filter(background %in% c("Low-pH","Amb-pH")) %>%
+  ungroup() %>% arrange(group, contrast, upregulated, p_value) %>%
+  mutate(kw = factor(kw, rev(unique(kw)), ordered = TRUE)) %>%
+  mutate(upreg_ph=factor(paste(upregulated, background, sep = " "))) %>%
+  filter(grepl("AmbvsLow.6C|3vs6.Amb-pH|6vs10.Amb-pH", contrast)) %>%  #filter for contrasts of interest
+    select(contrast) %>% unique()
+
+  mutate(upreg_ph=factor(upreg_ph, ordered=TRUE, levels=c("10C Amb-pH", "6C Amb-pH", "10C Low-pH", "6C Low-pH"))) %>% 
+
+# Plot  
+ggplot(aes(y = kw, x=contrast, 
+#           col=upreg_ph)) + 
+           col=upregulated)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) +
+ facet_wrap(~category,scales="free", nrow = 2) + 
+  scale_color_manual(
+   #  name="Upregulated",
+   #  values=c("3C Amb-pH"= "navyblue", "3C Low-pH"="royalblue1",
+   #           "6C Amb-pH"="darkgreen", "6C Low-pH"="yellow3",
+   #            "10C Amb-pH"="firebrick4", "10C Low-pH"="sienna2"),
+       name=NULL,
+       values=c("10C"= "firebrick4", "6C"="darkgreen"), 
+       labels=c("10C"="Upregulated in 10C", "6C"="Downregulated in 10C"),
+       guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), 
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=10),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ylab("Enriched Uniprot Keyword") + xlab(NULL) +
+
+  coord_cartesian(clip = "off", ylim = c(-2.5, 45)) + #set plot dimensions
+  
+  ggtitle(NULL) +
+  annotate("text", x = 1, y = -1, label = "Amb pH", size=2.75, col="gray15", angle=90) +
+  annotate("text", x = 2, y = -1, label = "Low pH", size=2.75, col="gray15", angle=90) +
+  #annotate("text", x = 1.5, y = -1.75, label = "6C vs. 6C", size=2.75, col="gray15", fontface = 'bold') +
+  annotate("text", x = 1.5, y = 45, label = "Enriched Uniprot Keywords", size=3, col="gray15") +
+  annotate("text", x = 1.5, y = 43.5, label = "6C vs 10C by pH", size=3.25, col="gray15", fontface = 'bold')
+dev.off()
+```
+
+## Deeper dive into effect of Warming, OA, Warming+OA using stricter Log2FC 
+
+```{r, include=F, echo=F, message=F}
+# BACKGROUND - all genes submitted to DESeq2 analysis 
+enrich.background %>% write_clip(allow_non_interactive = TRUE)
+
+### Effect of ACIDIFICATION as sole stressor 
+
+# enrich.Amb.Low.6 - LFC > 1.0 - LOWER IN LOW PH
+enrich.Amb.Low.6 %>%
+  filter(select(., contains("log2FoldChange"))>1) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# enrich.Amb.Low.6 - LFC < -1.0 - HIGHER IN LOW PH
+enrich.Amb.Low.6 %>%
+  filter(select(., contains("log2FoldChange"))<(-1)) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+### Effect of WARMING as sole stressor 
+
+# enrich.6.10.Amb - LFC > 1.0 - LOWER IN 10C
+enrich.6.10.Amb %>%
+  filter(select(., contains("log2FoldChange"))>1) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# enrich.6.10.Amb - LFC < -1.0 - HIGHER IN 10C
+enrich.6.10.Amb %>%
+  filter(select(., contains("log2FoldChange"))<(-1)) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+### Effect of WARMING + ACIDIFICATION as combined stressors 
+
+# enrich.both.10low.6amb - lfc < -1.0 - HIGHER IN 10C-LOW PH
+enrich.both.10low.6amb %>% 
+  filter(select(., contains("log2FoldChange"))<(-1)) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# enrich.both.10low.6amb - lfc > 1.0 - LOWER IN 10C-LOW PH
+enrich.both.10low.6amb %>%
+  filter(select(., contains("log2FoldChange"))>1) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+### Effect of COOLING as sole stressor 
+
+# enrich.3.6.Amb - LFC > 1.0 - HIGHER IN 3C
+enrich.3.6.Amb %>%
+  filter(select(., contains("log2FoldChange"))>1) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# enrich.3.6.Amb - LFC < -1.0 - LOWER IN 3C 
+enrich.3.6.Amb %>%
+  filter(select(., contains("log2FoldChange"))<(-1)) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+### Effect of COOLING + ACIDIFICATION as combined stressors 
+
+# enrich.both.3low.6amb - LFC > 1.0 - HIGHER IN 3C-LOW PH
+enrich.both.3low.6amb %>%
+  filter(select(., contains("log2FoldChange"))>1) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+# enrich.both.3low.6amb - LFC < 1.0 - LOWER IN 3C-LOW PH
+enrich.both.3low.6amb %>%
+  filter(select(., contains("log2FoldChange"))<(-1)) %>%
+  dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+
+```
+
+```{r}
+#### Read in enriched biological functions for all contrasts
+
+filenames <- read_delim(file="../GO-enrichment/DAVID_degs_2x/GO_filenames_2x.txt", delim = "\t", col_names = c("filename", "gene_set"))
+file_list <- vector(mode = "list", length = nrow(filenames))
+names(file_list) <- c(filenames$gene_set)
+
+for (i in 1:nrow(filenames)) {
+    file_list[[i]] <- data.frame(read_delim(file=paste("../GO-enrichment/DAVID_degs_2x/", filenames[i,"filename"], sep=""), delim = "\t"))}
+
+enriched.degs.2x <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>%  # Bind dataframe for each gene_set together
+    filter(p_value<0.05) %>%
+    dplyr::rename(percent=x) %>%
+    separate(term, into = c("ID", "term"), sep = "~") %>%
+    separate(gene_set, sep = "_", into = c("stress", "response"), remove = F) %>%
+    mutate(stress=factor(stress, ordered = TRUE, levels=c("OA", "Warm", "Warm.OA", "Cold", "Cold.OA")),
+           mutate(response=factor(response))) #Convert stressor column to factor, define all gene_sets levels
+
+# Save R object to then import to RStudio Cloud for use in metacoder 
+save(enriched.degs.2x, file="../GO-enrichment/DAVID_degs_2x/enriched.degs.2x")
+
+enriched.degs.2x %>% filter(category=="UP_KW_BIOLOGICAL_PROCESS", response=="Upregulated") %>% View()
+```
+
+
+# BONEYARD
+
+<!-- #### Read in Enriched results for all pairwise DEG contrasts -->
+
+<!-- ```{r} -->
+
+<!-- # Enriched GO Biological Processes -->
+<!-- filenames <- read_delim(file="../GO-enrichment/GO_filenames.txt", delim = "\t", col_names = c("filename", "gene_set")) -->
+<!-- file_list <- vector(mode = "list", length = nrow(filenames)) -->
+<!-- names(file_list) <- c(filenames$gene_set) -->
+
+<!-- for (i in 1:nrow(filenames)) { -->
+<!--     file_list[[i]] <- data.frame(read_delim(file=paste("../GO-enrichment/", filenames[i,"filename"], sep=""), delim = "\t"))} -->
+
+<!-- enriched.degs <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>% # Bind dataframe for each gene_set together -->
+<!--     #filter(category=="GOTERM_BP_DIRECT") %>% -->
+<!--     filter(p_value<0.05) %>% -->
+<!--     dplyr::rename(percent=x) %>% -->
+<!--     separate(term, into = c("term", "process"), sep = "~") %>% -->
+<!--     mutate(gene_set=factor(gene_set,  -->
+<!--                            levels=c("Amb-vs-Low-3C", "Amb-vs-Low-6C", "Amb-vs-Low-10C",  -->
+<!--                                     "3Cvs6C-Amb-pH", "3Cvs10C-Amb-pH", "6Cvs10C-Amb-pH", -->
+<!--                                     "3Cvs6C-Low-pH", "3Cvs10C-Low-pH", "6Cvs10C-Low-pH", -->
+<!--                                     "6AMBvs3LOW", "6AMBvs10LOW"))) %>% #Convert gene_set column to factor, define all gene_sets levels -->
+<!--     tidyr::complete(gene_set, category) # add rows for gene_sets that are missing from dataframe -->
+
+<!-- #enriched.degs %>% write_clip() #copy to clipboard to paste into google spreadsheet  -->
+<!-- ``` -->
+
+<!-- ### Bubble plot of Enriched Biological Process GO terms  -->
+
+<!-- ```{r} -->
+<!-- #pdf(file="../GO-enrichment/BP-pH-enriched-bubble.pdf", height = 7, width = 7) -->
+
+<!-- enriched.degs %>% filter(count>=3) %>%  -->
+<!--   filter(category=="GOTERM_BP_DIRECT") %>% -->
+<!--   #filter(category=="GOTERM_MF_DIRECT") %>% -->
+<!--   filter(gene_set %in% c("Amb-vs-Low-6C",  -->
+<!--                          "3Cvs6C-Amb-pH", "6AMBvs3LOW", -->
+<!--                          "6Cvs10C-Amb-pH", "6AMBvs10LOW")) %>% # keep single and double stressor contrasts -->
+<!--   group_by(gene_set, genes, count) %>% -->
+<!--   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate genes, select one with lowest p-value -->
+<!--   left_join(enriched.degs %>% select(gene_set, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes),  -->
+<!--             by = c("gene_set", "genes", "p_value", "count")) %>%  #re-add data -->
+<!--   ungroup() %>% arrange(gene_set, p_value) %>% group_by(gene_set) %>% dplyr::slice(1:20) %>% -->
+<!--   mutate(gene_set=factor(gene_set, ordered = TRUE, -->
+<!--                            levels=c("3Cvs6C-Amb-pH", "6AMBvs3LOW", -->
+<!--                                     "6Cvs10C-Amb-pH", "6AMBvs10LOW", -->
+<!--                                     "Amb-vs-Low-6C"))) %>% -->
+<!--   mutate(group=gene_set) %>% -->
+<!--   mutate_at("group", function(x) { -->
+<!--     case_when( -->
+<!--       x == "Amb-vs-Low-6C" ~ "High pCO2", -->
+<!--       x == "3Cvs6C-Amb-pH" ~ "Cold Temperature", -->
+<!--       x == "6Cvs10C-Amb-pH" ~ "Warm Temperature", -->
+<!--       x == "6AMBvs3LOW" ~ "Cold Temperature + High pCO2",  -->
+<!--       x == "6AMBvs10LOW" ~ "Warm Temperature + High pCO2")}) %>% -->
+<!--   mutate(group=factor(group, ordered=TRUE,  -->
+<!--                       levels=c("Cold Temperature", "Cold Temperature + High pCO2", -->
+<!--                                "Warm Temperature", "Warm Temperature + High pCO2", -->
+<!--                                "High pCO2"))) %>%  -->
+<!-- #  filter(!grepl('Amb-pH|Low-pH', gene_set)) %>% # Filter for only the pH contrasts -->
+<!-- #  ungroup() %>% arrange(group, gene_set, p_value) %>% -->
+<!--   ungroup() %>% arrange(term) %>% -->
+<!--   mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>% -->
+
+<!-- ggplot(aes(y = process, x=group, col=group)) +  -->
+<!--   geom_point(aes(size=-log10(p_value))) + #size=count,  alpha=p_value,  -->
+<!--  facet_wrap(~category,scales="free", nrow = 2,  -->
+<!--             labeller = as_labeller(c(`GOTERM_BP_DIRECT`="Enriched Biological Processes\nAmbient vs. Low pH\nby temperature"))) + -->
+<!--   # scale_color_manual(name="Upregulated", values=c(Ambient="#2c7bb6", Moderate="#fdae61", Severe="#d7191c"), -->
+<!--   #            guide = guide_legend(override.aes = list(size=4))) + -->
+<!--   scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10), -->
+<!--              guide = guide_legend(override.aes = list(col="gray50"))) + -->
+<!--   scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts -->
+<!--   theme_cleveland() +  -->
+<!--   theme( -->
+<!--         legend.position = "right",  -->
+<!--         axis.text.x=element_blank(), -->
+<!--         axis.ticks.x = element_blank(), -->
+<!--         axis.text.y=element_text(size=7.25),  -->
+<!--         plot.title = element_text(size=10), -->
+<!--         legend.text=element_text(size=6),  -->
+<!--         legend.title = element_text(size=6), -->
+<!--         strip.background = element_blank(), -->
+<!--         strip.text.x = element_blank()) + -->
+<!--   ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) #+ -->
+<!--   # coord_cartesian(clip = "off", ylim = c(-.7, 35)) + -->
+<!--   # ggtitle(NULL) + -->
+<!--   # annotate("text", x = 1, y = -.15, label = "3°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 2, y = -.15, label = "6°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 3, y = -.15, label = "10°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 2, y = 35, label = "Enriched Biological Processes", size=3, col="gray15") +  -->
+<!--   # annotate("text", x = 2, y = 33.5, label = "Ambient vs. Low pH contrasts", size=3.25, col="gray15", fontface = 'bold') +  -->
+<!--   # annotate("text", x = 2, y = 32, label = "by temperature", size=3, col="gray15", fontface = 'italic') -->
+<!-- #dev.off() -->
+<!-- ``` -->
+
+<!-- ## Bubble plot of Enriched Uniprot Keywords - Biological Processes -->
+
+<!-- ```{r} -->
+<!-- enriched.degs %>% -->
+<!--   filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>% filter(count>2) %>% -->
+<!--   #filter(category=="UP_KW_CELLULAR_COMPONENT") %>% -->
+<!--   filter(gene_set %in% c("Amb-vs-Low-6C",  -->
+<!--                          "3Cvs6C-Amb-pH", "6AMBvs3LOW", -->
+<!--                          "6Cvs10C-Amb-pH", "6AMBvs10LOW")) %>% # keep single and double stressor contrasts -->
+<!--   group_by(gene_set, genes, count) %>% -->
+<!--   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate genes, select one with lowest p-value -->
+<!--   left_join(enriched.degs %>% select(gene_set, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes),  -->
+<!--             by = c("gene_set", "genes", "p_value", "count")) %>%  #re-add data -->
+<!--   ungroup() %>% arrange(gene_set, p_value) %>% group_by(gene_set) %>% #dplyr::slice(1:20) %>% -->
+<!--   mutate(gene_set=factor(gene_set, ordered = TRUE, -->
+<!--                            levels=c("3Cvs6C-Amb-pH", "6AMBvs3LOW", -->
+<!--                                     "6Cvs10C-Amb-pH", "6AMBvs10LOW", -->
+<!--                                     "Amb-vs-Low-6C"))) %>% -->
+<!--   mutate(group=gene_set) %>% -->
+<!--   mutate_at("group", function(x) { -->
+<!--     case_when( -->
+<!--       x == "Amb-vs-Low-6C" ~ "High pCO2", -->
+<!--       x == "3Cvs6C-Amb-pH" ~ "Cold Temperature", -->
+<!--       x == "6Cvs10C-Amb-pH" ~ "Warm Temperature", -->
+<!--       x == "6AMBvs3LOW" ~ "Cold Temperature + High pCO2",  -->
+<!--       x == "6AMBvs10LOW" ~ "Warm Temperature + High pCO2")}) %>% -->
+<!--   mutate(group=factor(group, ordered=TRUE,  -->
+<!--                       levels=c("Cold Temperature", "Cold Temperature + High pCO2", -->
+<!--                                "Warm Temperature", "Warm Temperature + High pCO2", -->
+<!--                                "High pCO2"))) %>%  -->
+<!-- #  filter(!grepl('Amb-pH|Low-pH', gene_set)) %>% # Filter for only the pH contrasts -->
+<!--   #ungroup() %>% arrange(group, gene_set, p_value) %>%  #sort rows by temperature and p-value  -->
+<!--    ungroup() %>% arrange(term) %>%  #sort rows by temperature and p-value  -->
+<!--    mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%  -->
+
+<!-- ggplot(aes(y = process, x=group, col=group)) +  -->
+<!--   geom_point(aes(size=-log10(p_value))) + #size=count,  alpha=p_value,  -->
+<!--  facet_wrap(~category,scales="free", nrow = 2,  -->
+<!--             labeller = as_labeller(c(`GOTERM_BP_DIRECT`="Enriched Biological Processes\nAmbient vs. Low pH\nby temperature"))) + -->
+<!--   # scale_color_manual(name="Upregulated", values=c(Ambient="#2c7bb6", Moderate="#fdae61", Severe="#d7191c"), -->
+<!--   #            guide = guide_legend(override.aes = list(size=4))) + -->
+<!--   scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10), -->
+<!--              guide = guide_legend(override.aes = list(col="gray50"))) + -->
+<!--   scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts -->
+<!--   theme_cleveland() +  -->
+<!--   theme( -->
+<!--         legend.position = "right",  -->
+<!--         axis.text.x=element_blank(), -->
+<!--         axis.ticks.x = element_blank(), -->
+<!--         axis.text.y=element_text(size=7.25),  -->
+<!--         plot.title = element_text(size=10), -->
+<!--         legend.text=element_text(size=6),  -->
+<!--         legend.title = element_text(size=6), -->
+<!--         strip.background = element_blank(), -->
+<!--         strip.text.x = element_blank()) + -->
+<!--   ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) #+ -->
+<!--   # coord_cartesian(clip = "off", ylim = c(-.7, 35)) + -->
+<!--   # ggtitle(NULL) + -->
+<!--   # annotate("text", x = 1, y = -.15, label = "3°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 2, y = -.15, label = "6°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 3, y = -.15, label = "10°C", size=3.5, col="gray15") + -->
+<!--   # annotate("text", x = 2, y = 35, label = "Enriched Biological Processes", size=3, col="gray15") +  -->
+<!--   # annotate("text", x = 2, y = 33.5, label = "Ambient vs. Low pH contrasts", size=3.25, col="gray15", fontface = 'bold') +  -->
+<!--   # annotate("text", x = 2, y = 32, label = "by temperature", size=3, col="gray15", fontface = 'italic') -->
+<!-- ``` -->
+
+
+<!-- #### Temperature contrasts for each pH  -->
+
+<!-- ```{r} -->
+<!-- pdf(file="../GO-enrichment/BP-temperature-enriched-bubble.pdf", height = 11, width = 8) -->
+
+<!-- enriched.bp.degs %>%  -->
+<!--   group_by(gene_set, genes, count) %>% -->
+<!--   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value -->
+<!--   left_join(enriched.bp.degs %>% select(gene_set, category, go, process, count, percent, p_value, fold_enrichment, fdr, genes), by = c("gene_set", "genes", "p_value", "count")) %>%  #re-add data -->
+<!--   ungroup() %>% arrange(gene_set, p_value) %>% group_by(gene_set) %>% dplyr::slice(1:20) %>% -->
+<!--   mutate(gene_set=factor(gene_set, ordered = TRUE, -->
+<!--                            levels=c("Amb-vs-Low-3C", "Amb-vs-Low-6C", "Amb-vs-Low-10C",  -->
+<!--                                     "3Cvs6C-Amb-pH", "3Cvs6C-Low-pH", -->
+<!--                                     "3Cvs10C-Amb-pH", "3Cvs10C-Low-pH",  -->
+<!--                                     "6Cvs10C-Amb-pH", "6Cvs10C-Low-pH"))) %>% -->
+<!--   mutate(group=gene_set) %>% -->
+<!--   mutate_at("group", function(x) { -->
+<!--     case_when( -->
+<!--       x == "Amb-vs-Low-3C" ~ "pH", -->
+<!--       x == "Amb-vs-Low-6C" ~ "pH", -->
+<!--       x == "Amb-vs-Low-10C" ~ "pH", -->
+<!--       x == "3Cvs6C-Amb-pH" ~ "Temp, Amb pH", -->
+<!--       x == "3Cvs10C-Amb-pH" ~ "Temp, Amb pH", -->
+<!--       x == "6Cvs10C-Amb-pH" ~ "Temp, Amb pH", -->
+<!--       x == "3Cvs6C-Low-pH" ~ "Temp, Low pH", -->
+<!--       x == "3Cvs10C-Low-pH" ~ "Temp, Low pH", -->
+<!--       x == "6Cvs10C-Low-pH" ~ "Temp, Low pH")}) %>% -->
+<!--   mutate(group=factor(group, ordered=TRUE, levels=c("pH", "Temp, Amb pH", "Temp, Low pH"))) %>%  -->
+
+<!--   filter(grepl('Amb-pH|Low-pH', gene_set)) %>% # Filter for only the pH contrasts -->
+<!--   ungroup() %>% arrange(group, gene_set, p_value) %>% -->
+<!--   mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%  -->
+
+<!-- ggplot(aes(y = process, x=gene_set, col=gene_set)) +  -->
+<!--   geom_point(aes(size=-log10(p_value))) + #size=count,  alpha=p_value,  -->
+<!--  facet_wrap(~category,scales="free", nrow = 2, labeller = as_labeller(c(`GOTERM_BP_DIRECT`="Enriched Biological Processes\nAmbient vs. Low pH\nby temperature"))) + -->
+<!--   # scale_color_manual(name="Upregulated", values=c(Ambient="#2c7bb6", Moderate="#fdae61", Severe="#d7191c"), -->
+<!--   #            guide = guide_legend(override.aes = list(size=4))) + -->
+<!--   #scale_color_manual(guide="none", values=c("#ffffb3","#8dd3c7","#bebada")) + -->
+<!--   scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10), -->
+<!--              guide = guide_legend(override.aes = list(col="gray50"))) + -->
+<!--   scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts -->
+<!--   theme_cleveland() +  -->
+<!--   theme( -->
+<!--         legend.position = "right",  -->
+<!--         axis.text.x=element_blank(), -->
+<!--         axis.ticks.x = element_blank(), -->
+<!--         axis.text.y=element_text(size=7.25),  -->
+<!--         plot.title = element_text(size=10), -->
+<!--         legend.text=element_text(size=6),  -->
+<!--         legend.title = element_text(size=6), -->
+<!--         strip.background = element_blank(), -->
+<!--         strip.text.x = element_blank()) + -->
+<!--   ylab("Enriched Gene Ontology (GO) Term") + xlab(NULL) + -->
+<!--   coord_cartesian(clip = "off", ylim = c(-6, 80)) + -->
+<!--   ggtitle(NULL) + -->
+<!--   annotate("text", x = 1, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) + -->
+<!--   annotate("text", x = 2, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) + -->
+<!--   annotate("text", x = 3, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) + -->
+<!--   annotate("text", x = 4, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) + -->
+<!--   annotate("text", x = 5, y = -1.5, label = "Amb", size=2.75, col="gray15", angle=90) + -->
+<!--   annotate("text", x = 6, y = -1.5, label = "Low", size=2.75, col="gray15", angle=90) + -->
+
+<!--   annotate("text", x = 1.5, y = -5, label = "3°C vs. 6°C", size=2.75, col="gray15", fontface = 'bold') + -->
+<!--   annotate("text", x = 3.5, y = -5, label = "3°C vs. 10°C", size=2.75, col="gray15", fontface = 'bold') + -->
+<!--   annotate("text", x = 5.5, y = -5, label = "6°C vs. 10°C", size=2.75, col="gray15", fontface = 'bold') +   -->
+
+<!--   annotate("text", x = 3.5, y = 79.5, label = "Enriched Biological Processes", size=3, col="gray15") + -->
+<!--   annotate("text", x = 3.5, y = 78, label = "Temperature contrasts", size=3.25, col="gray15", fontface = 'bold') + -->
+<!--   annotate("text", x = 3.5, y = 76.5, label = "by pH", size=3, col="gray15", fontface = 'italic') + -->
+<!--   geom_segment(aes(x = 2.5, y = -6, xend = 2.5, yend = 73), linetype="dashed", color = "gray65", size=0.75) + -->
+<!--   geom_segment(aes(x = 4.5, y = -6, xend = 4.5, yend = 73), linetype="dashed", color = "gray65", size=0.75) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+# ```{r, include=F, echo=F, message=F}
+# # BACKGROUND - all genes submitted to DESeq2 analysis 
+# enrich.background %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # NO ANNOTATED DEGS AT ABS(L2FC)>0.5 FOR AMB VS LOW @ 3C OR 10C
+# 
+# # enrich.Amb.Low.6 - LFC>0.5 - LOWER IN LOW PH
+# enrich.Amb.Low.6 %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.Amb.Low.6 - LFC<0.5 - HIGHER IN LOW PH
+# enrich.Amb.Low.6 %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.3.6.Amb - LFC>0.5 - HIGHER IN 3C
+# enrich.3.6.Amb %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.3.6.Amb - LFC<0.5 - LOWER IN 3C 
+# enrich.3.6.Amb %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # # enrich.3.10.Amb - LFC>0.5 - LOWER IN 10C
+# # enrich.3.10.Amb %>%
+# #   filter(select(., contains("log2FoldChange"))>0.5) %>%
+# #   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# # 
+# # # enrich.3.10.Amb - LFC<0.5 - HIGHER IN 10C
+# # enrich.3.10.Amb %>%
+# #   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+# #   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.6.10.Amb - LFC>0.5 - LOWER IN 10C
+# enrich.6.10.Amb %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.6.10.Amb - LFC<0.5 - HIGHER IN 10C
+# enrich.6.10.Amb %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.3.6.Low - LFC>0.5 - HIGHER IN 3C
+# enrich.3.6.Low %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.3.6.Low - LFC<0.5 - LOWER IN 3C
+# enrich.3.6.Low %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # # enrich.3.10.Low - LFC>0.5 - LOWER IN 10C
+# # enrich.3.10.Low %>%
+# #   filter(select(., contains("log2FoldChange"))>0.5) %>%
+# #   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# # 
+# # # enrich.3.10.Low - LFC<0.5 - HIGHER IN 10C
+# # enrich.3.10.Low %>%
+# #   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+# #   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.6.10.Low - LFC>0.5 - LOWER IN 10C
+# enrich.6.10.Low %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.6.10.Low - LFC<0.5 - HIGHER IN 10C
+# enrich.6.10.Low %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.both.3low.6amb - LFC>0.5 - HIGHER IN 3C-LOW PH
+# enrich.both.3low.6amb %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.both.3low.6amb - LFC<0.5 - LOWER IN 3C-LOW PH
+# enrich.both.3low.6amb %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.both.10low.6amb - lfc<0.5 - HIGHER IN 10C-LOW PH
+# enrich.both.10low.6amb %>%
+#   filter(select(., contains("log2FoldChange"))<(-0.5)) %>% 
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# 
+# # enrich.both.10low.6amb - lfc>0.5 - LOWER IN 10C-LOW PH
+# enrich.both.10low.6amb %>%
+#   filter(select(., contains("log2FoldChange"))>0.5) %>%
+#   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
+# ```
