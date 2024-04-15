@@ -1,0 +1,9 @@
+Cold_All.txt	Cold_All
+Cool_All.txt	Cool_All
+Warm_All.txt	Warm_All
+Cold_Upregulated.txt	Cold_Upregulated
+Cold_Downregulated.txt	Cold_Downregulated
+Cool_Upregulated.txt	Cool_Upregulated
+Cool_Downregulated.txt	Cool_Downregulated
+Warm_Downregulated.txt	Warm_Downregulated
+Warm_Upregulated.txt	Warm_Upregulated

@@ -26,7 +26,7 @@ getwd()
 # source("../references/biostats.R")
 
 # Add all required libraries that are installed with install.packages() here
-list.of.packages <- c("RCurl", "tidyverse", "vegan", "pheatmap", "pastecs", "factoextra", "FactoMineR", "RColorBrewer", "tibble", "reshape2", "plotly", "corrplot", "PerformanceAnalytics", "cowplot", "here", "janitor", "clipr", "googlesheets4")
+list.of.packages <- c("RCurl", "tidyverse", "vegan", "pheatmap", "pastecs", "factoextra", "FactoMineR", "RColorBrewer", "tibble", "reshape2", "plotly", "corrplot", "PerformanceAnalytics", "cowplot", "here", "janitor", "clipr", "googlesheets4", "ape")
 # Add all libraries that are installed using BiocManager here
 bioconductor.packages <- c("DESeq2", "WGCNA")
 
@@ -47,6 +47,108 @@ lapply(all.packages, FUN = function(X) {
 })
 
 ```
+
+Before I can successfully run featureCounts using the correct gene identifier -- the NCBI gene id which is denoted by "db_xref" in the 9th column -- I need to remove the few genes from the GTF that do NOT have a db_xref in some exons. This is better than using the "gene_id" identifier, since there are many duplicated gene_id's. Here is my code to explore the GTF and determine which genes to remove and test to make sure I can successfully use grep to identify the rows to remove. The actual removal is executed in the featurecounts2.sh script. 
+
+```{r}
+pcod.gtf <- read.gff(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic.gtf", GFF3 = F) %>%
+  mutate(gene_id=gsub("gene_id |;|\"", "", str_extract(attributes, "gene_id (.*?);")),
+       ncbi_id=gsub("db_xref |;|\"|GeneID:", "", str_extract(attributes, "db_xref (.*?);")),
+       biotype=gsub("transcript_biotype |;|\"", "", str_extract(attributes, "transcript_biotype (.*?);")),
+       exon=gsub("exon_number |;|\"", "", str_extract(attributes, "exon_number (.*?);")))
+```
+# Prep GTF file for featureCounts 
+# Some exons are missing NCBI gene IDs! Lots of exon ranges are duplicated! This is because there are multiple transcripts for each exon. Need to edit GTF to:
+  1. Fill in missing ncbi gene ids 
+  2. Include only necessary entries in attributes column, removing entries that vary by transcript (transcript_id, product, experiment, model_evidence information from attributes column)
+  3. Add a unique identifier for each exon, specifically "ncbi_id:exon_number" 
+  4. Filter for unique entries 
+  
+```{r}
+# Create filtered gtf dataframe and write in GTF format
+pcod.gtf.edited <- pcod.gtf %>%  
+  group_by(gene_id) %>% fill(ncbi_id, .direction = "down") %>% #first fill in missing ncbi_id for the 113 exon/transcript entries
+  select(seqname, source, feature, start, end, score, strand, frame, gene_id, ncbi_id, exon) %>%  distinct() %>% #filter for distinct features+ranges  
+  mutate(feature_range=end-start) %>% group_by(feature, ncbi_id, exon) %>% dplyr::slice(which.max(feature_range)) %>%  #some exons have slightly different start/stop loci; only keep the one with largest range 
+  mutate(attributes=paste("gene_id \"", gene_id, "\";", # add new attributes column with only necessary info 
+                          " db_xref \"GeneID:", ncbi_id, "\";",
+                          " exon_number \"", exon, "\";",
+                          " ncbi_id_exon \"", ncbi_id, ":", exon, "\";", sep="")) %>%
+  ungroup() %>% #remove grouping
+  select(seqname, source, feature, start, end, score, strand, frame, attributes) #reorder columns to match GTF format 
+
+# Write edited GTF to file with header lines
+fn <- "../../references/GCF_031168955.1_ASM3116895v1_genomic_edited.gtf"
+writeLines(read_lines(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic.gtf")[1:5], fn)
+write.table(pcod.gtf.edited, fn, append=TRUE, quote=FALSE, col.names = F, row.names = F, sep="\t")
+```
+
+
+```{r}
+# check that genes and exons aren't repeated
+read.gff(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic_edited.gtf", GFF3 = F) %>%
+  filter(feature=="exon") %>%
+  mutate(ncbi_id_exon=gsub("ncbi_id_exon |;|\"", "", str_extract(attributes, "ncbi_id_exon (.*?);"))) %>% 
+  group_by(ncbi_id_exon) %>% filter(n()>1)
+
+read.gff(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic_edited.gtf", GFF3 = F) %>%
+  filter(feature=="gene") %>%
+  mutate(gene_id=gsub("gene_id |;|\"", "", str_extract(attributes, "gene_id (.*?);")),
+         ncbi_id=gsub("db_xref |;|\"", "", str_extract(attributes, "db_xref (.*?);"))) %>% 
+  group_by(ncbi_id) %>% filter(n()>1)
+
+#Looks good! Phew! 
+```
+
+Other code I used to explore GTF file 
+
+# ```{r}
+# pcod.gtf %>% filter(feature=="exon") %>% filter(biotype=="transcript") %>% filter(!is.na(ncbi_id)) %>% select(-attributes) %>% group_by(ncbi_id, start, end, exon, strand) %>% filter(n()>1) #here are exon entries that are duplicated
+# 
+# # here's one exon that's repeated - why? The "product" is slightly different (transcript variant X1 vs. transcript variant X2)
+# pcod.gtf %>% filter(feature=="exon") %>% filter(ncbi_id==132464981) %>% filter(start==1284513) %>% filter(end==1285850)
+
+# # test filling in missing NCBI gene ids 
+# exon_no_ncbi <- (pcod.gtf %>% filter(feature=="exon") %>% filter(is.na(ncbi_id)))$gene_id
+# pcod.gtf.filled <- pcod.gtf %>% #filter(gene_id %in% exon_no_ncbi) %>%
+#   group_by(gene_id) %>% fill(ncbi_id, .direction = "down") 
+# 
+# # Make sure only empty NCBI gene ids were filled 
+# install.packages("diffdf")
+# require("diffdf")
+# diff.chk <- diffdf(pcod.gtf, pcod.gtf.filled)
+# all(rownames(pcod.gtf %>% filter(is.na(ncbi_id))) == diff.chk$VarDiff_ncbi_id$..ROWNUMBER..) #looks good! 
+# pcod.gtf[diff.chk$VarDiff_ncbi_id$..ROWNUMBER..,] %>% select(feature,gene_id,ncbi_id)
+# 
+# # Figure out which genes are duplicated 
+# temp_dup <- (pcod.gtf %>% filter(feature=="gene") %>% group_by(gene_id) %>% filter(n()>1) %>% mutate(gene_id=gsub("\"", "", gene_id)))$gene_id
+# 
+# counts %>% as.data.frame() %>% rownames_to_column("gene_id") %>% filter(gene_id %in% temp) %>% select(-gene_id) %>% rowSums()
+# intersect(temp, degs) 
+# intersect(temp_dup, degs)
+# 
+# test.gtf <- read.gff(file = "../test.gtf", GFF3 = F) %>%
+#   mutate(id=gsub("gene_id |;|gene-", "", str_extract(attributes, "gene_id (.*?);")),
+#        ncbi_id=gsub("db_xref |;", "", str_extract(attributes, "db_xref (.*?);")),
+#        name=gsub("Name=|;", "", str_extract(attributes, "Name=(.*?);")),
+#        # parent=gsub("Parent=|;", "", str_extract(attributes, "Parent=(.*?);")),
+#        # description=gsub("description=|;", "", str_extract(attributes, "description=(.*?);")),
+#        gene=gsub("gene |;", "", str_extract(attributes, "gene (.*?);")),
+#        biotype=gsub("transcript_biotype |;", "", str_extract(attributes, "transcript_biotype (.*?);")))
+# 
+# temp2 <- (test.gtf %>% filter(feature=="exon") %>% mutate(id=gsub("\"", "", id)))$id
+# all(temp==temp2)
+# 
+# pcod.gtf %>% mutate(id=gsub("\"", "", id)) %>% filter(id %in% temp) %>% nrow() #number rows in original .gtf with genes we want to remove 
+# 1314696-1314546 # number rows in original gtf - number rows in filtered gtf; should match 
+# ```
+# 
+# This code filters to RETAIN rows with the below genes. To remove them I will add the tag -v (inverse) 
+# 
+# ```{bash}
+# grep -E "C5T52_mgt22|C5T52_mgt01|C5T52_mgr02|C5T52_mgt02|C5T52_mgr01|C5T52_mgt03|C5T52_mgp13|C5T52_mgt04|C5T52_mgt05|C5T52_mgt06|C5T52_mgp12|C5T52_mgt07|C5T52_mgt08|C5T52_mgt09|C5T52_mgt10|C5T52_mgt11|C5T52_mgp11|C5T52_mgt12|C5T52_mgt13|C5T52_mgp10|C5T52_mgt14|C5T52_mgp09|C5T52_mgp08|C5T52_mgp07|C5T52_mgt15|C5T52_mgp06|C5T52_mgt16|C5T52_mgp05|C5T52_mgp04|C5T52_mgt17|C5T52_mgt18|C5T52_mgt19|C5T52_mgp03|C5T52_mgp02|C5T52_mgt20|C5T52_mgp01|C5T52_mgt21" "../../references/GCF_031168955.1_ASM3116895v1_genomic.gtf" > "../test.gtf" 
+# ```
+
 
 ### Import sample info, library/file names, and then join 
 
@@ -81,7 +183,7 @@ multiqc.stats <- multiqc.stats %>% clean_names() %>%
 cor(multiqc.stats %>% mutate(tank_number=as.numeric(tank_number)) %>% dplyr::select_if(is.numeric), use="complete.obs") %>% corrplot::corrplot(tl.cex=.75)
 ```
 
-### Import count data
+### Import GENE count data
 
 #### Import data generated directly using the  STAR aligner step 
 
@@ -123,22 +225,23 @@ for (i in 1:nrow(filenames)) {
 (counts.star <- file_list %>% purrr::reduce(full_join, by = "gene") %>% column_to_rownames(var="gene"))
 ```
 
-<!-- ### Import counts generated using featurecounts from star alignments -->
+### Import counts generated using featurecounts from star alignments
 
-<!-- ```{r} -->
-<!-- counts.fc <- data.frame(read.table("../results/star/featurecounts/featurecounts_gene", header = T, stringsAsFactors = F, fill = FALSE)) %>% -->
-<!--   column_to_rownames(var="Geneid") -->
-<!-- counts.fc <- counts.fc %>% rename_all(~as.character(str_sub(colnames(counts.fc)) %>% -->
-<!--                             gsub("X.home.lspencer.pcod.2022.aligned.star.gadmor.", "", .) %>% -->
-<!--                             gsub(".Aligned.sortedByCoord.out.bam", "", .))) %>% select(-Chr, -Start, -End, -Strand, -Length) -->
-<!-- save(counts.fc, file = "../results/star/featurecounts/counts.fc") -->
-<!-- ``` -->
+```{r}
+counts.fc <- data.frame(read.table("../aligned/featurecounts_gene_v2", header = T, stringsAsFactors = F, fill = FALSE)) %>%
+  column_to_rownames(var="Geneid")
+counts.fc <- counts.fc %>% rename_all(~as.character(str_sub(colnames(counts.fc)) %>%
+                            gsub("X.home.lspencer.pcod.juv.temp.", "", .) %>%
+                            gsub(".Aligned.sortedByCoord.out.bam", "", .)) %>%
+                              gsub("aligned.", "sample_", .)) %>% select(-Chr, -Start, -End, -Strand, -Length)
+save(counts.fc, file = "../aligned/counts.fc")
+```
 
 ### Decide which source of counts you'd like to use! (NOTE- they both are derived from STAR aligner)
 
 ```{r}
-#counts <- counts.fc
-counts <- counts.star
+counts <- counts.fc
+#counts <- counts.star
 ```
 
 
@@ -168,8 +271,9 @@ Remove whole samples from the data set and sample info here if needed
 USE THIS CODE TO REMOVE SPLEEN AND GILL SAMPLES FOR THIS ANALYSIS, LEAVE ONLY LIVER SAMPLES 
 
 ```{r}
-outliers <- c("sample_31", "sample_41", "sample_149")
-remove.list <- c(counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers)
+outliers <- c("sample_31", "sample_41", "sample_149", "sample_129")
+#remove.list <- c(counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers) #remove list for STAR-generated counts
+remove.list <- c(counts %>% select(contains(c(".S", ".G"))) %>% colnames(), outliers) #remove list for featureCounts-generated counts
 counts <- counts[ , which(names(counts) %!in% remove.list)]
 
 # need to remove "RESUB-" from some sample names 
@@ -243,9 +347,9 @@ print(paste("Number of fragments remaining: ", signif(sum(counts.ts), digits = 5
 ```
 ### Save counts file, and transformed counts file 
 ```{r}
-save(counts, file = "../counts")
-save(counts.t, file = "../counts.t")
-save(counts.ts, file = "../counts.ts")
+save(counts, file = "../aligned/counts")
+save(counts.t, file = "../aligned/counts.t")
+save(counts.ts, file = "../aligned/counts.ts")
 ```
 
 ### Inspect read distribution before & after filtering
@@ -262,12 +366,28 @@ ggplot(data = data.frame(rowMeans(counts)),
   labs(y = "Density", x = "Raw read counts",
   title = "Read count distribution: untransformed, unnormalized, unfiltered\n(execept to remove 0's)")#)
 ```
+### ANNOTATION OPTION 1: IF (big if) the DAVID folks add the Pacific cod genome to their DAVID database, I can use the NCBI gene IDs (aka Entrez Gene IDs) for enrichment analysis, which would likely be more accurate since every gene has an associated NCBI Gene ID.  But, if that doesn't happen, I'll need to still use Uniprot IDs. 
 
+```{r}
+pcod.gff <- read.gff(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic.gff", GFF3 = TRUE) %>%
+  mutate(id=gsub("ID=|;|gene-", "", str_extract(attributes, "ID=(.*?);")),
+       ncbi_id=gsub("Dbxref=GeneID:|;", "", str_extract(attributes, "Dbxref=GeneID:(.*?);")),
+       name=gsub("Name=|;", "", str_extract(attributes, "Name=(.*?);")),
+       parent=gsub("Parent=|;", "", str_extract(attributes, "Parent=(.*?);")),
+       description=gsub("description=|;", "", str_extract(attributes, "description=(.*?);")),
+       gene=gsub("gene=|;", "", str_extract(attributes, "gene=(.*?);")),
+       biotype=gsub("biotype=|;", "", str_extract(attributes, "biotype=(.*?);")),
+       alias=gsub("Alias=|;", "", str_extract(attributes, "Alias=(.*?);")),
+       AED=gsub("AED=|;", "", str_extract(attributes, "AED=(.*?);")),
+       eAED=gsub("eAED=|;", "", str_extract(attributes, "eAED=(.*?);")),
+       note=gsub("Note=|;", "", str_extract(attributes, "Note=(.*?);")),
+       ontology_term=gsub("Ontology_term=|;", "", str_extract(attributes, "Ontology_term=(.*?);")),
+       spid=gsub("SPID=|;", "", str_extract(attributes, "SPID=(.*?);")))
 
-START HERE
+#pcod.gff %>% filter(type=="gene") %>% View()
+```
 
-
-### Annotate genes with Uniprot IDs and Gene Ontology info 
+### ANNOTATION OPTION 2: Annotate genes with Uniprot IDs and Gene Ontology info 
 
 ### Create bed file for just genes, which I will use with getfasta to extract gene sequences, which I will use with blast to identify gene function
 
@@ -304,33 +424,35 @@ blastx output format 6 is tab file with the following columns:
 ```{r}
 # Blast results from the gadMor3.0 genome fasta + gff to pull gene sequences: "../references/gadMor3.0_genes_blastx.tab"
 
-pcod.blast <- read_delim(file = "../references/GCF_031168955.1_ASM3116895v1_genes_blastx.tab", delim = "\t", 
+pcod.blast <- 
+  read_delim(file = "../../references/GCF_031168955.1_ASM3116895v1_blastx.tab", delim = "\t", 
                            col_names = c("qaccver", "saccver", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")) %>%
   separate(qaccver, sep = ":|-", into = c("SeqID","Start","End")) %>%
   mutate_at(vars(Start, End), as.numeric) %>%
   separate(saccver, sep="\\|", into=c("na", "SPID", "gene.Uni"), remove = F) %>%
   dplyr::select(-na) %>% separate(gene.Uni, sep="_", into=c("gene.Uni", "species"), remove=T) %>%
   group_by(SeqID, Start, End) %>% dplyr::slice(which.min(evalue))  %>% # where multiple blast hits for same gene, select one with minimum e-value
-  left_join(., read_delim(file="../references/gadMor3.0_genes.bed", delim="\t", col_names = c("SeqID", "Start", "End", "gene_info_gadmor"))) %>%
-  dplyr::select(gene_info_gadmor, everything()) %>%
-    separate(gene_info_gadmor, sep = ";", remove = F, 
-             into = c("gene_na", "GeneID", "name", "gbkey", "gene_gadmor", "gene_biotype", "gene_synonym")) %>%  
-    select(-gene_na,-name, -gbkey, -gene_biotype, -gene_synonym) %>%
-    mutate(GeneID=gsub("Dbxref\\=GeneID:", "", GeneID), 
-           gene_gadmor=gsub("gene\\=", "", gene_gadmor)) %>%
+  left_join(., read_delim(file="../../references/GCF_031168955.1_ASM3116895v1_genes.bed", delim="\t", col_names = c("SeqID", "Start", "End", "gene_info_pcod"))) %>%
+  dplyr::select(gene_info_pcod, everything()) %>%
+    mutate(
+       ncbi_id=gsub("Dbxref=GeneID:|;", "", str_extract(gene_info_pcod, "Dbxref=GeneID:(.*?);")),
+       description=gsub("description=|;", "", str_extract(gene_info_pcod, "description=(.*?);")),
+       gene_pcod=gsub("gene=|;", "", str_extract(gene_info_pcod, "gene=(.*?);")),
+       biotype=gsub("gene_biotype=", "", str_extract(gene_info_pcod, "gene_biotype=(.*)"))) %>%
+  mutate(biotype=gsub(";.*", "", biotype)) %>%
   clean_names()
   
-  # E-VALUE FILTERING
+
+# E-VALUE FILTERING
 # Count annotated genes with e-value filters
-gadMor.blast %>% filter(evalue < 1.0e-10) %>% nrow() # 19,424 genes have e-value <1e-10
-gadMor.blast %>% filter(evalue < 1.0e-15) %>% nrow() # 17,028 genes have e-value <1e-15
-gadMor.blast %>% filter(evalue < 1.0e-20) %>% nrow() # 14,253 genes have e-value <1e-20
+pcod.blast %>% filter(evalue < 1.0e-10) %>% nrow() # 18,644 genes have e-value <1e-10
+pcod.blast %>% filter(evalue < 1.0e-15) %>% nrow() # 16,274 genes have e-value <1e-15
+pcod.blast %>% filter(evalue < 1.0e-20) %>% nrow() # 13,557 genes have e-value <1e-20
 
 # Filter blast results to meet desired e-value threshold
-gadMor.blast <- gadMor.blast %>% filter(evalue < 1.0e-10)
-
-save(gadMor.blast, file = "../references/gadMor.blast")
-load(file = "../references/gadMor.blast")
+pcod.blast <- pcod.blast %>% filter(evalue < 1.0e-10)
+save(pcod.blast, file = "../../references/pcod.blast")
+#load(file = "../../references/pcod.blast")
 ```
 
 ### Annotate with GO terms and other info
@@ -339,59 +461,206 @@ load(file = "../references/gadMor.blast")
 
 ```{r}
 # Use this code to get list of Uniprot SPID (gene identifiers) to input into the Uniprot Batch Retrieval tool, to obtain GO terms for each gene
-gadMor.blast %>% ungroup() %>% dplyr::select(spid) %>% distinct() %>%
+pcod.blast %>% ungroup() %>% dplyr::select(spid) %>% distinct() %>%
   na.omit() %>% unlist() %>% as.vector() %>% write_clip()
 
 # Add GO terms to Uniprot annotation object
-gadMor.blast.GO <- left_join(gadMor.blast, read_delim(file = "../references/gadMor_genes_GO.tsv", 
+pcod.blast.GO <- left_join(pcod.blast, read_delim(file = "../../references/GCF_031168955.1_ASM3116895v1_blast-uniprot-GO.tsv", 
                                                       delim = "\t") %>% clean_names(),
                              by = c("spid"="entry")) %>% ungroup()
 
 
-save(gadMor.blast.GO, file = "../references/gadMor.blast.GO")
-load(file = "../references/gadMor.blast.GO")
-
-#View(gadMor.blast.GO)
+save(pcod.blast.GO, file = "../../references/pcod.blast.GO")
+#load(file = "../../references/pcod.blast.GO")
 ```
 
 ### Annotate gene counts dataframe
 
+<!-- # STAR-generated counts  -->
+<!-- ```{r} -->
+<!-- counts.annot.pcod <- right_join( -->
+<!--   pcod.blast %>% ungroup(), -->
+<!--   counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("gene_pcod"), "gene_pcod") %>% -->
+<!--   left_join(pcod.blast.GO %>% dplyr::select(gene_pcod, protein_names, gene_names), "gene_pcod") #%>% -->
+<!--   #dplyr::select(Chr, Start, End, Strand, Length, geneID, evalue, SPID, gene.Uni, species, pident, gene_names, protein_names, everything()) -->
+
+<!-- save(counts.annot.pcod, file = "../aligned/counts.annot.pcod") -->
+<!-- write.csv(counts.annot.pcod, file = "../aligned/counts_annotated_pcod.csv", row.names = F, quote = F) -->
+<!-- ``` -->
+
+# featureCounts-generated counts 
 ```{r}
-counts.annot.gadmor <- right_join(
-  gadMor.blast %>% ungroup() %>% dplyr::select(gene_gadmor, spid, gene_uni, species, pident, evalue, gene_info_gadmor, seq_id, start, end, gene_id),
-  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("gene_gadmor"), "gene_gadmor") %>%
-  left_join(gadMor.blast.GO %>% dplyr::select(gene_gadmor, protein_names, gene_names), "gene_gadmor") #%>%
+counts.annot.pcod <- right_join(
+  pcod.blast %>% ungroup(),
+  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id))) %>%
+  left_join(pcod.blast.GO %>% dplyr::select(ncbi_id, protein_names, gene_names), "ncbi_id") #%>%
   #dplyr::select(Chr, Start, End, Strand, Length, geneID, evalue, SPID, gene.Uni, species, pident, gene_names, protein_names, everything())
 
-save(counts.annot.gadmor, file = "../results/star/counts.annot.gadmor")
-write.csv(counts.annot.gadmor, file = "../results/counts_annotated_gadmor.csv", row.names = F, quote = F)
+save(counts.annot.pcod, file = "../aligned/counts.annot.pcod")
+write.csv(counts.annot.pcod, file = "../aligned/counts_annotated_pcod.csv", row.names = F, quote = F)
 ```
 
-#### How many of our analyzed genes are annotated? Answer- 17,196
+#### How many of our analyzed genes are annotated? Answer- 12,069
 
 ```{r}
 right_join(
-  gadMor.blast %>% ungroup() %>% dplyr::select(gene_gadmor, spid, gene_uni, species, pident, evalue),
-  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column(var = "gene_gadmor"), "gene_gadmor") %>% filter(!is.na(spid)) %>%
+  pcod.blast %>% ungroup() %>% dplyr::select(gene_pcod, spid, gene_uni, species, pident, evalue),
+  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column(var = "gene_pcod"), "gene_pcod") %>% filter(!is.na(spid)) %>%
   nrow()
 ```
 
-#### Here's the total number of genes in the gadMor3.0 gff: 32,426 genes
+#### Here's the total number of genes in the Pacific cod gff: 30,325 genes
 
 ```{r}
-read_delim(file = "../references/genomic.gff", delim = "\t", col_names = F, skip = 8) %>% 
+read_delim(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic.gff", delim = "\t", col_names = F, skip = 9) %>% 
   mutate(X3=as.factor(X3)) %>% filter(X3=="gene")
 ```
 
-```{r}
-counts.ts %>% head(n=100) %>% View()
-counts.annot.gadmor %>% head(n=100) #%>% View()
-counts.annot.gadmor %>% head(n=100) %>% select(gene_gadmor, 
-                                               PCG001, PCG004, PCG011, PCG015, PCG017, PCG020, PCG029, PCG035, 
-                                               spid, species, evalue, protein_names) %>% View()
-```
+Import EXON counts!
 
 ```{r}
-gadMor.blast.GO %>% View()
+pcod.gtf %>% filter(feature=="exon") %>% select(ncbi_id, start, end) %>% View()
+  group_by(ncbi_id, start, end) %>% distinct()
+  left_join(pcod.gtf)
 ```
 
+
+```{r}
+exon.counts.fc <- data.frame(read.table("../aligned/featurecounts_exon_v2", header = T, stringsAsFactors = F, fill = FALSE)) %>%
+  column_to_rownames(var="Geneid")
+exon.counts.fc <- counts.fc %>% rename_all(~as.character(str_sub(colnames(exon.counts.fc)) %>%
+                            gsub("X.home.lspencer.pcod.juv.temp.", "", .) %>%
+                            gsub(".Aligned.sortedByCoord.out.bam", "", .)) %>%
+                              gsub("aligned.", "sample_", .)) %>% select(-Chr, -Start, -End, -Strand, -Length)
+save(counts.fc, file = "../aligned/counts.fc")
+```
+
+### Decide which source of counts you'd like to use! (NOTE- they both are derived from STAR aligner)
+
+```{r}
+counts <- counts.fc
+#counts <- counts.star
+```
+
+
+### Summarize counts and visualize (remove last column - that's undetermined counts)
+
+```{r}
+print(paste("Number of samples:", ncol(counts %>% dplyr::select(contains("sample"))), sep=" "))
+print(paste("Total number of genes in dataframe:", prettyNum(nrow(counts), big.mark = ","), sep=" "))
+print(paste("Average number of genes per sample:", prettyNum(mean(colSums(counts %>% dplyr::select(contains("sample")) != 0)) %>% round(), big.mark = ","), sep=" "))
+print(paste("Total counts, all samples:", prettyNum(sum(colSums(counts %>% dplyr::select(contains("sample")))), big.mark = ","), sep=" "))
+#print(paste("Counts for", colnames(counts %>% select(contains("PCG"))), ":",  prettyNum(colSums(counts %>% select(contains("PCG"))), big.mark = ","), sep=" "))
+
+#inspect total counts by sample 
+# sample 149 very high 
+# sample 129 kinda low
+ggplotly(
+   ggplot(data.frame(colSums(counts %>% dplyr::select(contains("sample")))) %>% 
+            dplyr::rename(count.total = 1) %>% rownames_to_column(var="sample")) + 
+     geom_bar(aes(x=sample, y=count.total), stat = "identity") + ggtitle("Total count by sample") + 
+              theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())) 
+```
+
+## OPTIONAL: FILTER WHOLE SAMPLES. 
+
+Remove whole samples from the data set and sample info here if needed
+
+USE THIS CODE TO REMOVE SPLEEN AND GILL SAMPLES FOR THIS ANALYSIS, LEAVE ONLY LIVER SAMPLES 
+
+```{r}
+outliers <- c("sample_31", "sample_41", "sample_149", "sample_129")
+#remove.list <- c(counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers) #remove list for STAR-generated counts
+remove.list <- c(counts %>% select(contains(c(".S", ".G"))) %>% colnames(), outliers) #remove list for featureCounts-generated counts
+counts <- counts[ , which(names(counts) %!in% remove.list)]
+
+# need to remove "RESUB-" from some sample names 
+sample.info <- sample.info %>% mutate(sample_name=gsub("RESUB-", "", sample_name)) %>% filter(sample_name %in% colnames(counts))
+
+nrow(sample.info) == ncol(counts) #should = TRUE
+all(sort(sample.info$sample_name) == sort(colnames(counts))) #should = TRUE
+
+# resave sample info object
+save(sample.info, file="../sample.info")
+```
+
+USE THIS CODE TO REMOVE OUTLIER SAMPLES BY NAME 
+
+```{r}
+# remove.list <- c("PCG194", "PCG137")
+# counts <- counts[ , -which(names(counts) %in% remove.list)]
+# sample.info <- sample.info[ -which(sample.info$sample_name %in% remove.list), ]
+# 
+# # resave sample info object
+# save(sample.info, file="../data/sample.info")
+# 
+# nrow(sample.info) == ncol(counts) #should = TRUE
+```
+
+## OPTIONAL: FILTER WHOLE SCAFFOLDS 
+
+This code provides the option to remove data that mapped to scaffolds 105+. This is possibly beneficial because I don't know whether or not those scaffolds are also included within scaffolds 1-104 (i.e. the chromosomes). 
+
+NOTE:  For exploration purposes I will NOT remove them, and will see if expressed data mapping to scaffolds 105+ have the exact same genes/counts as on chromosomes. 
+
+After preliminary examination of blast results (by looking at genes, lengths, and counts) it's difficult to tell whether the scaffolds 105+ are subsets of the chromosomes 1-104. For now I will retain scaffolds 105+. 
+
+
+```{r}
+# counts <- counts %>% separate(Chr, into = c("X", "Y", "scaffold"), sep = "_", remove = F) %>%
+#   mutate(scaffold=as.integer(scaffold)) %>% filter(scaffold<=104) %>% dplyr::select(-X, -Y, -scaffold)
+```
+
+### Optional: FILTER GENES THAT ARE OUTLIERS IN OUTLIER SAMPLES- NOT USED AS OF 12/2/2022
+
+```{r}
+# counts <- counts[-which(rownames(counts) %in% outliers),]
+```
+
+### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
+```{r}
+#str(counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
+counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data to have each sample a row, each column a gene
+```
+
+## Optional 
+
+### Pre-filtering - remove low-frequency genes 
+
+NOTE: Should i do this? DESeq2 throws out low-frequency genes anyway, BUT other folks do pre-filter. For example in https://doi.org/10.1186/s12864-017-4392-0 "Genes with mean count less than ten across all samples were removed."
+
+```{r}
+keep1 <- colMeans(counts.t, na.rm=TRUE) >= 10 #identify genes with mean count >= 10 across all samples (excluding NAs = 10)
+keep2 <- rowSums( counts >= 30 ) >= 0.1*79 #identify genes with counts>=30 across at minimum 10% of the samples
+keep <- unique(c(names(which(keep1 == T)), names(which(keep2 == T)))) # list of genes meeting one of the two above criteria
+counts.ts <- counts.t[,keep]
+
+print(paste("# genes before filtering:", ncol(counts.t)))
+print(paste("# genes remaining after pre-filtering:", ncol(counts.ts)))
+print(paste("# of genes dropped:", ncol(counts.t) - ncol(counts.ts), sep=" "))
+print(paste("% of fragments remaining after pre-filtering: ", signif(100*sum(counts.ts)/sum(counts.t), digits = 5), "%", sep=""))
+print(paste("Number of fragments dropped: ", signif(sum(counts.t)-sum(counts.ts), digits = 5)))
+print(paste("% of fragments dropped: ", signif(100*(sum(counts.t)-sum(counts.ts))/sum(counts.t), digits = 5), "%", sep=""))
+print(paste("Number of fragments remaining: ", signif(sum(counts.ts), digits = 5)))
+```
+### Save counts file, and transformed counts file 
+```{r}
+save(counts, file = "../aligned/counts")
+save(counts.t, file = "../aligned/counts.t")
+save(counts.ts, file = "../aligned/counts.ts")
+```
+
+### Inspect read distribution before & after filtering
+
+```{r}
+# Plot distribution of unfiltered read counts across all samples 
+#ggplotly(
+ggplot(data = data.frame(rowMeans(counts)),
+       aes(x = rowMeans.counts.)) +
+  geom_histogram(fill = "grey") +
+  xlim(1, 500) +
+  theme_classic() +
+  labs(title = "Distribution of unfiltered reads") +
+  labs(y = "Density", x = "Raw read counts",
+  title = "Read count distribution: untransformed, unnormalized, unfiltered\n(execept to remove 0's)")#)
+```
