@@ -290,40 +290,6 @@ all(sort(sample.info$sample_name) == sort(colnames(counts))) #should = TRUE
 save(sample.info, file="../sample.info")
 View(sample.info)
 ```
-
-USE THIS CODE TO REMOVE OUTLIER SAMPLES BY NAME 
-
-```{r}
-# remove.list <- c("PCG194", "PCG137")
-# counts <- counts[ , -which(names(counts) %in% remove.list)]
-# sample.info <- sample.info[ -which(sample.info$sample_name %in% remove.list), ]
-# 
-# # resave sample info object
-# save(sample.info, file="../data/sample.info")
-# 
-# nrow(sample.info) == ncol(counts) #should = TRUE
-```
-
-## OPTIONAL: FILTER WHOLE SCAFFOLDS 
-
-This code provides the option to remove data that mapped to scaffolds 105+. This is possibly beneficial because I don't know whether or not those scaffolds are also included within scaffolds 1-104 (i.e. the chromosomes). 
-
-NOTE:  For exploration purposes I will NOT remove them, and will see if expressed data mapping to scaffolds 105+ have the exact same genes/counts as on chromosomes. 
-
-After preliminary examination of blast results (by looking at genes, lengths, and counts) it's difficult to tell whether the scaffolds 105+ are subsets of the chromosomes 1-104. For now I will retain scaffolds 105+. 
-
-
-```{r}
-# counts <- counts %>% separate(Chr, into = c("X", "Y", "scaffold"), sep = "_", remove = F) %>%
-#   mutate(scaffold=as.integer(scaffold)) %>% filter(scaffold<=104) %>% dplyr::select(-X, -Y, -scaffold)
-```
-
-### Optional: FILTER GENES THAT ARE OUTLIERS IN OUTLIER SAMPLES- NOT USED AS OF 12/2/2022
-
-```{r}
-# counts <- counts[-which(rownames(counts) %in% outliers),]
-```
-
 ### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
 ```{r}
 #str(counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
