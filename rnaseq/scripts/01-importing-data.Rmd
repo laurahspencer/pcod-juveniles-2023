@@ -99,6 +99,10 @@ read.gff(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic_edited.gt
 
 #Looks good! Phew! 
 ```
+```{bash}
+cat "../../re
+```
+
 
 Other code I used to explore GTF file 
 
@@ -163,7 +167,7 @@ NOTE: data is read directly from the GoogleSheet using a share link that was set
 sample.info <- read_delim("../../data/DESeq2_Sample_Information.txt", delim="\t") %>% 
   clean_names() %>% 
   mutate_at(vars(tank, temp_treatment, tissue_type), as.factor) %>%
-  rename("temp_treatment"="temperature", "tank"="tank_number") %>%
+  dplyr::rename("temperature"="temp_treatment", "tank_number"="tank") %>%
   mutate(temperature_tank=factor(paste(temperature, tank_number, sep="_")))
 
 save(sample.info, file="../sample.info")
@@ -228,7 +232,7 @@ for (i in 1:nrow(filenames)) {
 ### Import counts generated using featurecounts from star alignments
 
 ```{r}
-counts.fc <- data.frame(read.table("../aligned/featurecounts_gene_v2", header = T, stringsAsFactors = F, fill = FALSE)) %>%
+counts.fc <- data.frame(read.table("../aligned/featurecounts_gene", header = T, stringsAsFactors = F, fill = FALSE)) %>%
   column_to_rownames(var="Geneid")
 counts.fc <- counts.fc %>% rename_all(~as.character(str_sub(colnames(counts.fc)) %>%
                             gsub("X.home.lspencer.pcod.juv.temp.", "", .) %>%
@@ -284,6 +288,7 @@ all(sort(sample.info$sample_name) == sort(colnames(counts))) #should = TRUE
 
 # resave sample info object
 save(sample.info, file="../sample.info")
+View(sample.info)
 ```
 
 USE THIS CODE TO REMOVE OUTLIER SAMPLES BY NAME 
@@ -333,7 +338,7 @@ NOTE: Should i do this? DESeq2 throws out low-frequency genes anyway, BUT other 
 
 ```{r}
 keep1 <- colMeans(counts.t, na.rm=TRUE) >= 10 #identify genes with mean count >= 10 across all samples (excluding NAs = 10)
-keep2 <- rowSums( counts >= 30 ) >= 0.1*79 #identify genes with counts>=30 across at minimum 10% of the samples
+keep2 <- rowSums( counts >= 30 ) >= 0.1*69 #identify genes with counts>=30 across at minimum 10% of the samples
 keep <- unique(c(names(which(keep1 == T)), names(which(keep2 == T)))) # list of genes meeting one of the two above criteria
 counts.ts <- counts.t[,keep]
 
@@ -492,7 +497,7 @@ save(pcod.blast.GO, file = "../../references/pcod.blast.GO")
 ```{r}
 counts.annot.pcod <- right_join(
   pcod.blast %>% ungroup(),
-  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id))) %>%
+  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("gene") %>% mutate(ncbi_id=gsub("GeneID:", "", gene))) %>%
   left_join(pcod.blast.GO %>% dplyr::select(ncbi_id, protein_names, gene_names), "ncbi_id") #%>%
   #dplyr::select(Chr, Start, End, Strand, Length, geneID, evalue, SPID, gene.Uni, species, pident, gene_names, protein_names, everything())
 
@@ -500,12 +505,18 @@ save(counts.annot.pcod, file = "../aligned/counts.annot.pcod")
 write.csv(counts.annot.pcod, file = "../aligned/counts_annotated_pcod.csv", row.names = F, quote = F)
 ```
 
-#### How many of our analyzed genes are annotated? Answer- 12,069
+```{r}
+View(counts.annot.pcod)
+#LOC132464016
+```
+
+#### How many of our analyzed genes are annotated? Answer- 12,477
 
 ```{r}
 right_join(
-  pcod.blast %>% ungroup() %>% dplyr::select(gene_pcod, spid, gene_uni, species, pident, evalue),
-  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column(var = "gene_pcod"), "gene_pcod") %>% filter(!is.na(spid)) %>%
+  pcod.blast %>% ungroup() %>% dplyr::select(gene_pcod, ncbi_id, spid, gene_uni, species, pident, evalue),
+  counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column(var = "ncbi_id") %>% 
+    mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)), "ncbi_id") %>% filter(!is.na(spid)) %>%
   nrow()
 ```
 
@@ -519,44 +530,36 @@ read_delim(file = "../../references/GCF_031168955.1_ASM3116895v1_genomic.gff", d
 Import EXON counts!
 
 ```{r}
-pcod.gtf %>% filter(feature=="exon") %>% select(ncbi_id, start, end) %>% View()
+pcod.gtf %>% filter(feature=="exon") %>% select(ncbi_id, start, end) %>%
   group_by(ncbi_id, start, end) %>% distinct()
   left_join(pcod.gtf)
 ```
 
 
 ```{r}
-exon.counts.fc <- data.frame(read.table("../aligned/featurecounts_exon_v2", header = T, stringsAsFactors = F, fill = FALSE)) %>%
+exon.counts <- data.frame(read.table("../aligned/featurecounts_exon", header = T, stringsAsFactors = F, fill = FALSE)) %>%
   column_to_rownames(var="Geneid")
-exon.counts.fc <- counts.fc %>% rename_all(~as.character(str_sub(colnames(exon.counts.fc)) %>%
+exon.counts <- exon.counts %>% rename_all(~as.character(str_sub(colnames(exon.counts)) %>%
                             gsub("X.home.lspencer.pcod.juv.temp.", "", .) %>%
                             gsub(".Aligned.sortedByCoord.out.bam", "", .)) %>%
                               gsub("aligned.", "sample_", .)) %>% select(-Chr, -Start, -End, -Strand, -Length)
-save(counts.fc, file = "../aligned/counts.fc")
+save(exon.counts, file = "../aligned/exon.counts")
 ```
-
-### Decide which source of counts you'd like to use! (NOTE- they both are derived from STAR aligner)
-
-```{r}
-counts <- counts.fc
-#counts <- counts.star
-```
-
 
 ### Summarize counts and visualize (remove last column - that's undetermined counts)
 
 ```{r}
-print(paste("Number of samples:", ncol(counts %>% dplyr::select(contains("sample"))), sep=" "))
-print(paste("Total number of genes in dataframe:", prettyNum(nrow(counts), big.mark = ","), sep=" "))
-print(paste("Average number of genes per sample:", prettyNum(mean(colSums(counts %>% dplyr::select(contains("sample")) != 0)) %>% round(), big.mark = ","), sep=" "))
-print(paste("Total counts, all samples:", prettyNum(sum(colSums(counts %>% dplyr::select(contains("sample")))), big.mark = ","), sep=" "))
-#print(paste("Counts for", colnames(counts %>% select(contains("PCG"))), ":",  prettyNum(colSums(counts %>% select(contains("PCG"))), big.mark = ","), sep=" "))
+print(paste("Number of samples:", ncol(exon.counts %>% dplyr::select(contains("sample"))), sep=" "))
+print(paste("Total number of exons in dataframe:", prettyNum(nrow(exon.counts), big.mark = ","), sep=" "))
+print(paste("Average number of exons per sample:", prettyNum(mean(colSums(exon.counts %>% dplyr::select(contains("sample")) != 0)) %>% round(), big.mark = ","), sep=" "))
+print(paste("Total exon.counts, all samples:", prettyNum(sum(colSums(exon.counts %>% dplyr::select(contains("sample")))), big.mark = ","), sep=" "))
+#print(paste("exon.counts for", colnames(exon.counts %>% select(contains("PCG"))), ":",  prettyNum(colSums(exon.counts %>% select(contains("PCG"))), big.mark = ","), sep=" "))
 
-#inspect total counts by sample 
+#inspect total exon.counts by sample 
 # sample 149 very high 
 # sample 129 kinda low
 ggplotly(
-   ggplot(data.frame(colSums(counts %>% dplyr::select(contains("sample")))) %>% 
+   ggplot(data.frame(colSums(exon.counts %>% dplyr::select(contains("sample")))) %>% 
             dplyr::rename(count.total = 1) %>% rownames_to_column(var="sample")) + 
      geom_bar(aes(x=sample, y=count.total), stat = "identity") + ggtitle("Total count by sample") + 
               theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())) 
@@ -570,31 +573,24 @@ USE THIS CODE TO REMOVE SPLEEN AND GILL SAMPLES FOR THIS ANALYSIS, LEAVE ONLY LI
 
 ```{r}
 outliers <- c("sample_31", "sample_41", "sample_149", "sample_129")
-#remove.list <- c(counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers) #remove list for STAR-generated counts
-remove.list <- c(counts %>% select(contains(c(".S", ".G"))) %>% colnames(), outliers) #remove list for featureCounts-generated counts
-counts <- counts[ , which(names(counts) %!in% remove.list)]
-
-# need to remove "RESUB-" from some sample names 
-sample.info <- sample.info %>% mutate(sample_name=gsub("RESUB-", "", sample_name)) %>% filter(sample_name %in% colnames(counts))
-
-nrow(sample.info) == ncol(counts) #should = TRUE
-all(sort(sample.info$sample_name) == sort(colnames(counts))) #should = TRUE
-
-# resave sample info object
-save(sample.info, file="../sample.info")
+#remove.list <- c(exon.counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers) #remove list for STAR-generated exon.counts
+remove.list <- c(exon.counts %>% select(contains(c(".S", ".G"))) %>% colnames(), outliers) #remove list for featureCounts-generated counts
+exon.counts <- exon.counts[ , which(names(exon.counts) %!in% remove.list)]
+nrow(sample.info) == ncol(exon.counts) #should = TRUE
+all(sort(sample.info$sample_name) == sort(colnames(exon.counts))) #should = TRUE
 ```
 
 USE THIS CODE TO REMOVE OUTLIER SAMPLES BY NAME 
 
 ```{r}
 # remove.list <- c("PCG194", "PCG137")
-# counts <- counts[ , -which(names(counts) %in% remove.list)]
+# exon.counts <- exon.counts[ , -which(names(exon.counts) %in% remove.list)]
 # sample.info <- sample.info[ -which(sample.info$sample_name %in% remove.list), ]
 # 
 # # resave sample info object
 # save(sample.info, file="../data/sample.info")
 # 
-# nrow(sample.info) == ncol(counts) #should = TRUE
+# nrow(sample.info) == ncol(exon.counts) #should = TRUE
 ```
 
 ## OPTIONAL: FILTER WHOLE SCAFFOLDS 
@@ -607,20 +603,20 @@ After preliminary examination of blast results (by looking at genes, lengths, an
 
 
 ```{r}
-# counts <- counts %>% separate(Chr, into = c("X", "Y", "scaffold"), sep = "_", remove = F) %>%
+# exon.counts <- exon.counts %>% separate(Chr, into = c("X", "Y", "scaffold"), sep = "_", remove = F) %>%
 #   mutate(scaffold=as.integer(scaffold)) %>% filter(scaffold<=104) %>% dplyr::select(-X, -Y, -scaffold)
 ```
 
 ### Optional: FILTER GENES THAT ARE OUTLIERS IN OUTLIER SAMPLES- NOT USED AS OF 12/2/2022
 
 ```{r}
-# counts <- counts[-which(rownames(counts) %in% outliers),]
+# exon.counts <- exon.counts[-which(rownames(exon.counts) %in% outliers),]
 ```
 
 ### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
 ```{r}
-#str(counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
-counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data to have each sample a row, each column a gene
+#str(exon.counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
+exon.counts.t <- as.data.frame(t(exon.counts)) #remove extraneous columns, transform data to have each sample a row, each column a gene
 ```
 
 ## Optional 
@@ -630,37 +626,38 @@ counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data 
 NOTE: Should i do this? DESeq2 throws out low-frequency genes anyway, BUT other folks do pre-filter. For example in https://doi.org/10.1186/s12864-017-4392-0 "Genes with mean count less than ten across all samples were removed."
 
 ```{r}
-keep1 <- colMeans(counts.t, na.rm=TRUE) >= 10 #identify genes with mean count >= 10 across all samples (excluding NAs = 10)
-keep2 <- rowSums( counts >= 30 ) >= 0.1*79 #identify genes with counts>=30 across at minimum 10% of the samples
+keep1 <- colMeans(exon.counts.t, na.rm=TRUE) >= 10 #identify exon with mean count >= 10 across all samples (excluding NAs = 10)
+keep2 <- rowSums( exon.counts >= 10 ) >= 0.1*69 #identify exons with exon.counts>=10 across at minimum 10% of the samples
 keep <- unique(c(names(which(keep1 == T)), names(which(keep2 == T)))) # list of genes meeting one of the two above criteria
-counts.ts <- counts.t[,keep]
+exon.counts.ts <- exon.counts.t[,keep]
 
-print(paste("# genes before filtering:", ncol(counts.t)))
-print(paste("# genes remaining after pre-filtering:", ncol(counts.ts)))
-print(paste("# of genes dropped:", ncol(counts.t) - ncol(counts.ts), sep=" "))
-print(paste("% of fragments remaining after pre-filtering: ", signif(100*sum(counts.ts)/sum(counts.t), digits = 5), "%", sep=""))
-print(paste("Number of fragments dropped: ", signif(sum(counts.t)-sum(counts.ts), digits = 5)))
-print(paste("% of fragments dropped: ", signif(100*(sum(counts.t)-sum(counts.ts))/sum(counts.t), digits = 5), "%", sep=""))
-print(paste("Number of fragments remaining: ", signif(sum(counts.ts), digits = 5)))
+print(paste("# exons before filtering:", ncol(exon.counts.t)))
+print(paste("# exons remaining after pre-filtering:", ncol(exon.counts.ts)))
+print(paste("# of exons dropped:", ncol(exon.counts.t) - ncol(exon.counts.ts), sep=" "))
+print(paste("% of fragments remaining after pre-filtering: ", signif(100*sum(exon.counts.ts)/sum(exon.counts.t), digits = 5), "%", sep=""))
+print(paste("Number of fragments dropped: ", signif(sum(exon.counts.t)-sum(exon.counts.ts), digits = 5)))
+print(paste("% of fragments dropped: ", signif(100*(sum(exon.counts.t)-sum(exon.counts.ts))/sum(exon.counts.t), digits = 5), "%", sep=""))
+print(paste("Number of fragments remaining: ", signif(sum(exon.counts.ts), digits = 5)))
 ```
-### Save counts file, and transformed counts file 
+### Save exon.counts file, and transformed exon.counts file 
 ```{r}
-save(counts, file = "../aligned/counts")
-save(counts.t, file = "../aligned/counts.t")
-save(counts.ts, file = "../aligned/counts.ts")
+save(exon.counts, file = "../aligned/exon.counts")
+save(exon.counts.t, file = "../aligned/exon.counts.t")
+save(exon.counts.ts, file = "../aligned/exon.counts.ts")
 ```
 
 ### Inspect read distribution before & after filtering
 
 ```{r}
-# Plot distribution of unfiltered read counts across all samples 
+# Plot distribution of unfiltered read exon.counts across all samples 
 #ggplotly(
-ggplot(data = data.frame(rowMeans(counts)),
-       aes(x = rowMeans.counts.)) +
+ggplot(data = data.frame(rowMeans(exon.counts)),
+       aes(x = rowMeans.exon.counts.)) +
   geom_histogram(fill = "grey") +
-  xlim(1, 500) +
+  xlim(1, 500) + 
+  ylim(0,30000) +
   theme_classic() +
   labs(title = "Distribution of unfiltered reads") +
-  labs(y = "Density", x = "Raw read counts",
+  labs(y = "Density", x = "Raw read exon.counts",
   title = "Read count distribution: untransformed, unnormalized, unfiltered\n(execept to remove 0's)")#)
 ```

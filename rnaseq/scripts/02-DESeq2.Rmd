@@ -93,12 +93,13 @@ fragments <- data.frame(rowSums(counts.ts)) %>%
   mutate(temperature=factor(temperature, ordered = T, levels=c("0", "5", "9", "16"))) %>%
   mutate(sample=as.factor(as.character(sample)))
 
-      #ggplotly(
+      ggplotly(
 ggplot(fragments) +
            geom_bar(aes(x=fct_reorder(sample, as.numeric(temperature)), y=read.total, fill=temperature), stat = "identity") + ggtitle("Total # fragments by sample") + 
-             theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
+             theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())) 
 
-ggplot(fragments) +
+#ggplotly(
+  ggplot(fragments) +
            geom_bar(aes(x=fct_reorder(sample, read.total), y=read.total, fill=temperature), stat = "identity") + ggtitle("Total # fragments by sample") + 
              theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
 
@@ -897,7 +898,6 @@ NC_082390.1:1869790-1873256	9	minus	zona pellucida sperm-binding protein 3-like	
 #            c("P49285"))
 
 test <- "GeneID:132464016" # ZP3 gene on P. cod genome 
-
 #test <- "rereb" # other genes
 
 for (i in 1:length(test)) {
@@ -917,6 +917,109 @@ print(
     theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none") +
   scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
 }
+
+
+
+# Using variance stabilization transformed counts 
+zp3.vst <- assay(vsd.temperature) %>% t() %>% as.data.frame() %>%
+  select("GeneID:132464016") %>%
+  rownames_to_column("sample_name") %>%
+  left_join(sample.info[,c("sample_name", "temperature", "tank_number")])
+
+(aov.zp3 <- summary(aov(`GeneID:132464016` ~ temperature, data=zp3.vst)))
+aov.zp3[[1]] %>% as.data.frame() %>% rownames_to_column("temperature") %>%
+  clean_names() %>%
+  mutate(p.adj.bonf=((nrow(assay(vsd.temperature))+1)*pr_f))
+
+(tukey <- TukeyHSD(aov(`GeneID:132464016` ~ temperature, data=zp3.vst)))
+tukey$`temperature` %>% as.data.frame() %>% rownames_to_column("contrast") %>% arrange(`p adj`) %>%
+  clean_names() %>%
+  mutate(p.adj.bonf=((nrow(assay(vsd.temperature))+1)*p_adj))
+
+#(fig1 <- 
+zp3.vst %>% mutate(temperature=factor(temperature, ordered=T, 
+                     levels=c("0", "5", "9", "16"))) %>%
+  left_join(phenotypes %>% dplyr::select(sample, haplotype, microchip_id) %>% 
+              mutate(sample=paste("sample_", as.character(sample), sep="")), by=c("sample_name"="sample")) %>%
+              left_join(residuals) %>% 
+ggplot(aes(x=temperature, y=`GeneID:132464016`, color=temperature)) +
+  geom_boxplot(outlier.shape = NA, lwd=0.2, alpha=0.75) +
+  geom_point(aes(x=temperature, color=temperature), 
+             size=1.5, position=position_jitter(w = 0.2,h = 0)) +
+    theme_bw() +
+    ggtitle("Zona pellucida sperm-binding protein 3\n(ZP3, GeneID:132464016)") +
+  ylab("Transformed counts") + xlab("Temperature") +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(), 
+          axis.ticks.x = element_blank(),
+          axis.title.y = element_text(size=9),
+          plot.title = element_text(hjust = 0.5, size=10), 
+          legend.position = "right",
+          legend.title = element_text(size=9)) +
+  scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) +
+  annotate("text", x=1, y=13.7, label="A", size=5) +
+  annotate("text", x=2, y=11.5, label="B", size=5) +
+  annotate("text", x=3, y=10.75, label="C", size=5) +
+  annotate("text", x=4, y=8.9, label="D", size=5)
+
+
+zp3.top.hap <- zp3.vst %>% mutate(temperature=factor(temperature, ordered=T, 
+                     levels=c("0", "5", "9", "16"))) %>%
+  left_join(phenotypes %>% dplyr::select(sample, haplotype, microchip_id) %>% 
+              mutate(sample=paste("sample_", as.character(sample), sep="")), by=c("sample_name"="sample")) %>%
+              left_join(residuals) %>% 
+    filter(haplotype%in%c("T.A.T", "T/G.A/G.T/A"))
+
+summary(aov(`GeneID:132464016` ~ haplotype/temperature, data=zp3.top.hap))
+TukeyHSD(aov(`GeneID:132464016` ~ haplotype/temperature, data=zp3.top.hap))
+
+zp3.vst %>% mutate(temperature=factor(temperature, ordered=T, 
+                     levels=c("0", "5", "9", "16"))) %>%
+  left_join(phenotypes %>% dplyr::select(sample, haplotype, microchip_id) %>% 
+              mutate(sample=paste("sample_", as.character(sample), sep="")), by=c("sample_name"="sample")) %>%
+              left_join(residuals) %>% 
+    filter(haplotype%in%c("T.A.T", "T/G.A/G.T/A")) %>% #two most common haplotypes
+  filter(temperature %in% c("0", "5")) %>%
+ggplot(aes(x=temperature:haplotype, y=`GeneID:132464016`, fill=temperature, color=haplotype)) +
+  geom_boxplot(lwd=0.2, alpha=0.75) +
+  # geom_point(aes(x=temperature, color=temperature), 
+  #            size=1.5, position=position_jitter(w = 0.2,h = 0)) +
+    theme_bw() +
+    ggtitle("Zona pellucida sperm-binding protein 3\n(ZP3, GeneID:132464016)") +
+  ylab("Transformed counts") + xlab("Temperature") +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(), 
+          axis.ticks.x = element_blank(),
+          axis.title.y = element_text(size=9),
+          plot.title = element_text(hjust = 0.5, size=10), 
+          legend.position = "right",
+          legend.title = element_text(size=9)) +
+  scale_color_manual(name="Haplotype", values=c("black", "red")) +
+  scale_fill_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) #+
+  # annotate("text", x=1, y=13.7, label="A", size=5) +
+  # annotate("text", x=2, y=11.5, label="B", size=5) +
+  # annotate("text", x=3, y=10.75, label="C", size=5) +
+  # annotate("text", x=4, y=8.9, label="D", size=5)
+  # 
+
+zp3.vst %>%
+ggplot(aes(x=as.numeric(as.character(temperature)), y=`GeneID:132464016`)) +
+    geom_point(aes(color=temperature), size=1.5, position=position_jitter(w = 0.1,h = 0)) +
+    theme_bw() +
+    ggtitle("Zona pellucida sperm-binding protein 3\n(ZP3, GeneID:132464016)") +
+  ylab("Transformed counts") + xlab("Temperature") +
+    theme(axis.title.y = element_text(size=9),
+          plot.title = element_text(hjust = 0.5, size=10), 
+          legend.position = "none",
+          legend.title = element_text(size=9)) +
+    geom_smooth(method="lm", formula=y~x, alpha=0.2, colour="gray25") +
+    stat_regline_equation(label.x = 12, label.y = 12) +
+    stat_cor(label.x = 12, label.y = 11.5) +
+  scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) +
+  guides(colour = guide_legend(override.aes = list(size=3.5, linetype="blank"), order=1)) +
+  scale_x_continuous(breaks = c(0,5,9,16), labels=c(0,5,9,16))
+
+a %>% group_by(temperature) %>% dplyr::summarise(mean=mean(count))
 ```
 
 Look for Outliers 
@@ -1224,8 +1327,7 @@ NOTE: There are 4,525 DEGs among pH temperature in the 6C group, but only 2 and 
 Kinda interesting - below are only DEGs among pH temperature (mostly 6amb and 6low), but the expressoin patterns look similar among 6low, 10amb and 10low, compared to 6amb, 3amb and 3low. 
 
 ```{r}
-# NOTE THIS DOESN'T EXCLUDE LENGTH-ASSOCIATED GENES
-# Generate counts matrix With DEGs among any pH temperature 
+# Generate counts matrix With DEGs among any temperature 
 
 diffex.counts <- subset(assay(vsd.temperature), rownames(dds.DESeq.temperature) %in% unique(c(rownames(diffex.0.filt),rownames(diffex.5.filt),rownames(diffex.16.filt))))
 
@@ -1296,18 +1398,21 @@ DEGs.4David.ncbi <- list(
     res.0 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool (5degC)" = 
     res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Warm (16degC)" = 
     res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector()) 
 
 
@@ -1317,11 +1422,13 @@ DEGs.4David.ncbi.updown <- list(
     res.0 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
-    dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
+    dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector() %>% write_clip(),
   
   "Cold_Upregulated" = 
     res.0 %>% as.data.frame()%>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     left_join(pcod.gff %>% filter(type=="gene")) %>%
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
   
@@ -1329,24 +1436,28 @@ DEGs.4David.ncbi.updown <- list(
     res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool_Upregulated" = 
     res.5 %>% as.data.frame()%>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
 
   "Warm_Downregulated" = 
     res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Warm_Upregulated" = 
-    res.16 %>% as.data.frame()%>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
     left_join(pcod.gff %>% filter(type=="gene")) %>%
+    #filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(ncbi_id) %>% na.omit() %>% unlist() %>% as.vector()) 
 
 # Write tab-delimited file with each column containing Uniprot IDs for each set of DEGs 
@@ -1371,57 +1482,66 @@ Using Uniprot SPIDs
 DEGs.4David.uniprot <- list(
 
   "Cold (0degC)" = 
-    res.0 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.0 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool (5degC)" = 
-    res.5 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Warm (16degC)" = 
-    res.16 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(abs(select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
 
   "Cold_Downregulated"  =
-    res.0 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cold_Upregulated" = 
-    res.0 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool_Downregulated" = 
-    res.5 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool_Upregulated" = 
-    res.5 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
 
   "Warm_Downregulated" = 
-    res.16 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))< -0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Warm_Upregulated" = 
-    res.16 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+    res.16  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     filter(select(., contains("log2FoldChange"))> 0.5) %>%
     left_join(pcod.blast) %>%
+    filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector())
 
 # Write tab-delimited file with each column containing Uniprot IDs for each set of DEGs 
@@ -1429,7 +1549,7 @@ write_delim(x = ldply(DEGs.4David.uniprot, rbind) %>% t() %>% as.data.frame(), d
             file = "../deseq2/DEGs-4David.uniprot.txt")
             
 # BACKGROUND - all genes submitted to DESeq2 analysis 
-res.5 %>% as.data.frame() %>% rownames_to_column("gene_pcod") %>%
+res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     left_join(pcod.blast) %>%
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector() %>% write_clip() 
 ```
@@ -1487,7 +1607,7 @@ Up-regulated Uniprot Keywords
 ```{r}
 # Bubble plot, Upregulated processes
 
-pdf(file="../deseq2/DAVID/Upregulated-KW-bubble.pdf", height = 3.05, width = 4)
+#pdf(file="../deseq2/DAVID/Upregulated-KW-bubble.pdf", height = 3.05, width = 4)
 
 david %>% 
   #filter(count>=3) %>% 
@@ -1503,8 +1623,9 @@ david %>%
 #  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
   filter(response=="Upregulated") %>% 
 
-  ungroup() %>% arrange(stress, p_value) %>%
-  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  ungroup() %>% arrange(rev(stress), p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
+         stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
 
 ggplot(aes(y = process, x=stress, col=stress)) + 
   geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
@@ -1537,7 +1658,8 @@ Up-regulated Gene Ontology terms
 #pdf(file="../GO-enrichment/Final-DAVID/Upregulated-GO-bubble.pdf", height = 9, width = 7.5)
 david %>% 
 #  filter(count>=3) %>% 
-  filter(fdr<0.1) %>%
+#  filter(fdr<0.1) %>%
+  filter(p_value<0.05) %>%
   filter(category=="GOTERM_BP_DIRECT") %>% 
 #  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
@@ -1593,9 +1715,9 @@ david %>%
             by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
 #  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
   filter(response=="Downregulated") %>% 
-
-  ungroup() %>% arrange(stress, p_value) %>%
-  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  ungroup() %>% arrange(rev(stress), p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
+         stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
 
 ggplot(aes(y = process, x=stress, col=stress)) + 
   geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
