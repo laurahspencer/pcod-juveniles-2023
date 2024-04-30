@@ -128,7 +128,6 @@ fragments %>% group_by(temperature, tank_number) %>% tally() %>% arrange(tempera
 ```{r}
 prettyNum(ncol(counts.ts),big.mark = ",")
 ```
-
 #### What's the average no. of genes per sample, etc.? 
 
 ```{r}
@@ -177,7 +176,7 @@ save(counts.tk, file = "../aligned/counts.tk")
 all(rownames(counts.tk) == counts.tk[-1:-4] %>% t() %>% colnames()) #check that rownames of untransformed matrix match column names of transformed matrix. Should print 'TRUE' 
 ```
 
-#### Back to DESeq analysis
+#### DESeq analysis
 
 Generate DESeq datasets with various temperature comparisons  - remove genes associated with length from all analyses 
 
