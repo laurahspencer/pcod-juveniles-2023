@@ -272,8 +272,6 @@ ggplotly(
 
 Remove whole samples from the data set and sample info here if needed
 
-USE THIS CODE TO REMOVE SPLEEN AND GILL SAMPLES FOR THIS ANALYSIS, LEAVE ONLY LIVER SAMPLES 
-
 ```{r}
 outliers <- c("sample_31", "sample_41", "sample_149", "sample_129")
 #remove.list <- c(counts %>% select(contains(c("-S", "-G"))) %>% colnames(), outliers) #remove list for STAR-generated counts
@@ -291,6 +289,7 @@ save(sample.info, file="../sample.info")
 View(sample.info)
 ```
 ### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
+
 ```{r}
 #str(counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
 counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data to have each sample a row, each column a gene
@@ -299,8 +298,6 @@ counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data 
 ## Optional 
 
 ### Pre-filtering - remove low-frequency genes 
-
-NOTE: Should i do this? DESeq2 throws out low-frequency genes anyway, BUT other folks do pre-filter. For example in https://doi.org/10.1186/s12864-017-4392-0 "Genes with mean count less than ten across all samples were removed."
 
 ```{r}
 keep1 <- colMeans(counts.t, na.rm=TRUE) >= 10 #identify genes with mean count >= 10 across all samples (excluding NAs = 10)
@@ -317,6 +314,7 @@ print(paste("% of fragments dropped: ", signif(100*(sum(counts.t)-sum(counts.ts)
 print(paste("Number of fragments remaining: ", signif(sum(counts.ts), digits = 5)))
 ```
 ### Save counts file, and transformed counts file 
+
 ```{r}
 save(counts, file = "../aligned/counts")
 save(counts.t, file = "../aligned/counts.t")
@@ -413,7 +411,6 @@ pcod.blast <-
   mutate(biotype=gsub(";.*", "", biotype)) %>%
   clean_names()
   
-
 # E-VALUE FILTERING
 # Count annotated genes with e-value filters
 pcod.blast %>% filter(evalue < 1.0e-10) %>% nrow() # 18,644 genes have e-value <1e-10
