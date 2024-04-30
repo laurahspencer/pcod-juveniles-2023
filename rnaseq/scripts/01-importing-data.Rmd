@@ -249,14 +249,13 @@ counts <- counts.fc
 ```
 
 
-### Summarize counts and visualize (remove last column - that's undetermined counts)
+### Summarize counts and visualize
 
 ```{r}
 print(paste("Number of samples:", ncol(counts %>% dplyr::select(contains("sample"))), sep=" "))
 print(paste("Total number of genes in dataframe:", prettyNum(nrow(counts), big.mark = ","), sep=" "))
 print(paste("Average number of genes per sample:", prettyNum(mean(colSums(counts %>% dplyr::select(contains("sample")) != 0)) %>% round(), big.mark = ","), sep=" "))
 print(paste("Total counts, all samples:", prettyNum(sum(colSums(counts %>% dplyr::select(contains("sample")))), big.mark = ","), sep=" "))
-#print(paste("Counts for", colnames(counts %>% select(contains("PCG"))), ":",  prettyNum(colSums(counts %>% select(contains("PCG"))), big.mark = ","), sep=" "))
 
 #inspect total counts by sample 
 # sample 149 very high 
@@ -286,12 +285,10 @@ all(sort(sample.info$sample_name) == sort(colnames(counts))) #should = TRUE
 
 # resave sample info object
 save(sample.info, file="../sample.info")
-View(sample.info)
 ```
 ### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
 
 ```{r}
-#str(counts) #columns #1-#5 contain extraneous gene info (chr, start, end, strand, length). 
 counts.t <- as.data.frame(t(counts)) #remove extraneous columns, transform data to have each sample a row, each column a gene
 ```
 
