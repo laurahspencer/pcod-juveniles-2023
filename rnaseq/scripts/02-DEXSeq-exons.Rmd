@@ -1,0 +1,59 @@
+---
+title: "05-DEXSeq-exons"
+author: "Laura Spencer"
+date: "2024-05-02"
+output: html_document
+---
+
+```{r, message=FALSE, warning=FALSE, results=FALSE}
+#### Load libraries and source scripts 
+
+source("../../references/load_SubreadOutput.R")
+`%!in%` = Negate(`%in%`)
+
+# Add all required libraries that are installed with install.packages() here
+list.of.packages <- c("tidyverse", "plotly")
+
+# Add all libraries that are installed using BiocManager here
+bioconductor.packages <- c("DEXSeq")
+
+# # Install BiocManager if needed
+# if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+# 
+# Get names of all required packages that aren't installed
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+new.bioc.packages <- bioconductor.packages[!(bioconductor.packages %in% installed.packages()[, "Package"])]
+# Install all new packages
+if(length(new.packages)) install.packages(new.packages)
+if(length(new.bioc.packages)) BiocManager::install(new.bioc.packages)
+
+# Load all required libraries
+all.packages <- c(list.of.packages, bioconductor.packages)
+lapply(all.packages, FUN = function(X) {
+  do.call("require", list(X))
+})
+```
+
+Here I use [DEXSeq](https://bioconductor.org/packages/release/bioc/vignettes/DEXSeq/inst/doc/DEXSeq.html) with exon counts to examine differential exon usage in response to temperature, which suggests alternative splicing for possibly optimizing protein performance.  
+
+YAY! - "DEXSeq is not limited to simple two-group comparisons; rather, it uses so-called generalized linear models (GLMs) to permit ANOVA-like analysis of potentially complex experimental designs."
+
+As per the DEXSeq vignette, Vivek Bhardwaj provides a function to import the count files into R and generate a DEXSeqDataSet object in his github: https://github.com/vivekbhr/Subread_to_DEXSeq/tree/master, which I will use here
+
+### Load output from featureCounts into DEXSeq
+
+Prepare sampleData data.frame, which contains sample names used for featurecounts as rownames, plus condition, and other variables you want to use for DEXSeq design matrix.
+
+Example :
+
+source("load_SubreadOutput.R")
+samp <- data.frame(row.names = c("cont_1","cont_2","test_1","test_2"), 
+                        condition = rep(c("control","trt"),each=2))
+dxd.fc <- DEXSeqDataSetFromFeatureCounts("dm6_fCount.out",
+                                         flattenedfile = "dm6_ens76_flat.gtf",sampleData = samp)
+This will create a dxd object that you can use for DEXSeq analysis.
+
+```{r}
+
+```
+
