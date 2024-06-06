@@ -20,7 +20,7 @@ https://bioconductor.org/packages/release/bioc/vignettes/EBSEA/inst/doc/EBSEA.ht
 
 exon.info <- exon.counts %>% colnames() %>% 
   as.data.frame() %>% set_names("sample_name") %>%
-  left_join(sample.info) %>% 
+  left_join(sample.info.rna) %>% 
   column_to_rownames("sample_name")
 all(row.names(exon.info) == colnames(t(exon.counts.ts)))
 
@@ -168,4 +168,4 @@ write_delim(x = ldply(ebsea.4David.uniprot, rbind) %>% t() %>% as.data.frame(), 
 res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     left_join(pcod.blast) %>%
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector() %>% write_clip() 
-```
+  ```

@@ -41,7 +41,7 @@ load(file = "../deseq2/counts.trans")
 load(file = "../deseq2/vsd.temperature")
 
 # Read in sample metadata
-load(file="../sample.info")
+load(file="../sample.info.rna")
 ```
 
 ```{r}
@@ -451,6 +451,7 @@ geneOrder = order(geneInfo0$moduleColor, -abs(geneInfo0$GS.temperature));
 geneInfo = geneInfo0[geneOrder, ]
 write.csv(geneInfo, file = "../wgcna/geneInfo.csv")
 save(geneInfo, file="../wgcna/geneInfo")
+load(file="../wgcna/geneInfo")
 ```
 
 Visualizing the network of eigengenes
@@ -504,7 +505,7 @@ counts.annot.pcod
 # first extract the normalized counts
 gene.counts.norm <- assay(vsd.temperature) %>% as.matrix() %>% as.data.frame() %>% rownames_to_column(var = "gene") %>% 
   pivot_longer(-gene, values_to = "counts.vsd", names_to = "sample_name") %>%
-  left_join(sample.info[,c("sample_name", "temperature")]) %>% 
+  left_join(sample.info.rna[,c("sample_name", "temperature")]) %>% 
   mutate_at(c("gene", "sample_name"), factor) %>%
 #  mutate(temp_factor=factor(temperature, levels=c("0", "5", "9", "16"))) %>% 
   filter(sample_name %in% rownames(datExpr)) # <-- important, keep only samples that were retained in WGCNA analysis 
@@ -664,6 +665,8 @@ geneInfo %>%
 # 75.8% of the DEGs were assigned to a temperature-associated module. 
 # 61.2% of the DEGs were both assigned to a temperature-associated module, AND those genes are sign. associated with temperature (p.GS.temperature<0.05)
 ```
+
+
 ```{r}
 module.corr <- cbind(moduleTraitCor %>% as.data.frame(), moduleTraitPvalue %>% as.data.frame()) %>% dplyr::rename(corr=1, pvalue=2) %>% filter(pvalue<0.05) %>% arrange(corr) %>%
   rownames_to_column("module") %>% mutate(module=str_replace_all(module, "ME", ""))
@@ -835,7 +838,7 @@ for (i in 1:length(modules)) {
     as.data.frame() %>% add_column(module=modules[i])
 }
 
-s <- sample.info %>% column_to_rownames("sample_name")
+s <- sample.info.rna %>% column_to_rownames("sample_name")
 
 # define order of modules from most sign. positive correlation <--> most sign. negative correlation 
 modules.sorted <- moduleTraitCor %>% as.data.frame() %>% 
@@ -962,6 +965,8 @@ geneInfo %>% dplyr::select(SPID, ncbi_id) %>% remove_rownames() %>% distinct() %
 # In which module is the ZP3 gene?  greenyellow
 geneInfo %>% filter(ncbi_id=="132464016") 
 
+# In which module is the Tyoe-4 ice-structuring protein (antifreeze protein)?
+geneInfo %>% filter(ncbi_id=="132451019")
 
 # # Other code, could be used in future 
 # for (i in 1:length(modules)) {
@@ -1043,7 +1048,7 @@ response.mods[[3]] <- (module.info %>% filter(pvalue>=0.05))$module
 
 for (i in 1:3){
 print(
-  david.wgcna %>% 
+  david.wgcna %>% View()
   #filter(module %in% modules) %>%
 #  filter(count>=3) %>% 
 #  filter(fdr<0.1) %>%
@@ -1148,7 +1153,7 @@ eigengene.anno <- MEs %>%
   pivot_longer(cols = -sample_name, names_to = "module") %>%
   mutate(module=as.factor(gsub("^ME", "", module))) %>%
   #filter(module %in% modules) %>% #filter for only modules associated with temperature
-  left_join(sample.info %>% dplyr::select(sample_name, temperature)) %>%
+  left_join(sample.info.rna %>% dplyr::select(sample_name, temperature)) %>%
   group_by(temperature, module) %>%
   summarise(mean=mean(value), sd=sd(value)) %>%
   mutate(temperature=as.numeric(as.character(temperature))) %>% 
