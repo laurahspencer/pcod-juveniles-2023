@@ -1281,7 +1281,7 @@ res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=g
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector() %>% write_clip() 
 ```
 
-NOTE: outside of R I created a .tab file with the first column containing file names for enrichment results, and second column containing the contrast + which temperature was upregulated (for grouping in R). 
+NOTE: outside of R I created a .tab file, ["GO_filenames.txt](../../rnaseq/deseq2/DAVID/GO_filenames.txt) with the first column containing file names for enrichment results, and second column containing the contrast + which temperature was upregulated (for grouping in R). 
 
 ```{r}
 #### Read in enriched biological functions for all contrasts
