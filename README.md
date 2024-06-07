@@ -15,7 +15,7 @@ Broad questions:
 - Biometrics collected throughout on per-fish basis (fish ID'd using tags) - length, weight, liver weight   
 - Tissues collected: Livers & muscle for lipid analysess; Liver, gill, caudal fin, blood, & spleen for 'omics analysis     
 
-##### Genetic analysis, lcWGS
+#### Genetic analysis, lcWGS
 - lcWGS performed using fin clips from all 160 fish (including three (four?) that died).
   - lcWGS data archived on SednaGold (see [AFSC Genomics data inventory](https://docs.google.com/spreadsheets/d/1RU_aFByYbsXMEIrMgU30YVLwf2AEpjKs8W2vWBT79R8/edit?usp=sharing))
   - Analysis code and output located in [lcWGS](../lcWGS). Any work in R is located in [lcWGS-analysis.Rmd](../lcWGS/notebooks/lcWGS-analysis.Rmd).  
@@ -25,7 +25,7 @@ Broad questions:
   - Did a quick-n-dirty ZP3 haplotype call from lcWGS (using ANGSD) and RNASeq data (manually, using IGV), compared haplotypes from each approach and found good agreement. Based on these ZP3 haplotypes it seems there could be some fish from the Eastern GOA.  
   - B/C ZP3 haplotypes indicate possible population diversity, I am using the AFSC lcWGS pipeline + WGSassign along with lcWGS data from hundreds of "reference" fish (known origins) to "assign" each experimental fish to a population
 
-##### Gene expression analysis, RNASeq  
+#### Gene expression analysis, RNASeq  
 - RNASeq of liver tissue conducted on 20 fish from each temperature treatment
   - I ran my RNASeq pipeline.
   - MORE HERE SOON  
