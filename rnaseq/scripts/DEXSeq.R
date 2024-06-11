@@ -1,4 +1,5 @@
-# I used this script to run on Sedna.
+# I executed this R script on Sedna using the sbatch script "dexseq.sh"
+# To run interactively using high memory node use `srun --pty -p himem -c 24 /bin/bash`
 
 # Add all required libraries that are installed with install.packages() here
 list.of.packages <- c("tidyverse", "plotly", "janitor")
@@ -50,6 +51,14 @@ samp <- b %>% as.data.frame() %>%
     TRUE ~ "Liver") %>% as.factor()) %>%
   column_to_rownames("sample_name")
 
+samp.0.9 <- samp %>% filter(temp_treatment %in% c(0,9)) %>% droplevels()
+samp.5.9 <- samp %>% filter(temp_treatment %in% c(5,9)) %>% droplevels()
+samp.16.9 <- samp %>% filter(temp_treatment %in% c(16,9)) %>% droplevels()
+
+save(samp.0.9, file="samp.0.9")
+save(samp.5.9, file="samp.5.9")
+save(samp.16.9, file="samp.16.9")
+
 # Create DEXSeq object
 dxd.fc <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered",
                                          flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
@@ -85,3 +94,64 @@ table ( tapply( dxr1$padj < 0.1, dxr1$groupID, any ) )
 pdf(file = "volcano-plot.pdf", width = 12, height = 9);
 plotMA( dxr1, cex=0.8 )
 dev.off()
+
+# Rerun DEXSeq on subsetted objects, one for each treatment (0, 5, and 16, all vs. 9)
+
+dxd.fc <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered",
+                                         flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
+                                         sampleData = samp %>% dplyr::select(condition))
+
+
+dxd.fc.0vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_0.9",
+                                         flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
+                                         sampleData = samp.0.9 %>% dplyr::select(condition))
+
+dxd.fc.5vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_5.9",
+                                         flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
+                                         sampleData = samp.5.9 %>% dplyr::select(condition))
+
+dxd.fc.16vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_16.9",
+                                         flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
+                                         sampleData = samp.16.9 %>% dplyr::select(condition))
+
+dxd.fc.treats <- vector(mode = "list", length = 3)
+names(dxd.fc.treats) <-c ("dxd.fc.0vs9", "dxd.fc.5vs9", "dxd.fc.16vs9")
+dxd.fc.treats[1] <- dxd.fc.0vs9
+dxd.fc.treats[2] <- dxd.fc.5vs9
+dxd.fc.treats[3] <- dxd.fc.16vs9
+dxr.treats <- vector(mode = "list", length = 3)
+names(dxr.treats) <- c("dxr.0vs9", "dxr.5vs9", "dxr.16vs9")
+
+for (i in 2:3){
+
+ # Normalization
+ dxd.fc.treats[[i]] = estimateSizeFactors( dxd.fc.treats[[i]] )
+
+ # Dispersion estimation
+ ## This is very memory intensive. Here I use multiple cores.
+ BPPARAM = BiocParallel::MulticoreParam(24)
+ dxd.fc.treats[[i]] = DEXSeq::estimateDispersions( dxd.fc.treats[[i]], BPPARAM=BPPARAM )
+
+ pdf(file = paste("disp-estimates_", gsub("dxd.fc.", "", names(dxd.fc.treats[i])),".pdf", sep=""), width = 12, height = 9);
+ plotDispEsts( dxd.fc.treats[[i]] )
+ dev.off()
+
+ dxd.fc.treats[[i]] = testForDEU( dxd.fc.treats[[i]], BPPARAM=BPPARAM )
+
+ # Estimate fold changes
+ dxd.fc.treats[[i]] = estimateExonFoldChanges( dxd.fc.treats[[i]], fitExpToVar="condition", BPPARAM=BPPARAM )
+
+ # Extract results object
+ dxr.treats[[i]] = DEXSeqResults( dxd.fc.treats[[i]] )
+
+ pdf(file = paste("volcano-plot_", gsub("dxd.fc.", "", names(dxd.fc.treats[i])),".pdf", sep=""), width = 12, height = 9);
+ plotMA(  dxr.treats[[i]], cex=0.8 )
+ dev.off()
+
+ save(dxd.fc.treats, file="dxd.fc.treats")
+ save(dxr.treats, file="dxr.treats")
+ }
+
+# Save again, just in case! 
+ save(dxd.fc.treats, file="dxd.fc.treats")
+ save(dxr.treats, file="dxr.treats")
