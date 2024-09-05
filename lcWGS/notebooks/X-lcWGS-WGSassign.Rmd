@@ -1,0 +1,1456 @@
+---
+title: "X-lcWGS-WGSassign"
+author: "Laura Spencer"
+date: "2024-07-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE, results=FALSE}
+#### Load libraries and source scripts 
+
+`%!in%` = Negate(`%in%`)
+source("../scripts/biostats.R")
+
+
+# Add all required libraries that are installed with install.packages() here
+list.of.packages <- c("tidyverse", "readxl", "janitor", "purrr", "ggpubr", "googlesheets4", "plotly")
+
+# Add all libraries that are installed using BiocManager here
+bioconductor.packages <- c()
+
+# # Install BiocManager if needed
+# if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+# 
+# # Get names of all required packages that aren't installed
+# new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+# new.bioc.packages <- bioconductor.packages[!(bioconductor.packages %in% installed.packages()[, "Package"])]
+# # Install all new packages
+# if(length(new.packages)) install.packages(new.packages)
+# if(length(new.bioc.packages)) BiocManager::install(new.bioc.packages)
+
+# Load all required libraries
+all.packages <- c(list.of.packages, bioconductor.packages)
+lapply(all.packages, FUN = function(X) {
+  do.call("require", list(X))
+})
+```
+
+### Read in metadata 
+
+
+```{r, message=F, warning=F}
+# treatment info for experimental fish 
+sample.info.lcwgs <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
+  mutate_at(c("tank", "temperature"), factor) %>%
+  dplyr::select(temperature, genetic_sampling_count) %>% 
+  dplyr::rename(sample=genetic_sampling_count, treatment=temperature) %>% mutate(marine_region=NA) %>%
+  
+   # add reference fish metadata
+   rbind(
+    read_excel("../references/20230414_pcod_named.xlsx") %>% clean_names() %>%
+      dplyr::select(ablg, location1, marine_region) %>% dplyr::rename(sample=ablg, treatment=location1)) %>%
+  
+  # add Ingrid's marine region 2
+  left_join(
+    read_delim("../analysis-20240606/wgsassign/allcod_filtered_bamslist_meta_rmasia.csv") %>% clean_names() %>%
+      dplyr::select(ablg, marine_region2) %>% dplyr::rename(sample=ablg, marine_region_ingrid=marine_region2), by="sample") %>%
+      mutate(marine_region=as.factor(marine_region), marine_region_ingrid=as.factor(marine_region_ingrid)) %>%
+  
+  #fill in marine_region2 with marine_region where empty 
+  mutate(marine_region2=case_when(
+    !is.na(marine_region_ingrid) ~ marine_region_ingrid,
+    TRUE ~ marine_region))
+```
+
+# ZP3 haplotypes 
+
+```{r}
+haplos.allzp3 <- read.delim("../zp3/angsdput.zp3.haplo", sep = "\t", header = T, 
+                            col.names = colnames(read.delim("../zp3/angsdput.zp3.exonic.haplo", sep = "\t", header = T))) %>% #add sample IDs
+  mutate(pos_haplo=Locus-1872588) %>% dplyr::rename("pos_chr9"="Locus") %>% dplyr::select(Chromosome, pos_chr9, pos_haplo, everything()) %>%
+  #filter(pos_haplo %in% c(-313, -339, -542)) %>%
+  dplyr::select(-Chromosome, -pos_chr9) %>% column_to_rownames("pos_haplo") %>% t() %>% as.data.frame() %>% rownames_to_column("sample") %>% 
+  mutate(sample=gsub("GM", "", sample)) %>% 
+  pivot_longer(cols = -sample, names_to = "locus", values_to = "allele") %>%
+  mutate(locus=gsub("-", "loc.", locus)) %>%
+  mutate_at("allele", function(x) {
+    case_when(
+    x == "A" ~ "T",
+    x == "T" ~ "A",
+    x == "C" ~ "G",
+    x == "G" ~ "C",
+    x == "N" ~ "N")}) %>% 
+  pivot_wider(names_from = "locus", values_from = "allele") %>% 
+  dplyr::select(sample, loc.17, loc.313, loc.339, loc.447, loc.448, loc.449, loc.451, loc.452, loc.542) %>%
+  #column_to_rownames("sample") %>% 
+  unite("haplo.lcwgs", 2:ncol(.), sep="", remove = F) %>%
+  unite("haplo.exons.lcwgs", c(loc.313, loc.339, loc.542), sep="", remove = F) %>%
+  mutate_at(vars("haplo.lcwgs", "haplo.exons.lcwgs"), factor) %>% dplyr::select(sample, haplo.lcwgs, haplo.exons.lcwgs, everything())
+```
+
+
+
+# lcWGS Analysis with ALL reference fish, prep for WGSassign to assign experimental fish to populations 
+
+I am now tackling this lcWGS analysis with more ammo. First, I will run the AFSC lcWGS pipeline using ALL of Sara's reference fish (N=), second, based on Sara Schaal's suggestion, I will use WGSassign to identify population of origin for our experimental fishes. Here's what Sara had to say: 
+
+_I would still try with all the loci and use the low-coverage assignment method that Eric Anderson's group put out (paper here). If it is anything like GTseq which I assume it will be, what you would have to do is build a sites file from the baseline dataset (all my samples) and only use those sites with your dataset. Otherwise there will be a ton of sites in one dataset, but not the other which will drive the PCA (hence big batch effect). Then once you only get data from those sites you would filter based on missing data. That would probably need to be played with a bit to see what levels of missing data you can get away with. I had to go fairly high with GTseq to get rid of obvious missing data driving results. A PCA is good for determine how bad the missing data influences results before you do any assignments._ 
+
+_I think this is your best option for assignment. Low-coverage data is hard to get accurate genotype calls from so I'd be worried about biases in your called genotype data from low-coverage. I really think that WGSassign is what you need._ 
+
+_I'd be more than happy to try and help you implement this method. Its something I've wanted to do with the baseline for awhile, but just haven't had time. I do have sites for GT-seq and I can share that, but I would still be worried about your results given called genotypes from low-coverage data. I have markers in ZP3 that I purposely designed the panel to include. Let me know what you think and maybe we could buddy up trying to get WGSassign to work for your data. I think it'll be useful for a lot of folks and for me too so I'd be happy to carve out time to work on this with you._
+
+
+## Running AFSC lcWGS pipeline 
+
+### Prepare Inputs
+
+- Created a new analysis directory with two subdirectories, **analysis20240606/reference/** for all lcWGS data from fish of known origin (filtered to remove some fish that can cause issues, as per Sara/Ingrid), and **analysis20240606/experimental/** with lcWGS from our experimental fish of unknown origin.  
+- Switched to use the NCBI version of the genome, since that's what I'm using for RNASeq and Ingrid is also using that  
+- Created a new chromosomes_pcod-ncbi.txt file using `grep ">" /home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic.fa | tr -d '>' >> chromosomes_pcod-ncbi.txt`
+- Copied the input files created previously (adapters.txt, blacklist.txt, lcWGS_config.txt) to each subdirectory.  
+- Modified the lcWGS_config.txt file with appropriate paths.  
+- rsynced the experimental fish data (all .fq beginning with "GM") from old analysis folder to the experimental/ subdirectory (used `rsync` instead of `mv` to ensure data integrity)   
+- To get the all the reference fish lcWGS data, I transferred them from SednaGold using rsync: 
+
+```
+cd /home/lspencer/pcod-lcWGS/analysis20240606/reference/
+
+rsync --archive --progress --verbose laura.spencer@161.55.97.203:/sednagold/Gadus_macrocephalus/novaseq/*.fq.gz .
+rsync --archive --progress --verbose laura.spencer@161.55.97.203:/sednagold/Gadus_macrocephalus/novaseq/20220713_secondSeqRun/*.fq.gz .
+rsync --archive --progress --verbose laura.spencer@161.55.97.203:/sednagold/Gadus_macrocephalus/novaseq/20221215_seqR3/*.fastq.gz .
+```
+
+For each data set, created file that lists the data: 
+
+```
+# Reference data - NOTE: NOT USING THIS BECAUSE IT CONTAINS SOME FISH THAT SARA SUGGESTED TO NOT USE
+#cd /home/lspencer/pcod-lcWGS/analysis20240606/reference/
+#ls -d $PWD/ABLG* > pcod-reference-fastqs.txt
+
+# ACTUAL list of fish I'm using as references: pcod-reference-fastqs-filetered.txt
+
+# Experimental data
+cd ../experimental/
+ls -d $PWD/GM* > pcod-experimental-fastqs.txt
+```
+
+# Run pipeline on REFERENCE fish 
+
+Initiate interactiv node on Sedna
+`srun --pty /bin/bash`
+
+Activate virtual environment to access MultiQC: 
+```
+source /home/lspencer/venv/bin/activate
+```
+
+Define path variables:
+```
+scripts=/home/lspencer/lcWGS-pipeline/
+inputs=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/
+```
+
+Run first four python scripts, which generate slurm scripts needed for fastqc, trimming, and alignment: 
+```
+${scripts}lcWGSpipeline_step0-configure.py -c ${inputs}lcWGS_config.txt
+${scripts}lcWGSpipeline_step1-qc.py -p pcod-refs.ckpt
+${scripts}lcWGSpipeline_step2-trim.py -p pcod-refs.ckpt
+/home/lspencer/lcWGS-pipeline/lcWGSpipeline_step3-align.py -p pcod-refs.ckpt
+```
+
+As per instructions, edited the MultiQC scripts (for raw and trimmed data) using nano to use the correct path to activate my virtual environment (/home/lspencer/venv/bin/activate)
+
+Then initiated these SLURM scripts (they ran at the same time):
+```
+sbatch scripts/GCF_031168955.1_ASM3116895v1_genomic_bwa-indexSLURM.sh
+sbatch scripts/GCF_031168955.1_ASM3116895v1_genomic_faiSLURM.sh
+```
+
+#### Issue encountered due to >1k sample files 
+These jobs are run as job arrays (1 per .fq file), which have a max arrage size of 1000. I have 1,310 .fq files to process so cannot simply run the slurm array scripts. With help from Giles, I broke the fastqARRAY.sh into two separate jobs: 
+
+**Script #1. scripts/pcod-refs-raw_fastqcARRAY-1.sh, which runs through files 1-1000**
+
+```
+#!/bin/bash
+
+#SBATCH --job-name=fqc_array_pcod-refs
+#SBATCH --cpus-per-task=1
+#SBATCH --output=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/job_outfiles/pcod-refs-raw_fastqc_%A-%a.out
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=laura.spencer@noaa.gov
+#SBATCH --time=0-03:00:00
+#SBATCH --array=1-1000%24
+
+module unload bio/fastqc/0.11.9
+module load bio/fastqc/0.11.9
+
+JOBS_FILE=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/scripts/pcod-refs-raw_fqcARRAY_input.txt
+IDS=$(cat ${JOBS_FILE})
+
+for sample_line in ${IDS}
+do
+        job_index=$(echo ${sample_line} | awk -F ":" '{print $1}')
+        fq=$(echo ${sample_line} | awk -F ":" '{print $2}')
+        if [[ ${SLURM_ARRAY_TASK_ID} == ${job_index} ]]; then
+                break
+        fi
+done
+
+fastqc ${fq} -o /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/fastqc/raw/
+```
+
+**Script #2. scripts/pcod-refs-raw_fastqcARRAY-2.sh, which runs through files 1001+**
+
+```
+#!/bin/bash
+
+#SBATCH --job-name=fqc_array_pcod-refs
+#SBATCH --cpus-per-task=1
+#SBATCH --output=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/job_outfiles/pcod-refs-raw_fastqc_%A-%a.out
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=laura.spencer@noaa.gov
+#SBATCH --time=0-03:00:00
+#SBATCH --array=1-310%24
+
+module unload bio/fastqc/0.11.9
+module load bio/fastqc/0.11.9
+
+JOBS_FILE=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/scripts/pcod-refs-raw_fqcARRAY_input.txt
+IDS=$(cat ${JOBS_FILE})
+
+POSMOD=1000
+NEW_TASK_ID=$((${SLURM_ARRAY_TASK_ID} + ${POSMOD}))
+
+for sample_line in ${IDS}
+do
+        job_index=$(echo ${sample_line} | awk -F ":" '{print $1}')
+        fq=$(echo ${sample_line} | awk -F ":" '{print $2}')
+        if [[ ${NEW_TASK_ID} == ${job_index} ]]; then
+                break
+        fi
+done
+
+fastqc ${fq} -o /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/fastqc/raw/
+```
+
+When the fastqc SLURM jobs were done, edited the multiqc script to remove the cpus option (deleted `#SBATCH --cpus-per-task=1`) and replaced that to specify using a himem node (`#SBATCH -p himem`). I then ran the script `sbatch scripts/pcod-refs-raw_multiqcSLURM.sh`, after it finished I renamed it to "_raw" and transferred the multiqc files to my local computer to view: "pcod-juveniles-2023\lcWGS\analysis-20240606/references/multiqc_report_raw.html". 
+
+I then edited the trim script to increase the time (it was just 12hr before) and ran it:
+```
+sbatch scripts/pcod-refs_trimARRAY.sh
+```
+
+I then split the pcod-refs-trim_fastqcArray.sh script into two as I did before with the raw data, since the array number exceeded 1,000, ran those, then when they were finished I ran the multiQC script. 
+
+```
+sbatch scripts/pcod-refs-trim_fastqcARRAY-1.sh  
+sbatch scripts/pcod-refs-trim_fastqcARRAY-2.sh  
+sbatch scripts/pcod-refs-trim_multiqcSLURM.sh  
+```
+
+Transferred the multiqc html file to my local computer, renamed to "_trimmed". A handful of samples have low counts, but the adapter trimming looks good!
+
+Ran the alignment scripts one after the other:  
+`sbatch pcod-refs_alignARRAY.sh`  
+`sbatch scripts/pcod-refs_depthsARRAY.sh` - I had to modify this script to include the full path for the python script  `/home/lspencer/lcWGS-pipeline/mean_cov_ind.py`.  
+
+Examine sequence counts for all REFERENCE samples after trimming/clipping to see which ones I should put on the "blacklist" 
+
+Here I create a barplot with mean coverage depth for each sample (sorted by depth). The lcWGS pipeline states that samples with mean depth much <1 should be blacklisted. 22 samples have depth <0.75, which I added to the blacklist file, "blacklist.txt". 
+
+```{r}
+ggplotly(
+  read.delim("../analysis-20240606/reference/multiqc_data_trimmed/mqc_fastqc_sequence_counts_plot_1.txt") %>% clean_names() %>%
+    mutate(sample=gsub("_trimmed_clipped|_paired", "", sample)) %>%
+  arrange(unique_reads) %>% mutate(sample=factor(sample, ordered=TRUE)) %>%
+  ggplot() + geom_bar(aes(x=fct_reorder(sample, as.numeric(unique_reads)), y=unique_reads), stat = "identity") + ggtitle("Unique reads by sample") +
+  theme(axis.text.x = element_text(angle=90), axis.ticks.x = element_blank())) 
+```
+
+Potential blacklist members, <1M unique reads: (although from the AFSC pipeline it looks like I should determine that after alignment)
+- ABLG1972  
+- ABLG10851  
+- ABLG2136  
+- ABLG2223  
+- ABLG2927  
+- ABLG2571  
+- ABLG2210  
+- ABLG2357  
+- ABLG2509  
+- ABLG2506  
+- ABLG1948  
+
+Now look at depths data after alignment 
+
+```{r}
+#ggplotly(
+  read.delim("../analysis-20240606/reference/pcod-refs_depths.csv", header = F, col.names = c("sample", "depth")) %>%
+  arrange(depth) %>% mutate(sample=factor(sample, ordered=TRUE)) %>%
+  ggplot() + geom_bar(aes(x=fct_reorder(sample, as.numeric(depth)), y=depth), stat = "identity") + ggtitle("Mean depth, reference fish") +
+  scale_y_continuous(limits=c(0, 8), breaks = c(0,1,2,3,4,5,6,7,8)) + ylab("Mean depth") + xlab("Sample") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())#) 
+
+read.delim("../analysis-20240606/reference/pcod-refs_depths.csv", header = F, col.names = c("sample", "depth")) %>%
+  arrange(depth) %>%
+  filter(depth < 0.75) %>%
+  dplyr::select(sample) %>%
+  write_delim("../analysis-20240606/reference/pcod-refs_blacklist.txt", col_names = F, delim = "\t")
+
+```
+```{r}
+read.delim("../analysis-20240606/reference/pcod-refs_depths.csv", header = F, col.names = c("sample", "depth")) %>%
+  arrange(depth) %>%
+  filter(depth > 0.75) %>% summarize(mean=mean(depth)) 
+```
+
+
+### Blacklist samples, reference fish, mean depth <0.75
+
+ABLG10851
+ABLG1972
+ABLG2223
+ABLG2136
+ABLG2210
+ABLG2571
+ABLG2927
+ABLG2357
+ABLG2509
+ABLG2506
+ABLG1948
+ABLG19816
+ABLG10435
+ABLG19836
+ABLG2512
+ABLG10434
+ABLG2508
+ABLG19812
+ABLG10440
+ABLG2513
+ABLG10431
+ABLG19832
+
+Ran `/home/lspencer/lcWGS-pipeline/lcWGSpipeline_step4-data.py -p pcod-refs.ckpt -b blacklist.txt`, then ran the two resulting SLURM scripts: `sbatch scripts/pcod-refs_globalARRAY.sh` and `sbatch scripts/pcod-refs_polymorphicARRAY.sh`
+
+Ran the collate script: `/home/lspencer/lcWGS-pipeline/lcWGSpipeline_step5-collate.py -p pcod-refs.ckpt`  
+Then ran the resulting SLURM scripts: `sbatch scripts/pcod-refs_concatenate_beagles.sh` & `sbatch scripts/pcod-refs_concatenate_mafs.sh`
+
+**Re-run AGNSD following WGSAssign's filtering approach**
+
+I re-ran ANGSD to use different filtering thresholds as per the WGSAssign [paper](https://github.com/mgdesaix/amre-adaptation/tree/main/02_PopulationGenetics)/[pipeline](https://github.com/mgdesaix/WGSassign). That script is called pcod-refs_wgassign-polymorphicARRAY.sh. 
+
+#### Check reference SNPs for linkage disequilibrium 
+
+Now I am abandoning the lcWGS pipeline, and following the protocol outlined here [mgdesaix/amre-adaptation](https://github.com/mgdesaix/amre-adaptation/tree/main/02_PopulationGenetics#subset-beagle-files) to check my list of SNPs in reference fish for linkage disequilibrium using the program `ngsLD`. Linked sites are typically pruned (removed) since their presence can bias results. As per the protocol, I referenced [this tutorial](https://github.com/nt246/lcwgs-guide-tutorial/blob/main/tutorial3_ld_popstructure/markdowns/ld.md#prepare-the-input-files) to prepare my input files for `ngsLD` (note: ngsLD is already on Sedna, which is handy).  
+
+##### Prep files for ngsLD program 
+
+Prep `-geno` file: remove the first three columns (i.e. positions, major allele, minor allele) and header row from whole genome beagle file 
+```
+zcat gls_wgassign/pcod-refs_wholegenome_wgassign.beagle.gz | cut -f 4- | tail -n +2 | gzip > gls_wgassign/ngsLD/pcod-refs_wholegenome_wgassign_4ngsLD.beagle.gz
+```
+
+Prep `-pos` file: input file with site coordinates (one per line), where the 1st column stands for the chromosome/contig and the 2nd for the position (bp). One convenient way to generate this is by selecting the first two columns of the mafs file outputted by ANGSD, with the header removed.
+```
+zcat gls_wgassign/pcod-refs_wholegenome_wgassign.mafs.gz | cut -f 1,2 | sed 's/:/_/g'| gzip > gls_wgassign/ngsLD/pcod-refs_wholegenome_wgassign_4ngsLD.sites.gz
+```
+
+With the slurm script "pcod-refs_ngsLD.sh" I ran the ngsLD program. `ngsLD` outputs a TSV file with LD results for all pairs of sites for which LD was calculated, where the first two columns are positions of the SNPs, the third column is the distance (in bp) between the SNPs, and the following 4 columns are the various measures of LD calculated. The amre-adaptation protocol prunes/removes correlated pairs (r > 0.5 in 7th column of ngsLD output file) with the program [`prune_graph`](), which Giles installed as a module on Sedna for me! I pruned linked SNPs using the script `referencde/scripts/pcod-refs_get-LDpruned.sh`. 
+
+```
+(base) [lspencer@sedna ngsLD]$ cat ../../job_outfiles/LD-prune.txt
+[2024-07-22 12:10:22] INFO: Creating graph...
+[2024-07-22 12:10:22] INFO: Reading from input file...
+[2024-07-22 12:10:57] INFO: Input file has 431683 nodes with 20544101 edges (334507 edges with column_7 >= 0.5)
+[2024-07-22 12:10:57] INFO: Pruning heaviest position...
+[2024-07-22 12:12:06] INFO: Pruned 683 nodes in 68s (9.91 nodes/s); 431000 nodes remaining with 310916 edges.
+...
+[2024-07-22 14:42:15] INFO: Pruned 1000 nodes in 45s (22.22 nodes/s); 317000 nodes remaining with 339 edges.
+[2024-07-22 14:42:29] INFO: Pruning complete! Final graph has 316661 nodes with 0 edges
+[2024-07-22 14:42:29] INFO: Saving remaining nodes...
+[2024-07-22 14:42:30] INFO: Total runtime: 152.13 mins
+
+zcat pcod-refs_wholegenome_wgassign_4ngsLD.sites.gz | wc -l
+431691
+
+cat pcod-refs_wholegenome_unlinked | wc -l
+316661
+
+# Create sites file and index
+awk -F":" '{print $1, $2}' pcod-refs_wholegenome_unlinked > pcod-refs_wholegenome_unlinked.sites
+angsd sites index pcod-refs_wholegenome_unlinked.sites
+```
+
+#### Linkage disequilibrium pruning reduced the number of SNPs in my reference fish from 431,691 to 316,661 SNPs. Cool!  We will use this set of reference fish SNPs (referencde/gls_wgassign/ngsLD/pcod-refs_wholegenome_unlinked.sites) later when we run ANGSD on our experimental fish, so that we only analyze/retain the same SNP set! 
+
+
+
+# Run lcWGS pipeline on Experimental fish
+
+Initiate interactiv node on Sedna
+`srun --pty /bin/bash`
+
+Activate virtual environment to access MultiQC: 
+```
+source /home/lspencer/venv/bin/activate
+```
+
+Define path variables:
+```
+scripts=/home/lspencer/lcWGS-pipeline/
+inputs=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/experimental/
+```
+
+Run first four python scripts, which generate slurm scripts needed for fastqc, trimming, and alignment: 
+```
+${scripts}lcWGSpipeline_step0-configure.py -c ${inputs}lcWGS_config.txt
+${scripts}lcWGSpipeline_step1-qc.py -p pcod-exp.ckpt
+${scripts}lcWGSpipeline_step2-trim.py -p pcod-exp.ckpt
+/home/lspencer/lcWGS-pipeline/lcWGSpipeline_step3-align.py -p pcod-exp.ckpt
+```
+
+As per instructions, edited the MultiQC scripts (for raw and trimmed data) using nano to use the correct path to activate my virtual environment (/home/lspencer/venv/bin/activate)
+
+Then initiated these SLURM scripts (they ran at the same time):
+```
+sbatch scripts/GCF_031168955.1_ASM3116895v1_genomic_bwa-indexSLURM.sh
+sbatch scripts/GCF_031168955.1_ASM3116895v1_genomic_faiSLURM.sh
+sbatch scripts/pcod-lcWGS-raw_fastqcARRAY.sh
+```
+
+When the SLURM jobs were done, ran the multiqc script - sbatch scripts/pcod-exp-raw_multiqcSLURM.sh - After it finished I added "_raw" to file/director names, then transferred the multiqc files to my local computer to view.
+
+I then ran these scripts, **one after the other**, to trim and then look at the trimmed data:
+
+sbatch scripts/pcod-exp_trimARRAY.sh  
+sbatch scripts/pcod-exp-trim_fastqcARRAY.sh  
+sbatch scripts/pcod-exp-trim_multiqcSLURM.sh  
+
+I added "_trimmed" to file/director names, then transferred the multiqc html file to my local computer. Looks good!
+
+Ran the alignment scripts **one after the other**:
+
+sbatch pcod-exp_alignARRAY.sh
+sbatch scripts/pcod-exp_depthsARRAY.sh - I had to modify this script to include the full path for the python script /home/lspencer/lcWGS-pipeline/mean_cov_ind.py.
+
+Experimental fish - alignment depths, any bad samples to add to the "blacklist" 
+
+I rsynced the pcod-exp_depths.csv file from sedna to local, read it into RStudio, and plotted depths by treatment. Mean depth across all samples is ~3x, which is great. No samples fall below the 1x depth threshold. There is a weird treatment difference, particularly in the 5C treatment. I asked Sam to contact the sequencing facility to see why that might be. 
+
+```{r}
+depths.exp <- 
+  read_delim(file = "../analysis-20240606/experimental/pcod-exp_depths.csv", # analysis with just experimental fish 
+#  read_delim(file = "../analysis-20230922/pcod-lcWGS_depths.csv",  # analysis also with reference fish of known origin
+             delim = "\t",  col_names = c("sample", "ave_depth")) %>%
+  mutate(sample=gsub("GM", "", sample)) %>%
+  mutate(sample=as.numeric(sample))
+
+depths.exp %>%
+  left_join(sample.info.lcwgs) %>%
+  ggplot(aes(x=reorder(sample, ave_depth), y=ave_depth, fill=treatment)) + 
+  geom_bar(stat="identity") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) +
+  ggtitle("lcWGS average read depth") +
+  scale_fill_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) #comment out when including reference fish
+
+depths.exp %>%
+  left_join(sample.info.lcwgs) %>%
+  ggplot(aes(x=treatment, y=ave_depth, fill=treatment)) + 
+  geom_boxplot() + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) +
+  ggtitle("lcWGS average read depth") +
+  scale_fill_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) #comment out when including reference fish
+
+mean(depths.exp$ave_depth) #mean depth = 3x
+nrow(depths.exp) #number samples = 157
+```
+
+Now, I am departing from the AFSC lcWGS pipeline. 
+
+I customized the ANGSD script to call and filter variants (polymorphic SNPs) only for sites identified as polymorphic/unlinked in the reference fish (using [`-sites <file>` angsd option](https://www.popgen.dk/angsd/index.php/Sites)) and which remained after linkage disequilibrium pruning. These are listed in the file /reference/gls_wgassign/ngsLD/pcod-refs_wholegenome_unlinked.sites, which has the format:  `chr pos`. NOTE: this sites file does NOT contain major and minor alleles (i.e. it is not an "augmented" sites file with 4 columns), but that's okay since we use the option `doMajorMinor 1` which infers major/minor alleles from genotype likelihoods. My custom ANGSD script is /experimental/scripts/pcod-exp_wgassign-polymorphicARRAY.s. 
+
+After the custom angsd script ran, I concatenated the beagle.gz and mafs.gz files for separate chromosomes into wholegenome files (as per the AFSC lcWGS pipeline) using the scripts scripts/pcod-exp_concatenate_beagles.sh and scripts/pcod-exp_concatenate_mafs.s. How many polymorphic sites do I have for my experimental fish? 232,629. 
+
+```
+cat gls_wgassign/pcod-exp_wholegenome_wgassign.sites | wc -l
+232,629
+``` 
+
+#### Create beagle files containing the same SNP sites for both reference and experimental fish. 
+
+I now have beagle files for both my reference and experimental fish. All sites in my experimental file are also in my reference fish dataset (since I restricted my experimental angsd analysis to only those sites). BUT, I still have additional sites in my _reference_ dataset. I want exactly the same sites for both. So ...  
+
+I subseted my _reference_ beagle file to only contain SNPs I identified in my experimental fish. This is so that I have 2 beagle files with the same sites. To do so I used code from the [mgdesaix/amre-adaptation github](https://github.com/mgdesaix/amre-adaptation/tree/main/02_PopulationGenetics#subset-beagle-files) (maker of WGSassign). 
+
+First, generated a file with one column containing "chromosome_location" for all SNPs in the experimental fish: 
+```
+gzip -cd gls_wgassign/pcod-exp_wholegenome_wgassign.beagle.gz | cut -f 1 > gls_wgassign/pcod-exp_wholegenome_wgassign.sites.simple
+```
+
+Then, I used the beagle filtering code: 
+
+```
+ld_snps=gls_wgassign/pcod-exp_wholegenome_wgassign.sites.simple
+input=../reference/gls_wgassign/pcod-refs_wholegenome_wgassign
+output=../reference/gls_wgassign/pcod-refs_wholegenome_wgassign_filtered
+awk 'NR==FNR{c[$1]++;next};c[$1]' ${ld_snps} <(zcat ${input}.beagle.gz) | gzip > ${output}.beagle.gz
+```
+
+I checked how many loci are in the reference fish filtered SNP set and the experimental fish SNP set: 
+```
+gzip -cd ../reference/gls_wgassign/pcod-refs_wholegenome_wgassign_filtered.beagle.gz | wc -l  #= 232,630
+gzip -cd gls_wgassign/pcod-exp_wholegenome_wgassign.beagle.gz | wc -l #= 232,630
+```
+
+Same number! To double check that I have the same loci, I compare the first columns of both files (thanks chat gpt):
+```
+diff <(zcat experimental/gls_wgassign/pcod-exp_wholegenome_wgassign.beagle.gz | awk '{print $1}') <(zcat reference/gls_wgassign/pcod-refs_wholegenome_wgassign_filtered.beagle.gz | awk '{print $1}')
+```
+
+### Here are the final 2 beagle files that contain genotype likelihoods for the same sites.  
+_Reference fish_:  /reference/gls_wgassign/pcod-refs_wholegenome_wgassign_filtered.beagle.gz  
+_Experimental fish_: /experimental/gls_wgassign/pcod-exp_wholegenome_wgassign.beagle.gz  
+
+### Explore population structure in reference fish 
+
+I used `pcangsd` to generate covariance matrix from genome-wide genotype likelihoods with script reference/scripts/pcod-refs_wholegenome_pcangsd.sh. 
+
+Before using WGSassign to identify population-of-origin for my experimental fish, I want to explore my reference fish population structure. I will do this using PCA. 
+
+```{r, message=F, warning=F}
+# Load metadata object
+#load(file = "../analysis-20240606/sample.info.lcwgs") #sample.info.lcwgs
+# Read in bam file list, which has the sample ID order  
+sample.order.refs <- (read_delim(
+  file="../analysis-20240606/reference/pcod-refs_filtered_bamslist.txt", delim = "/t", col_names = "sample") %>%
+    mutate(sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_|_sorted_dedup_clipped.bam",
+                       "", sample)))$sample
+
+# Read in covariance matrix and add sample IDs based on order listed in .bam file list
+genome.cov.refs <- read_delim(file="../analysis-20240606/reference/pcod-refs_wholegenome-wgassign.cov", col_names = sample.order.refs) %>% 
+  #    dplyr::select(-outlier) %>% 
+  as.matrix() %>%
+  `rownames<-`(sample.order.refs)
+
+# Annotate sample IDs with spawn location and region 
+pops.refs <- (sample.info.lcwgs %>%
+                filter(sample %in% gsub("ABLG", "", sample.order.refs)) %>% # I'm always adding/removing the "ABLG" prefix! Should streamline 
+                mutate(sample=paste("ABLG", sample, sep="")) %>% 
+#                  filter(sample.id != outlier) %>% #remove outlier sample(s)
+        filter(treatment %!in% c("Japan", "Korea", "0", "5", "9", "16")))$sample #Remove Japan, Korea, experimental fish from sample list 
+
+# Run PCA
+pca.refs <- prcomp(genome.cov.refs[,pops.refs], scale=F) #scale=F for variance-covariance matrix
+#pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+pc.percent <- pca.eigenval(pca.refs)[2,1:6]*100 #PC % for axes 1-6
+screeplot(pca.refs, bstick=FALSE)  #inspect scree plot, which axes influential? 
+pc.percent[1:2] %>% sum() # total percent explained by PCs 1 & 2
+
+#### Generate dataframe with prcomp results 
+pc.scores.refs <- data.frame(sample.id = colnames(genome.cov.refs[,pops.refs]),
+  PC1 = pca.refs$rotation[,1],    # the first eigenvector
+  PC2 = pca.refs$rotation[,2],    # the second eigenvector
+  PC3 = pca.refs$rotation[,3],    # the third eigenvector
+  PC4 = pca.refs$rotation[,4],    # the fourth eigenvector
+  PC5 = pca.refs$rotation[,5],    # the fourth eigenvector
+  PC6 = pca.refs$rotation[,6],    # the fourth eigenvector
+  stringsAsFactors = FALSE)
+#shapiro.test(pca.princomp$x) #Shapiro test 
+#hist(pca.princomp$x) #Distribution normal? 
+
+# Add metadata
+pc.scores.refs <- left_join(pc.scores.refs %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                          sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() 
+
+# Create dataframe to loop through for PC biplots 
+axes <- data.frame("pc.x"=c(1,1,1,1,1,2,2,2,2,3,3,3,4,4,5), 
+                   "pc.y"=c(2,3,4,5,6,3,4,5,6,4,5,6,5,6,6)) %>%
+  mutate(pc.x=paste("PC", pc.x, sep=""), pc.y=paste("PC", pc.y, sep=""))
+
+# Variance explained by each PC axis
+variance <- pc.percent %>% as.data.frame() %>% set_names("variance") %>% rownames_to_column("axis") %>% 
+  mutate(axis=as.numeric(gsub("PC", "", axis))) 
+
+# Plot PC biplots for axes 1-6 
+pcas.genome<-list(1:nrow(axes))
+for (i in 1:nrow(axes)){
+  pcas.genome[[i]] <- ggplotly(ggscatter(pc.scores.refs,
+            group=c("treatment"), col="treatment", text="sample.id",
+            x=axes[i,"pc.x"], y=axes[i,"pc.y"], size=2, alpha=0.85, 
+            ellipse = FALSE, star.plot = F) +
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    ylab(paste(axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    xlab(paste(axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+      ggtitle(paste(axes[i, "pc.y"], "x", axes[i, "pc.x"], sep=" ")), hoverinfo = list("treatment", "sample.id"), tooltip = list("treatment", "sample.id"))
+}
+
+#pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7) #comment out to save plots to to PDF
+pcas.genome #call plots 
+#dev.off() #comment out to save plots to PDF
+```
+
+Based on the above PCA's, I'm going to remove all samples that have negative PC1 scores. There's also a few samples that are outliers on PC4, remove those. 
+
+```{r}
+# Which populations are they from? 
+pc.scores.refs %>% filter(PC1<0 | PC4< -1.5) %>% group_by(treatment) %>% tally()
+
+# Remaining samples?
+pc.scores.refs %>% filter(PC1>=0 & PC4 > -1.5) %>% group_by(treatment) %>% tally()
+
+# I'm also removing the "-tagged" groups, since there are only a few (2, 8) samples in each
+pc.scores.refs %>% filter(PC1>=0 & PC4 > -1.5, treatment %!in% c("AK_Knight-tagged", "Vesteraalen-tagged")) %>% group_by(treatment) %>% tally()
+```
+
+```{r}
+# PCA using the final list of samples after removing PC1 outliers 
+pops.refs.filt <- paste("ABLG", (pc.scores.refs %>% filter(PC1>=0 & PC4 > -0.15, treatment %!in% c("AK_Knight-tagged", "Vesteraalen-tagged")))$sample.id, sep="")
+
+pca.refs.filt <- prcomp(genome.cov.refs[,pops.refs.filt], scale=F) #scale=F for variance-covariance matrix
+#pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+pc.percent.filt <- pca.eigenval(pca.refs.filt)[2,1:6]*100
+screeplot(pca.refs.filt, bstick=FALSE) 
+pc.percent.filt[1:2] %>% sum()
+
+#### Generate dataframe with prcomp results 
+pc.scores.refs.filt <- data.frame(sample.id = colnames(genome.cov.refs[,pops.refs.filt]),
+  PC1 = pca.refs.filt$rotation[,1],    # the first eigenvector
+  PC2 = pca.refs.filt$rotation[,2],    # the second eigenvector
+  PC3 = pca.refs.filt$rotation[,3],    # the third eigenvector
+  PC4 = pca.refs.filt$rotation[,4],    # the fourth eigenvector
+  PC5 = pca.refs.filt$rotation[,5],    # the fourth eigenvector
+  PC6 = pca.refs.filt$rotation[,6],    # the fourth eigenvector
+  stringsAsFactors = FALSE)
+#shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+#hist(pca.princomp$x) #normal? hard to say, maybe
+pc.scores.refs.filt <- left_join(pc.scores.refs.filt %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                          sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() #%>%
+variance.filt <- pc.percent.filt %>% as.data.frame() %>% set_names("variance") %>% rownames_to_column("axis") %>% 
+  mutate(axis=as.numeric(gsub("PC", "", axis))) 
+
+pcas.genome.filt<-list(1:nrow(axes))
+for (i in 1:nrow(axes)){
+  pcas.genome.filt[[i]] <- 
+    ggplotly(
+      ggscatter(pc.scores.refs.filt,
+            group=c("treatment"), col="treatment",
+            x=axes[i,"pc.x"], y=axes[i,"pc.y"], size=2, alpha=0.85, 
+            ellipse = FALSE, star.plot = F) +
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    ylab(paste(axes[i, "pc.y"], " (", round(variance.filt[variance.filt$axis==axes[i, "pc.y"] %>% gsub("PC", "", .), "variance"], digits = 2), "%)", sep="")) + 
+    xlab(paste(axes[i, "pc.x"], " (", round(variance.filt[variance.filt$axis==axes[i, "pc.x"] %>% gsub("PC", "", .), "variance"], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+    # scale_color_manual(name="Temperature/Population", 
+    #                    values=c("0"="gray75", "5"="gray50", "9"="gray25", "16"="black",
+    #                             "Russia"="navyblue", "Pervenets"="cornflowerblue",
+    #                             "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476", 
+    #                             "Unimak"="antiquewhite", "Shumagins"="mistyrose", 
+    #                             "Kodiak"="palevioletred2", "HecateStrait"="purple")) +
+      ggtitle(paste(axes[i, "pc.y"], "x", axes[i, "pc.x"], sep=" ")))
+}
+
+#pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
+pcas.genome.filt
+#dev.off()
+```
+
+### Explore possible population structure in experimental fish  
+
+Use `pcangsd` to generate covariance matrix from genome-wide genotype likelihoods with script experimental/scripts/pcod-exp_wholegenome_pcangsd.sh. 
+
+```{r, message=F, warning=F}
+sample.order.exp <- (read_delim(
+  file="../analysis-20240606/experimental/pcod-exp_filtered_bamslist.txt", delim = "/t", col_names = "sample") %>%
+    mutate(sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/experimental/bamtools/pcod-exp_|_sorted_dedup_clipped.bam",
+                       "", sample)))$sample
+genome.cov.exp <- read_delim(file="../analysis-20240606/experimental/pcod-exp_wholegenome-wgassign.cov", col_names = sample.order.exp) %>% 
+  #    dplyr::select(-outlier) %>% 
+  as.matrix() %>%
+  `rownames<-`(sample.order.exp)
+
+# Get sample IDs for populations we'd like to include in PCAs
+pops.exp <- (sample.info.lcwgs %>%
+                filter(sample %in% gsub("GM", "", sample.order.exp)) %>%
+                mutate(sample=paste("GM", sample, sep="")) %>% 
+#                  filter(sample.id != outlier) %>% #remove outlier sample(s)
+        filter(treatment %in% c("0", "5", "9", "16")))$sample
+
+pca.exp <- prcomp(genome.cov.exp[,pops.exp], scale=F) #scale=F for variance-covariance matrix
+#pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+pc.percent.exp <- pca.eigenval(pca.exp)[2,1:6]*100
+screeplot(pca.exp, bstick=FALSE) 
+pc.percent.exp[1:2] %>% sum()
+
+#### Generate dataframe with prcomp results 
+pc.scores.exp <- data.frame(sample.id = colnames(genome.cov.exp[,pops.exp]),
+  PC1 = pca.exp$rotation[,1],    # the first eigenvector
+  PC2 = pca.exp$rotation[,2],    # the second eigenvector
+  PC3 = pca.exp$rotation[,3],    # the third eigenvector
+  PC4 = pca.exp$rotation[,4],    # the fourth eigenvector
+  PC5 = pca.exp$rotation[,5],    # the fourth eigenvector
+  PC6 = pca.exp$rotation[,6],    # the fourth eigenvector
+  stringsAsFactors = FALSE)
+#shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+#hist(pca.princomp$x) #normal? hard to say, maybe
+pc.scores.exp <- left_join(pc.scores.exp %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                          sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() 
+axes <- data.frame("pc.x"=c(1,1,1,1,1,2,2,2,2,3,3,3,4,4,5), 
+                   "pc.y"=c(2,3,4,5,6,3,4,5,6,4,5,6,5,6,6)) %>%
+  mutate(pc.x=paste("PC", pc.x, sep=""), pc.y=paste("PC", pc.y, sep=""))
+variance.exp <- pc.percent.exp %>% as.data.frame() %>% set_names("variance") %>% rownames_to_column("axis") %>% 
+  mutate(axis=as.numeric(gsub("PC", "", axis))) 
+
+pcas.genome.exp <-list(1:nrow(axes))
+for (i in 1:nrow(axes)){
+  pcas.genome.exp[[i]] <- ggplotly(ggscatter(pc.scores.exp,
+            group=c("treatment"), col="treatment",
+            x=axes[i,"pc.x"], y=axes[i,"pc.y"], size=3, alpha=0.85, 
+            ellipse = FALSE, star.plot = F) +
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    ylab(paste(axes[i, "pc.y"], " (", round(variance.exp[variance.exp$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    xlab(paste(axes[i, "pc.x"], " (", round(variance.exp[variance.exp$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+      ggtitle(paste(axes[i, "pc.y"], "x", axes[i, "pc.x"], sep=" ")))
+}
+
+#pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
+pcas.genome.exp
+#dev.off()
+
+```
+
+
+### Create one beagle file with both reference fish AND experimental fish
+I want to use PCA to look for overlaps among our reference fish and experimental fish. So, I need to merge the two beagle files. 
+
+### Here are the final 2 beagle files that contain genotype likelihoods for the same sites.  
+_Reference fish_:  /reference/gls_wgassign/pcod-refs_wholegenome_wgassign_filtered.beagle.gz  
+_Experimental fish_: /experimental/gls_wgassign/pcod-exp_wholegenome_wgassign.beagle.gz  
+
+## NOTE- I SUCCESSFULLY CREATED A BASH SCRIPT TO DO THIS TOO! 
+
+```{r}
+library(R.utils)
+gunzip("../analysis-20240606/experimental/pcod-exp_wholegenome_wgassign.beagle.gz")
+gunzip("../analysis-20240606/reference/pcod-refs_wholegenome_wgassign_filtered.beagle.gz")
+
+sample.order.exp.beagle <- paste(rep(sample.order.exp, each=3), rep(1:3, times=length(sample.order.exp)), sep="_")
+sample.order.refs.beagle <- paste(rep(sample.order.refs, each=3), rep(1:3, times=length(sample.order.refs)), sep="_")
+
+gls.exp <- read_delim("../analysis-20240606/experimental/pcod-exp_wholegenome_wgassign.beagle", skip = 1, col_names = c("marker", "allele1", "allele2", sample.order.exp.beagle))
+gls.exp[1:10, 1:10]
+
+gls.ref <- read_delim("../analysis-20240606/reference/pcod-refs_wholegenome_wgassign_filtered.beagle", skip = 1, col_names = c("marker", "allele1", "allele2", sample.order.refs.beagle))
+gls.ref[1:10, 1:10] 
+
+# Are the markers in thes same order and do they exactly match? 
+all(gls.exp$marker == gls.ref$marker)
+
+# Join the two beagle dataframes 
+gls.all <- left_join(gls.ref, gls.exp, by=c("marker", "allele1", "allele2")) 
+
+# Correct number of sample columns? 
+gls.all[-c(1:3)] %>% ncol() == length(sample.order.refs)*3 + length(sample.order.exp)*3
+
+# BUT ISSUE - there are 4,157 SNPs where Allele 1 and Allele 2 are swapped in our reference fish and experimental fish, so they aren't joining correctly 
+gls.nas <- gls.all %>% filter(if_any(everything(), is.na))
+
+# Create dataframe with subset of sites were alleles are "corrected", i.e. reference/alternative alleles are swapped in the experimental fish 
+gls.allele.swap <- gls.nas[c("marker", "allele1", "allele2")] %>% left_join(gls.ref) %>%
+  left_join(
+    gls.exp %>% filter(marker %in% c(gls.nas$marker)) %>%
+    dplyr::select(marker, paste(rep(sample.order.exp, each=3), rep(3:1, times=length(sample.order.exp)), sep="_")),  # For these markers, swap reference / alternate genotypes in experimental fish
+    by="marker")
+
+gls.all.corrected <- rbind(gls.all %>% filter(marker %!in% gls.nas$marker), 
+  gls.allele.swap %>%  `colnames<-`(c("marker", "allele1", "allele2", sample.order.refs.beagle, sample.order.exp.beagle))) %>%
+  arrange(match(marker, gls.all$marker)) # reorder markers by chrom_site 
+
+#  separate(marker, into = c("chrom", "site"), sep = "(?<=[0-9])_", remove = F) %>% mutate(site=as.numeric(site)) %>% arrange(chrom, site) %>% dplyr::select(-chrom, -site) #re-order markers by chrom:site
+
+# Manually review GLs for reference homozygous alleles ("GM###_1") and alternate homozygous alleles ("GM###_3")
+
+# Original experimental allele frequencies 
+(gls.exp %>% filter(marker %in% c(gls.nas$marker))) %>% head(n=20) %>%
+    dplyr::select(marker, last_col(offset = 12 - 1):last_col()) #look at last columns
+
+# Corrected / swapped experimental allele frequencies
+gls.all.corrected %>% filter(marker %in% gls.nas$marker) %>% head(n=20) %>%
+  dplyr::select(marker, last_col(offset = 12 - 1):last_col()) #look at last columns to see 
+
+gls.all.corrected %>% filter(if_any(everything(), is.na)) %>% nrow() # no more NAs?
+
+write_delim(gls.all.corrected, file = "../analysis-20240606/refs-and-exp.beagle", delim = "\t")
+gzip("../analysis-20240606/refs-and-exp.beagle")
+```
+
+## Make dummy data to figure out how to do the above in bash 
+
+```{r}
+swapped.markers <- (gls.all %>% filter(if_any(everything(), is.na)))[1] %>% head(n=5)
+
+beagle1 <- rbind((gls.ref %>% filter(marker %in% swapped.markers$marker))[1:18],  gls.ref[1:20, 1:18]) %>% 
+  `colnames<-`(c("marker", "allele1", "allele2", c(paste(rep("Ref"), rep(c("A", "B", "C", "D", "E"), each=3), "_", rep(1:3, times=4), sep=""))))
+beagle2 <- rbind((gls.exp %>% filter(marker %in% swapped.markers$marker))[1:15],  gls.exp[5:25, 1:15]) %>% 
+  `colnames<-`(c("marker", "allele1", "allele2", c(paste(rep("Exp"), rep(c("A", "B", "C", "D"), each=3), "_", rep(1:3, times=5), sep=""))))
+
+write_delim(beagle1, file = "../analysis-20240606/beagle1", delim = "\t")
+write_delim(beagle2, file = "../analysis-20240606/beagle2", delim = "\t")
+
+require(R.utils)
+gzip("../analysis-20240606/beagle1")
+gzip("../analysis-20240606/beagle2")
+```
+
+
+Perform PCA from covariance matrix generated using PCAngsd with both reference and experimental fish at the 228,472 markers. 
+```{r}
+genome.cov.all <- read_delim(file="../analysis-20240606/pcod-refs-and-exp_wholegenome-pca.cov", col_names = c(sample.order.exp, sample.order.refs)) %>% 
+  #    dplyr::select(-outlier) %>% 
+  as.matrix() %>%
+  `rownames<-`(c(sample.order.exp, sample.order.refs))
+
+# Get sample IDs for populations we'd like to include in PCAs
+pops.all <- (sample.info.lcwgs %>%
+                filter(sample %in% gsub("GM|ABLG", "", c(sample.order.exp, sample.order.refs))) %>%
+               mutate(sample=case_when(
+                 (treatment=="0" | treatment=="5" | treatment=="9" | treatment=="16") ~ paste("GM", sample, sep=""),
+                 TRUE ~ paste("ABLG", sample, sep=""))) %>%
+               #remove outlier reference fish
+               filter(sample %!in% paste("ABLG", 
+                c((pc.scores.refs %>% filter(PC1<0 | PC4 < -0.15))$sample.id, 
+#                 (pc.scores.refs %>% filter(treatment %in% c("AK_Knight-tagged","Vesteraalen-tagged", "Japan", "Korea")))$sample.id), sep="")))$sample  
+                 (pc.scores.refs %>% filter(treatment %in% c("Japan", "Korea")))$sample.id), sep="")))$sample  
+
+pca.all <- prcomp(genome.cov.all[,pops.all], scale=F) #scale=F for variance-covariance matrix
+#pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+pc.percent.all <- pca.eigenval(pca.all)[2,1:6]*100
+screeplot(pca.all, bstick=FALSE) 
+pc.percent.all[1:2] %>% sum()
+
+#### Generate dataframe with prcomp results 
+pc.scores.all <- data.frame(sample.id = colnames(genome.cov.all[,pops.all]),
+  PC1 = pca.all$rotation[,1],    # the first eigenvector
+  PC2 = pca.all$rotation[,2],    # the second eigenvector
+  PC3 = pca.all$rotation[,3],    # the third eigenvector
+  PC4 = pca.all$rotation[,4],    # the fourth eigenvector
+  PC5 = pca.all$rotation[,5],    # the fourth eigenvector
+  PC6 = pca.all$rotation[,6],    # the fourth eigenvector
+  stringsAsFactors = FALSE)
+#shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+#hist(pca.princomp$x) #normal? hard to say, maybe
+pc.scores.all <- left_join(pc.scores.all %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                          sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
+  mutate(mort=case_when(sample.id %in% c(157, 158, 159, 160) ~ "mort", TRUE~"survived")) %>% 
+  mutate(sample.id=as.character(sample.id)) %>%
+  left_join(haplos.allzp3[c("sample", "haplo.lcwgs", "haplo.exons.lcwgs")], by = c("sample.id"="sample"))
+
+axes <- data.frame("pc.x"=c(1,1,1,1,1,2,2,2,2,3,3,3,4,4,5), 
+                   "pc.y"=c(2,3,4,5,6,3,4,5,6,4,5,6,5,6,6)) %>%
+  mutate(pc.x=paste("PC", pc.x, sep=""), pc.y=paste("PC", pc.y, sep=""))
+
+variance.all <- pc.percent.all %>% as.data.frame() %>% set_names("variance") %>% rownames_to_column("axis") %>% 
+  mutate(axis=as.numeric(gsub("PC", "", axis))) 
+
+# PLOTS
+pcas.genome.all <- list(1:nrow(axes))
+for (i in 1:nrow(axes)){
+  pcas.genome.all[[i]] <- 
+    ggplotly( #this enables interactive plots; remove to plot to PDF figure 
+      ggplot(pc.scores.all,
+             aes(col=treatment, #shape=haplo.exons.lcwgs,
+#             aes(col=marine_region2, # Alternative line for the grouping variable  
+                    text=sample.id)) +  #text=, 
+        geom_point(aes_string(x=axes[i,"pc.x"], y=axes[i,"pc.y"]), size=1.5, alpha=0.85) +  
+        theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+        ylab(paste(axes[i, "pc.y"], " (", round(variance.all[variance.all$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+        xlab(paste(axes[i, "pc.x"], " (", round(variance.all[variance.all$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
+        theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+        ggtitle(paste(axes[i, "pc.y"], "x", axes[i, "pc.x"], sep=" ")), tooltip = c("treatment", "sample.id", "haplo.exons.lcwgs")) 
+}
+
+
+#pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
+pcas.genome.all
+#dev.off()
+
+phenotypes %>% filter(mort=="Yes")
+```
+
+## Filter SNPs for those that predict population structure (high Fst)
+
+As per the REPO I'm following, I now need to reduce my SNP set even more to those that predict population assignment well. 
+
+I created a new directory, /home/lspencer/pcod-lcwgs-2023/analysis-20240606/wgsassign/, which is where I'll perform the remaining steps to assign my experimental fish! 
+
+First, subset samples/bams for training and test purposes: With our filtered list of reference samples, half will be used for WGSassign training purposes (to select the SNPs needed for making assignments), and half for testing to make sure those SNPs work. 
+
+```{r}
+# Randomly sample half of each spawning population for training purposes 
+refs.training <- sample.info.lcwgs %>% filter(sample %in% gsub("ABLG", "", pops.refs.filt)) %>%
+  mutate(sample.id=paste("ABLG", sample, sep = "")) %>%
+   group_by(treatment) %>% slice_sample(prop=0.50)
+
+# The rest are for testing purposes
+refs.test <-  sample.info.lcwgs %>% filter(sample %in% gsub("ABLG", "", pops.refs.filt)) %>%
+  mutate(sample.id=paste("ABLG", sample, sep = "")) %>% 
+  filter(sample %!in% refs.training$sample)
+
+# Double check that the number of training and testing samples are equal 
+refs.training %>% group_by(treatment) %>% tally() %>% adorn_totals() %>% as.data.frame() %>%
+  rename("n.training"="n") %>% left_join(
+    refs.test %>% group_by(treatment) %>% tally() %>% adorn_totals() %>% as.data.frame() %>%
+  rename("n.test"="n")) %>% rename("population"="treatment")
+```
+
+Get training bam list 
+
+```{r}
+(refs.training.bams <-
+read_delim(file="../analysis-20240606/reference/pcod-refs_filtered_bamslist.txt", delim = "/t", col_names = "fullpath") %>%
+  mutate(file=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_", "", fullpath)) %>%
+    mutate(sample.id=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_|_sorted_dedup_clipped.bam","", fullpath)) %>% 
+  mutate(sample.no=as.numeric(gsub("ABLG", "", sample.id))) %>%
+  filter(sample.id %in% refs.training$sample.id) %>%
+  left_join(sample.info.lcwgs, by=c("sample.no"="sample")))
+
+write_delim(refs.training.bams,
+            file = "../analysis-20240606/reference/training_bams-list.txt",
+            delim = "\t", col_names = F)
+```
+
+Get test bam list 
+
+```{r}
+(refs.test.bams <-
+read_delim(file="../analysis-20240606/reference/pcod-refs_filtered_bamslist.txt", delim = "/t", col_names = "fullpath") %>%
+rowid_to_column("order") %>% 
+  mutate(file=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_", "", fullpath)) %>%
+    mutate(sample.id=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_|_sorted_dedup_clipped.bam","", fullpath)) %>% 
+  mutate(sample.no=as.numeric(gsub("ABLG", "", sample.id))) %>%
+  filter(sample.id %in% refs.test$sample.id) %>%
+  left_join(sample.info.lcwgs, by=c("sample.no"="sample")))
+
+write_delim(refs.test.bams,
+            file = "../analysis-20240606/reference/test_bams-list.txt",
+            delim = "\t", col_names = F)
+```
+
+I rsynced those bam-list.txt files to the /wgsassign/ directory. 
+
+## Screen SNPs for those that predict each population 
+
+### Get Site Allele Frequencies for each population
+
+As per step 1 of the "SNP screening" stage in [the AMRE Adaptation tutorial](https://github.com/mgdesaix/amre-adaptation/tree/main/03_PopulationAssignment#snp-screening) I now need to get allele frequences by reference population. First, I copied over the final sites file (4 columns: chr, pos, major, minor) that has sites overlapping in both reference and experimental fish into my wgsassign/ directory and indexed it: 
+`angsd sites index pcod-exp_wholegenome_wgassign.sites`  
+
+Then, I created a slurm script using angsd to pull allele frequencies for each population, wgsassign/snp-training/pcod-training-SAFs.sh, which produced separate site allele frequency files in wgsassign/snp-training/pop-safs/ (eg wgsassign_refs-training.Adak.saf.gz) for each population. 
+
+### Get the 2d site frequency spectrum and FST for each pairwise comparison of populations. 
+
+As per steps 2 & 3 of the "SNP screening" stage in [the AMRE Adaptation tutorial](https://github.com/mgdesaix/amre-adaptation/tree/main/03_PopulationAssignment#snp-screening) I now need to generate 2d site frequeny spectrums AND calculate FST among each pairwise combination of populations. This step takes a while since there are SO many populations and thus SO many combinations of populations (didn't write it as an array, need to!!!). Script is wgsassign/snp-training/pcod-training-2dsfs-fst.sh. The final step of the script filters sites that have Fst values > 0 (done so for each pairwise comparison) and sort them from sites with  highest to lowest Fst.
+
+### Creat subsets of SNPs for each pairwise comparison for testing purposes 
+I used the script wgsassign/snp-training/pcod-training-pull-top-snps.sh to pull the top n differentiated SNPs from each of the 105 pairwise list of sites (one for each population combination) based on FST, where n = the top 10, 50, 100, 500, 1000, 5000, 10000, 25000, and 50000 SNPs from each of the list. Since there was overlap of SNPs, filtering to the unique number of SNPs resulted in the below total # SNPS: 
+
+training.top_10_sites has 644 markers
+training.top_50_sites has 3125 markers
+training.top_100_sites has 6078 markers
+training.top_500_sites has 24966 markers
+training.top_1000_sites has 43357 markers
+training.top_5000_sites has 126038 markers
+training.top_10000_sites has 172584 markers
+training.top_25000_sites has 217473 markers
+training.top_50000_sites has 229669 markers
+
+# [Assignment accuracy](https://github.com/mgdesaix/amre-adaptation/tree/main/03_PopulationAssignment#assignment-accuracy-with-leave-one-out-cross-validation) with leave-one-out cross validation (using WGSassign) 
+
+Now we have 9 different sets of SNPs. To determine the best set that represent the population structure we described in American Redstarts, I will now test these SNPs on the testing set of 85 individuals that were NOT used in producing them. This is done in WGSassign. Two input files are needed: 
+
+  **1. Beagle file of the testing individuals (provided to --beagle).** I will need 9 separate beagle files, one for each of the top n SNPs identified in the last step. First, though, I need to prepare a master beagle file that contains all sites for only my test individuals. This is easier said than done! I created this file by selecting columns for test individuals from the beagle file containing gls for all reference fish. Here are steps I took:
+  - I wrote a script (/home/lspencer/pcod-lcwgs-2023/analysis-20240606/wgsassign/**join-beagles.sh**) that joined my reference.beagle and experimental.beagle files at overlapping sites. Part of that script includes renaming columns to sample IDs based on the order specified in the bamlist.txt file used by angsd (which is the program that produced the beagle file), with the option of saving the two intermediate re-headed beagle files (here, my reference renamed beagle file is "wgsassign/join-beagles-temp/**rehead_beagle1.gz**"). 
+  - Then, I wrote another script (/home/lspencer/pcod-lcwgs-2023/analysis-20240606/wgsassign/snp-testing/**subset-beagle.sh**) to select columns based on a list of sample IDs (in wgsassign/snp-testing/**test-IDs.txt**), which I created in the subset-beagle.sh script by pulling just sample ID and population from /wgsassign/snp-testing/**test_bams-list.txt** (that was created in a previous code chunk in R). The resulting beagle file containing only GLs from test individuals is /wgsassign/snp-testing/**test-samples.beagle1.gz**. 
+  - Also contained in the **subset-beagle.sh** script is code that filters it 9 times (creating 9 new beagle files) for the n sites identified in the previous step. 
+  
+  2. A tab-delimited ID file with 2 columns, the first being sample ID and the second being the known reference population: As mentioned above, this is the wgsassign/snp-testing/**test-IDs.txt** file created as part of the  subset-beagle.sh script from /wgsassign/snp-testing/**test_bams-list.txt** (which was created in a previous code chunk in R). 
+
+I ran the leave-one-out testing (to see how well each SNP set does at predicting our reference test fish) using the script wgsassign/snp-testing/**get-loo-WGSassign.sh**. In addition to the 9 SNP subsets, I also ran it using all ~230k SNPs that we have data for in both referencde and experimental fish. 
+
+## Assignment of test individuals
+
+Using LOO results from ALL snps 
+
+```{r, message=F}
+pops <- (read_delim("../analysis-20240606/wgsassign/testing-LOOs-by-spawning-location/all-sites.pop_names.txt", delim = "\t", col_names = "population"))$population
+
+like_loo <- read_table("../analysis-20240606/wgsassign/testing-LOOs-by-spawning-location/likelihood-results/all-sites.pop_like_LOO.txt",
+                       col_names = pops) 
+# like_loo[like_loo == "-inf"] <- NA
+# like_loo[like_loo == "nan"] <- NA
+
+testing.samples <- read_delim("../analysis-20240606/wgsassign/testing-LOOs-by-spawning-location/test-IDs.txt", col_names = c("sample", "population"))
+testing.samples.assigned <- cbind(testing.samples, like_loo)
+
+testing.summary <- testing.samples.assigned %>%
+  pivot_longer(cols = Adak:Zhemchug,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  group_by(sample) %>%
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() %>%
+  mutate(Correct = if_else(population == AssignedPop, 1, 0))
+100*((testing.summary %>% filter(Correct==1) %>% nrow())/nrow(testing.summary))
+```
+
+```{r, message=F}
+like_loo_files <- list.files("../analysis-20240606/wgsassign/testing-LOOs-by-spawning-location/likelihood-results/")
+like_loo_AssAcc <- c()
+
+topn <- c("all", "10", "50", "100", "500", "1000", "5000", "10000", "25000", "50000")
+snps <- c(232630, 644, 3125, 6078, 24966, 43357, 126038, 172584, 217473, 229669)
+
+like_loo_AssAcc_pops <- vector("list", length(topn))
+names(like_loo_AssAcc_pops) <- topn
+
+for(i in 1:length(like_loo_files)){
+  infile <- paste0("../analysis-20240606/wgsassign/testing-LOOs-by-spawning-location/likelihood-results/", like_loo_files[i])
+  like_loo <- read_table(infile, col_names = pops) 
+  testing.samples.assigned <- cbind(testing.samples, like_loo)
+  testing.summary <- testing.samples.assigned %>%
+  pivot_longer(cols = Adak:Zhemchug,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  group_by(sample) %>%
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() %>%
+  mutate(Correct = if_else(population == AssignedPop, 1, 0))
+
+    like_loo_AssAcc_pops[[i]] <- 
+      testing.summary %>% group_by(population) %>% summarise(n.correct=sum(Correct), n.total=n()) %>%
+      adorn_totals() %>% mutate(accuracy=signif(100*n.correct/n.total,digits = 2)) %>% 
+      mutate(n.top=topn[i], n.sites=snps[i])
+}
+
+like_loo_summary <- bind_rows(like_loo_AssAcc_pops, .id = "n.snps")  %>% as.data.frame() %>% mutate(n.top=factor(n.top, ordered=T, levels=c("10", "50", "100", "500", "1000", "5000", "10000", "25000", "50000", "all")))
+require(clipr)
+like_loo_summary %>% filter(n.top==5000) %>% arrange(desc(accuracy)) %>% select(population, accuracy) %>% write_clip()
+```
+
+
+```{r}
+require(ggrepel)
+like_loo_summary %>% filter(population =="Total") %>% ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_label_repel(aes(x = log10(n.sites), y = accuracy,  label=n.top), size=4) + 
+  theme_minimal() 
+# 5,000 SNPs greatest accuracy, BUT still very bad! 
+
+like_loo_summary %>% filter(population!="Total") %>%
+  ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_bar(aes(x = n.top, y = n.correct,  fill=population), position="stack", stat="identity", color="black") + 
+  theme_minimal() + ggtitle("Number correct population assignments by number SNPs, test fish") + 
+  xlab("Number top SNPs used per population (as per Fs)") + ylab("Number accurate assignments (279 fish total)")
+# 5,000 SNPs greatest accuracy, BUT still very bad! 
+
+like_loo_summary %>% #filter(population!="Total") %>%
+  ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_line(aes(x = n.sites, y = accuracy,  color=population), cex=.75) + 
+  theme_minimal() + ggtitle("Accuracy per population by number SNPs, test fish") + 
+  xlab("Number SNPs") + ylab("Percent accurate assignments (279 fish total)") +
+  scale_color_manual(values=c("#a6cee3", "#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99", "#b15928", "black", "gray70", "darkgreen", "magenta"))
+```
+Using the top 5,000 SNPs from each pairwise population provides the greatest accuracy (actual number of SNPs is WAY more - 126,038)
+
+Finally, we come to the step where we can assign our experimental fish! This is done in WGSassign using "the numpy binary file of the allele frequencies from the testing individuals as the reference file for assignment", and "a beagle file of just [experimental] individuals as input. I need to create that beagle file from our list of 126k sites (generated from the top 5k differentiating sites as per each pairwise Fst calcs). Using the script /wgsassign/assignment/**population-assignment.sh** I create a new beagle.gz file that contains genotype likelihoods for my experimental fish for the sites identified using top 5,000, then use WGSassign to identify their populations of origin! 
+
+### Checking assignment results!!! 
+
+```{r, message=F}
+like_loo_exp <- read_table("../analysis-20240606/wgsassign/pcod-experimental-assign_top-5k-snps.pop_like.txt", col_names = pops) %>%   mutate(across(Adak:Zhemchug, as.numeric)) 
+like_loo_exp[like_loo_exp == "-Inf"] <- NA
+like_loo_exp[like_loo_exp == "NaN"] <- NA
+
+exp.assigned <- cbind(read_delim("../analysis-20240606/wgsassign/pcod-exp-sample-order.txt", delim = "\t", col_names = "sample.full") %>% 
+  mutate(sample=as.numeric(gsub("GM", "", sample.full))) %>% 
+  left_join(sample.info.lcwgs), 
+  like_loo_exp)
+
+cluster_colors <-  c(Adak="#a6cee3", AmchitkaPass="#1f78b4", CookInlet="#b2df8a", 
+                     HecateStrait="#33a02c", Kodiak="#fb9a99", LynnCanal="#e31a1c", 
+                     NearIlsands="#fdbf6f", Pervenets="#ff7f00", Pribilof="#cab2d6", 
+                     PWS="#6a3d9a", Shumagins="#ffff99", TanagaIsland="#b15928", 
+                     Total="black", Unimak="gray70", WestKodiak="darkgreen", 
+                     Zhemchug="magenta")
+
+(exp.assigned %>% filter(is.na(LynnCanal)))
+```
+
+
+```{r}
+exp.assign.summary <- exp.assigned %>%
+  mutate(across(Adak:Zhemchug, as.numeric)) %>% 
+  pivot_longer(cols = Adak:Zhemchug,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  group_by(sample) %>%
+  filter(!is.na(AssignedLike)) %>%
+  mutate(AssignedProb = round(exp(AssignedLike - max(AssignedLike)) / sum(exp(AssignedLike - max(AssignedLike))),2 )) %>%
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() 
+# write_csv(x = nonbreeding.summary,
+#           file = "./output/amre.nonbreeding.ind148.ds_2x.sites-filter.top_50_each.assignment_summary.csv")
+exp.assign.summary
+```
+
+Check number of accurate assignments
+
+```{r}
+exp.assign.summary %>% group_by(AssignedPop) %>% 
+  summarize(min.prob=min(AssignedProb),
+            max.prob=max(AssignedProb),
+            mean.prob=mean(AssignedProb))
+
+exp.assign.summary %>%
+ # filter(AssignedProb > 0.8) %>%
+#  nrow() %>%
+  group_by(AssignedPop) %>% tally() %>% write_clip()
+
+
+```
+
+```{r}
+exp.assign.summary %>%
+  group_by(AssignedPop) %>%
+  summarize(N = n()) %>%
+  ungroup() %>%
+  ggplot(aes(x="", y=N, fill = AssignedPop)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  scale_fill_manual(values = cluster_colors) +
+  theme_void() #+
+  theme(legend.position = "none")
+```
+
+
+# Re-run WGSassign with broader regional assignments and don't remove "outlier" fish (i.e. those from NBS!)
+
+Here I re-run the pipeline after grouping the spawning locations into broader marine regions, and use those it identify SNPs and assign our experimental fish. 
+
+Files are saved in the pcod-lcwgs-2023/analysis-20240606/wgsassign/snp-<training/testing>/**by-marine-region/** directories
+
+Summary of to do: 
+- make sure I am using ALL reference fish (don't remove Japan & Korea?)  
+- Group them into our MarineRegion2, make sure grouping is correct! 
+- Create training & test sets of bam lists for each marine region  
+- get SAF, and for each pairwise marine region combination calculate 2dSFS & Fst 
+- Subset top n snps based on Fst 
+- Assign test individuals, assess accuracy to identify how many top n SNPs to use  
+- Assign experimental fish to marine regions 
+
+
+## Filter SNPs for those that predict population structure (high Fst)
+
+
+### Subset samples/bams for training and test purposes
+
+```{r}
+# Randomly sample half of each spawning population for training purposes 
+refs.training2 <- sample.info.lcwgs %>% filter(sample %in% gsub("ABLG", "", pops.refs)) %>% #use all reference samples except japan/korea
+  mutate(sample.id=paste("ABLG", sample, sep = "")) %>%
+   group_by(marine_region2) %>% slice_sample(prop=0.52)
+
+# The rest are for testing purposes
+refs.test2 <-  sample.info.lcwgs %>% filter(sample %in% gsub("ABLG", "", pops.refs)) %>% #use all reference samples except japan/korea
+  mutate(sample.id=paste("ABLG", sample, sep = "")) %>% 
+  filter(sample %!in% refs.training2$sample)
+
+# Double check that the number of training and testing samples are equal 
+refs.training2 %>% group_by(marine_region2) %>% tally() %>% adorn_totals() %>% as.data.frame() %>%
+  dplyr::rename("n.training"="n") %>% left_join(
+    refs.test2 %>% group_by(marine_region2) %>% tally() %>% adorn_totals() %>% as.data.frame() %>%
+  dplyr::rename("n.test"="n"))
+```
+
+Get training bam list 
+
+```{r}
+(refs.training.bams2 <-
+read_delim(file="../analysis-20240606/reference/pcod-refs_filtered_bamslist.txt", delim = "/t", col_names = "fullpath") %>%
+  mutate(file=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_", "", fullpath)) %>%
+    mutate(sample.id=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_|_sorted_dedup_clipped.bam","", fullpath)) %>% 
+  mutate(sample.no=as.numeric(gsub("ABLG", "", sample.id))) %>%
+  filter(sample.id %in% refs.training2$sample.id) %>%
+  left_join(sample.info.lcwgs, by=c("sample.no"="sample")) %>%
+  dplyr::select(fullpath,sample.id,marine_region2))
+
+write_delim(refs.training.bams2,
+            file = "../analysis-20240606/reference/training_bams-list2.txt",
+            delim = "\t", col_names = F)
+```
+
+Get test bam list 
+
+```{r}
+(refs.test.bams2 <-
+read_delim(file="../analysis-20240606/reference/pcod-refs_filtered_bamslist.txt", delim = "/t", col_names = "fullpath") %>%
+rowid_to_column("order") %>% 
+  mutate(file=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_", "", fullpath)) %>%
+    mutate(sample.id=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/bamtools/pcod-refs_|_sorted_dedup_clipped.bam","", fullpath)) %>% 
+  mutate(sample.no=as.numeric(gsub("ABLG", "", sample.id))) %>%
+  filter(sample.id %in% refs.test2$sample.id) %>%
+  left_join(sample.info.lcwgs, by=c("sample.no"="sample")) %>%
+  dplyr::select(fullpath,sample.id,marine_region2))
+
+write_delim(refs.test.bams2,
+            file = "../analysis-20240606/reference/test_bams-list2.txt",
+            delim = "\t", col_names = F)
+```
+
+Create a text file that lists unique marine_region2 factors 
+
+```{r}
+write_delim(refs.training.bams2 %>% select(marine_region2) %>% unique() %>% arrange(marine_region2),
+            file = "../analysis-20240606/marine-regions2.txt",
+            delim = "\t", col_names = F)
+```
+
+I rsynced the files test_bams-list2.txt, training_bams-list2.txt, and marine-regions2.txt to the /wgsassign/<snp-training/testing>/by-marine-region/ directories. 
+
+
+
+EDIT THIS 
+
+
+
+## Screen SNPs for those that predict each population 
+- Get Site Allele Frequencies for each population  
+- Get the 2d site frequency spectrum and FST for each pairwise comparison of populations.  
+- Creat subsets of SNPs for each pairwise comparison for testing purposes   
+
+     66 training.top_10_sites
+    306 training.top_50_sites
+    615 training.top_100_sites
+   3249 training.top_500_sites
+   6471 training.top_1000_sites
+  29230 training.top_5000_sites
+  53092 training.top_10000_sites
+ 106703 training.top_25000_sites
+ 162658 training.top_50000_sites
+
+## Assess assignment accuracy]
+
+```{r, message=F}
+regions <- (read_delim("../analysis-20240606/wgsassign/testing-LOOs-by-region-using-one-beagle/all-sites.pop_names.txt", delim = "\t", col_names = "region"))$region
+
+like_loo.reg <- read_table("../analysis-20240606/wgsassign/testing-LOOs-by-region-using-one-beagle/likelihood-results/all-sites.pop_like_LOO.txt",
+                       col_names = regions) 
+# like_loo[like_loo == "-inf"] <- NA
+# like_loo[like_loo == "nan"] <- NA
+
+testing.samples.reg <- read_delim("../analysis-20240606/wgsassign/testing-LOOs-by-region-using-one-beagle/test-IDs2.txt", col_names = c("sample", "region"))
+testing.samples.assigned.reg <- cbind(testing.samples.reg, like_loo.reg)
+
+testing.summary.reg <- testing.samples.assigned.reg %>%
+  pivot_longer(cols = Aleutians:wGOA,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  group_by(sample) %>%
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() %>%
+  mutate(Correct = if_else(region == AssignedPop, 1, 0))
+100*((testing.summary.reg %>% filter(Correct==1) %>% nrow())/nrow(testing.summary.reg))
+```
+```{r, message=F}
+like_loo_files.reg <- list.files("../analysis-20240606/wgsassign/testing-LOOs-by-region-using-one-beagle/likelihood-results/")
+like_loo_AssAcc.reg <- c()
+
+topn <- c("all", "10", "50", "100", "500", "1000", "5000", "10000", "25000", "50000")
+snps <- c(232584, 66, 306, 615, 3249, 6471, 29230, 53092, 106703, 162658)
+
+like_loo_AssAcc.reg <- vector("list", length(topn))
+names(like_loo_AssAcc.reg) <- topn
+
+for(i in 1:length(like_loo_files.reg)){
+  infile.reg <- paste0("../analysis-20240606/wgsassign/testing-LOOs-by-region-using-one-beagle/likelihood-results/", like_loo_files.reg[i])
+  like_loo.reg <- read_table(infile.reg, col_names = regions) 
+  testing.samples.assigned.reg <- cbind(testing.samples.reg, like_loo.reg)
+  testing.summary.reg <- testing.samples.assigned.reg %>%
+  pivot_longer(cols = Aleutians:wGOA,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  group_by(sample) %>%
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() %>%
+  mutate(Correct = if_else(region == AssignedPop, 1, 0))
+
+    like_loo_AssAcc.reg[[i]] <- 
+      testing.summary.reg %>% group_by(region) %>% summarise(n.correct=sum(Correct), n.total=n()) %>%
+      adorn_totals() %>% mutate(accuracy=signif(100*n.correct/n.total,digits = 2)) %>% 
+      mutate(n.top=topn[i], n.sites=snps[i])
+}
+
+like_loo_summary.reg <- bind_rows(like_loo_AssAcc.reg, .id = "n.snps")  %>% as.data.frame() %>% mutate(n.top=factor(n.top, ordered=T, levels=c("10", "50", "100", "500", "1000", "5000", "10000", "25000", "50000", "all")))
+```
+
+
+```{r}
+require(ggrepel)
+like_loo_summary.reg %>% filter(region =="Total") %>% arrange(desc(accuracy))
+like_loo_summary.reg %>% filter(n.top %in% c("100", "25000")) %>% arrange(desc(accuracy)) %>% select(region, n.top, accuracy) %>% 
+  pivot_wider(names_from = n.top, values_from = accuracy)
+
+like_loo_summary.reg %>% filter(region =="Total") %>% ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_label_repel(aes(x = log10(n.sites), y = accuracy,  label=n.top), size=4) + 
+  theme_minimal() 
+# 10,000 SNPs greatest accuracy, 78% accurate
+
+like_loo_summary.reg %>% filter(region!="Total") %>%
+  ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_bar(aes(x = n.top, y = n.correct,  fill=region), position="stack", stat="identity", color="black") + 
+  theme_minimal() + ggtitle("Number correct region assignments by number SNPs, test fish") + 
+  xlab("Number top SNPs used per region (as per Fs)") + ylab("Number accurate assignments (279 fish total)")
+# 5,000 SNPs greatest accuracy, BUT still very bad! 
+
+like_loo_summary.reg %>% #filter(n.top!="all") %>% mutate(n.top=as.numeric(as.character(n.top))) %>%
+  ggplot() +
+#  geom_point(aes(x = log10(snps), y = accuracy,  text=topn), size=2.5) + 
+  geom_line(aes(x = n.sites, y = accuracy,  color=region), cex=.75) + 
+  theme_minimal() + ggtitle("Accuracy per region by number SNPs, test fish") + 
+  xlab("Number SNPs") + ylab("Percent accurate assignments (279 fish total)") +
+  #scale_x_continuous(breaks=as.numeric(topn)) + 
+  scale_color_manual(values=c(Aleutians="#1f78b4", 
+                     NBS="#33a02c", 
+                     eGOA="#e31a1c", 
+                     wGOA="orange",
+                     EBS="#6a3d9a",
+                     Total="black")) +
+  annotate("text", x=snps[2], y=105, label=topn[2], cex=3) +
+#  annotate("text", x=snps[3], y=105, label=topn[3], cex=3) +
+#  annotate("text", x=snps[4], y=105, label=topn[4], cex=3) +
+#  annotate("text", x=snps[5], y=105, label=topn[5], cex=3) +
+#  annotate("text", x=snps[6], y=105, label=topn[6], cex=3) +
+  annotate("text", x=snps[7], y=105, label=topn[7], cex=3) +
+  annotate("text", x=snps[8], y=105, label=topn[8], cex=3) +
+  annotate("text", x=snps[9], y=105, label=topn[9], cex=3) +
+  annotate("text", x=snps[10], y=105, label=topn[10], cex=3) +
+  annotate("text", x=100000, y=112, label="Top n SNPs", cex=4)
+```
+
+### Checking assignment results!!! 
+
+```{r}
+like_loo_exp.reg <- read_table("../analysis-20240606/wgsassign/pcod-experimental-assign-region_top-25k-snps.pop_like.txt", col_names = regions) 
+like_loo_exp.reg <- read_table("../analysis-20240606/wgsassign/pcod-experimental-assign-region_top-100-snps.pop_like.txt", col_names = regions) 
+like_loo_exp.reg <- read_table("../analysis-20240606/wgsassign/pcod-experimental-assign-region_top-25k-snps_using-one-beag.pop_like.txt", col_names = regions) 
+
+like_loo_exp.reg[like_loo_exp.reg == "-inf"] <- NA
+like_loo_exp.reg[like_loo_exp.reg == "nan"] <- NA
+
+exp.assigned.reg <- cbind(read_delim("../analysis-20240606/wgsassign/pcod-exp-sample-order-region.txt", delim = "\t", col_names = "sample.full") %>% 
+  mutate(sample=as.numeric(gsub("GM", "", sample.full))) %>% 
+  left_join(sample.info.lcwgs), 
+  like_loo_exp.reg)
+
+cluster_colors.reg <-  c(Aleutians="#1f78b4", 
+                     NBS="#33a02c", 
+                     eGOA="#e31a1c", 
+                     wGOA="orange",
+                     EBS="#6a3d9a")
+```
+
+
+```{r}
+exp.assign.summary.reg <- exp.assigned.reg %>%
+  mutate(across(Aleutians:wGOA, as.numeric)) %>% 
+  pivot_longer(cols =Aleutians:wGOA,
+               names_to = "AssignedPop",
+               values_to = "AssignedLike") %>%
+  filter(!is.na(AssignedLike)) %>%
+  group_by(sample) %>%
+  mutate(AssignedProb = round(exp(AssignedLike - max(AssignedLike)) / sum(exp(AssignedLike - max(AssignedLike))),2 )) %>% #calculate probability
+  filter(AssignedLike == max(AssignedLike)) %>%
+  ungroup() 
+
+# write_csv(x = nonbreeding.summary,
+#           file = "./output/amre.nonbreeding.ind148.ds_2x.sites-filter.top_50_each.assignment_summary.csv")
+
+exp.assign.summary.reg %>%
+  filter(AssignedProb > 0.8) %>%
+#  nrow() %>%
+  group_by(AssignedPop) %>% tally()
+
+
+# exp.assigned.reg %>%
+#   mutate(across(Aleutians:wGOA, as.numeric)) %>% 
+#   pivot_longer(cols =Aleutians:wGOA,
+#                names_to = "AssignedPop",
+#                values_to = "AssignedLike") %>%
+#   filter(is.na(AssignedLike)) %>%
+#   select(sample.full) %>% distinct() %>% arrange()
+```
+
+```{r}
+exp.assign.summary.reg %>%
+  group_by(AssignedPop) %>%
+  summarize(N = n()) %>%
+  ungroup() %>%
+  ggplot(aes(x="", y=N, fill = AssignedPop)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  scale_fill_manual(values = cluster_colors.reg) +
+  theme_void() +
+  theme(legend.position = "right")
+```
+
+
+# AUGUST 23RD - RE-GENERATING BEAGLE FILE WITH ALL REFERENCE & EXPERIMENTAL FISH USING ANGSD SO I DON'T MESS WITH BEAGLE FILES.
+I'm getting -inf and NA values in my genotype likelihood files from WGSassign. I'm wondering if it has to do with the fact that I generated beagle files separately for reference fish and experimental fish, then joined them (which required quite a bit of manipulation). So, to test that theory I'm re-running angsd at the SNP identification stage using ALL ref and exp samples. I am restricting it to the sites that I identified in both groups previously. We'll see! 
+
+
+
+
+
+
+
+## boneyard? 
+#### prepare a WGAssign input file that lists each sample alongside its population of origin for all reference fish
+
+```{r, warning=FALSE}
+sample.info.lcwgs.2 <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
+mutate(temperature=paste("exp_", temperature, sep=""))  %>%
+  mutate_at(c("temperature"), factor) %>%
+  dplyr::select(temperature, genetic_sampling_count) %>% 
+  dplyr::rename(sample=genetic_sampling_count, treatment=temperature) %>%
+  rbind(
+    read_excel("../references/20230414_pcod_named.xlsx") %>% clean_names() %>%
+      dplyr::select(ablg, location1) %>% dplyr::rename(sample=ablg, treatment=location1)) 
+
+# Any duplicated sample numbers?
+sample.info.lcwgs.2 %>%
+  group_by(sample) %>% 
+  filter(n()>1)
+
+# Prepare WGSassign reference ID file - NEED TO MAKE SAMPLE ORDER SAME AS IN BEAGLE FILE! 
+read_delim("../analysis-20240606/pcod-lcWGS_test_bamslist.txt", delim = "\t", col_names = "sample") %>% #read in bam list used in ANGSD to create beagle file
+  mutate(sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230922/bamtools/pcod-lcWGS_ABLG|_sorted_dedup_clipped.bam", "", sample)) %>% 
+  left_join(
+    sample.info.lcwgs.2 %>% 
+    filter(!grepl("exp_",treatment)) %>%
+    dplyr::select(sample, treatment) %>%
+      mutate(sample=as.character(sample))
+  ) %>%
+  write_delim("../analysis-20240606/reference-IDs.txt", delim = "\t", col_names = F)
+```

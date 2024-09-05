@@ -1,0 +1,4 @@
+GOterm,over_represented_pvalue,under_represented_pvalue,numDEInCat,numInCat,term,ontology,fdr_over,fdr_under,treatment
+GO:0006508,9.349142425323481e-8,1,137,497,proteolysis,BP,4.520622000724747e-4,1,Cold_Downregulated
+GO:0005615,1.0845060022935011e-12,1,171,546,extracellular space,CC,1.573184406926953e-8,1,Cold_Downregulated
+GO:0005576,1.0476883981763021e-11,1,178,591,extracellular region,CC,7.598883951972719e-8,1,Cold_Downregulated

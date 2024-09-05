@@ -1,0 +1,77 @@
+---
+title: "figures-for-ingrid-presentations"
+author: "Laura Spencer"
+date: "2024-05-14"
+output: html_document
+---
+
+```{r}
+load("rnaseq/deseq2/n.degs.juvenile")
+load("../pcod-2022/results/deseq2/n.degs.larvae")
+n.degs.juvenile$stage <- rep("juvenile", times=3)
+n.degs.larvae$stage <- rep("larvae", times=3)
+
+n.degs.both <- n.degs.larvae %>% 
+  filter(grp!="pH contrast") %>% filter(!grepl("@Low pH|low", contrast)) %>%
+  mutate(contrast=case_when(
+    contrast=="3 vs. 6C @Amb pH" ~ "3 degC",
+    contrast=="6 vs. 10C @Amb pH" ~ "10 degC")) %>%
+  dplyr::select(-grp) %>%
+  add_row(n.degs.juvenile) %>%
+  mutate(stage=as.factor(stage)) %>%
+  mutate(contrast=factor(contrast, order=T, levels=c("0 degC", "3 degC", "5 degC", "10 degC", "16 degC")))
+```
+
+
+```{r}
+ggplot(n.degs.both, 
+       aes(x=contrast, y=perc, fill=stage)) + 
+  geom_bar(alpha=0.65, stat = "identity", color="gray20", size=0.1) +
+  geom_text(vjust=-0.5, size=3.5, 
+#            aes(label=paste(comma(n.degs), " (", perc, "%)", sep=""))) + 
+            aes(label=paste(perc, "% of genes", sep=""))) + 
+  xlab("Contrast") + ylab("Number Differentially Expressed Genes (% of all genes)") + 
+  xlab(NULL) + ylab(NULL) + #coord_flip() + 
+  ggtitle("Number of genes that responded to temperature") +
+  theme_minimal() + ylim(c(0,50)) + 
+  theme(legend.position = "none", plot.title = element_text(size = 10)) +
+  #scale_fill_manual(values=c(`0 degC`="royalblue1",`5 degC`="darkgreen", `16 degC`="firebrick4")) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE,reverse=TRUE)) 
+```
+
+WORD CLOUDS
+
+```{r}
+rbind(t(assay(vsd.treatment))[,immune.genes],
+      cluster = cutree(immune.tree$tree_col, k = 2)) %>%
+  as.data.frame() %>% tail() %>%
+  t() %>% as.data.frame() %>% select(cluster) %>%
+  rownames_to_column("gene_gadmor") %>%
+  left_join(counts.annot.gadmor[c("gene_gadmor", "gene_uni", "spid", "evalue", "protein_names")], 
+            by = "gene_gadmor") %>%
+  left_join(gadMor.blast.GO %>% 
+              select(spid, gene_ontology_biological_process, 
+                     gene_ontology_cellular_component, gene_ontology_molecular_function, gene_ontology_i_ds)) %>%
+  mutate(cluster=as.factor(cluster)) %>%
+
+  # Filter for clusters in tree 
+  #filter(cluster %in% c(2)) %>% 
+
+  # # To save Uniprot SPID to clipboard
+  # select(spid) %>% na.omit() %>% unlist() %>% as.vector() %>% 
+  # write_clip()
+
+  # Generate wordcloud from GO terms 
+  select(gene_ontology_biological_process) %>% 
+  #select(gene_ontology_cellular_component) %>%
+  #select(protein_names) %>% 
+  
+  
+  na.omit() %>% unlist() %>% as.vector() %>% 
+  gsub("\\[[^\\]]*\\]", "", ., perl=TRUE) %>%
+  gsub("interleukin-..|interleukin-.|interleukin.", "interleukin", ., perl=TRUE) %>%  #gsub("process|regulation|negative|positive|response|pathway|production", "", ., perl=TRUE) %>% #get rid of word "process" since it's in everything
+gsub("process|transposon", "", ., perl=TRUE) %>% #get rid of word "process" since it's in everything
+  wordcloud(min.freq = 5, random.order = F, random.color = F, colors = brewer.pal(2, "Dark2"))
+
+```
+

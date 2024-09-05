@@ -1,0 +1,13 @@
+# Remember to provide the full paths to files and directories.
+#The reference genome MUST be a fasta with the ".fa" file extension.
+#The working directory should contain the list of fastq files and the gzipped fastq files.
+# Don't worry about adding modules yourself. The pipeline will check for all needed modules and add them if they are not found.
+# If you run into trouble, please contact Laura.Timm@noaa.gov
+
+What file contains the list of FASTQs that will go into the analysis?	/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/pcod-reference-fastqs-filtered.txt
+What file contains adapter sequences for TRIMMOMATIC?	/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/adapters.txt
+What chromosomes/contigs are to be analyzed in this run?	/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/chromosomes_pcod-ncbi.txt
+What is the name of the FASTA file containing the reference genome?	/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic.fa
+What is the path to the working directory?	/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/
+What prefix would you like associated with this run?	pcod-refs
+Where should failed job notifications be sent?	laura.spencer@noaa.gov

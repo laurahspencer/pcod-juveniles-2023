@@ -13,7 +13,7 @@ source("../scripts/biostats.R")
 
 
 # Add all required libraries that are installed with install.packages() here
-list.of.packages <- c("tidyverse", "readxl", "janitor", "purrr", "ggpubr")
+list.of.packages <- c("tidyverse", "readxl", "janitor", "purrr", "ggpubr", "googlesheets4", "plotly")
 
 # Add all libraries that are installed using BiocManager here
 bioconductor.packages <- c()
@@ -55,50 +55,61 @@ Prepare list of file names for 10 samples from each of the populations of intere
 ref.10 <- read_delim("../references/ABLGs_10inds_per_pop.txt", delim = "/t", col_names = "ID")
 
 ref.10.files <- read_delim("../references/pcod_lcwgs_reference.txt", delim = "/t", col_names = "file") %>% 
-  separate(file, into = c("ID", "rest"), remove = FALSE) %>% select(-rest) %>%
+  separate(file, into = c("ID", "rest"), remove = FALSE) %>% dplyr::select(-rest) %>%
   mutate(ID=as.numeric(gsub("ABLG", "", ID))) %>%
-  filter(ID %in% ref.10$ID) %>% select(file) %>% write_delim(file = "../references/pcod_10refs.txt", col_names = F)
+  filter(ID %in% ref.10$ID) %>% dplyr::select(file) %>% write_delim(file = "../references/pcod_10refs.txt", col_names = F)
 ```
 
 
 Read in sample metadata
 
 ```{r, warning=FALSE}
-sample.info <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
+sample.info.lcwgs <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
   mutate_at(c("tank", "temperature"), factor) %>%
-  select(temperature, genetic_sampling_count) %>% 
-  rename(sample=genetic_sampling_count, treatment=temperature) %>%
+  dplyr::select(temperature, genetic_sampling_count) %>% 
+  dplyr::rename(sample=genetic_sampling_count, treatment=temperature) %>%
   rbind(
     read_excel("../references/20230414_pcod_named.xlsx") %>% clean_names() %>%
-      select(ablg, location1) %>% rename(sample=ablg, treatment=location1)) 
+      dplyr::select(ablg, location1) %>% dplyr::rename(sample=ablg, treatment=location1)) 
 ```
 
 Read in depth coverage results from alignment to look for bad samples 
 
 ```{r}
 depths <- 
-#  read_delim(file = "../analysis-20230823/pcod-lcWGS_depths.csv", 
-  read_delim(file = "../analysis-20230922/pcod-lcWGS_depths.csv", 
+  read_delim(file = "../analysis-20230823/pcod-lcWGS_depths.csv", # analysis with just experimental fish 
+#  read_delim(file = "../analysis-20230922/pcod-lcWGS_depths.csv",  # analysis also with reference fish of known origin
              delim = "\t",  col_names = c("sample", "ave_depth")) %>%
   mutate(sample=gsub("GM|ABLG", "", sample)) %>%
   mutate(sample=as.numeric(sample))
 
 depths %>%
-  left_join(sample.info) %>%
+  left_join(sample.info.lcwgs) %>%
   ggplot(aes(x=reorder(sample, ave_depth), y=ave_depth, fill=treatment)) + 
   geom_bar(stat="identity") + 
   theme_minimal() +
-  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) #+
-#  scale_fill_manual(values = rev(c("#d7191c", "#fdae61", "#abd9e9", "#2c7bb6")))
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) +
+  ggtitle("lcWGS average read depth") +
+  scale_fill_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) #comment out when including reference fish
+
+depths %>%
+  left_join(sample.info.lcwgs) %>%
+  ggplot(aes(x=treatment, y=ave_depth, fill=treatment)) + 
+  geom_boxplot() + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, size=8.5)) +
+  ggtitle("lcWGS average read depth") +
+  scale_fill_manual(values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")) #comment out when including reference fish
+
 ```
 
 Perform PCA on each covariate matrix resulting from the lcWGS pipeline. One PCA for each chromosome + one whole genome 
 
 ```{bash}
-#rm ../analysis-20230823/pca/cov-results.txt #rm file if it already exists
-rm ../analysis-20230922/pca/cov-results.txt #rm file if it already exists
-#for file in ../analysis-20230823/pca/*.cov
-for file in ../analysis-20230922/pca/*.cov
+rm ../analysis-20230823/pca/cov-results.txt #rm file if it already exists
+#rm ../analysis-20230922/pca/cov-results.txt #rm file if it already exists
+for file in ../analysis-20230823/pca/*.cov
+#for file in ../analysis-20230922/pca/*.cov
 do
 filename="$(echo $file)"
 sample="$(basename -a $filename | cut -d "." -f 1)"
@@ -107,22 +118,22 @@ printf "%s\t%s\n" "$filename" "$sample" >> ../analysis-20230922/pca/cov-results.
 done
 ```
 
-```{r}
+```{r, message=F, warning=F}
 outlier <- c("GM121") #c("GM121", "ABLG2109", "ABLG2937", "ABLG2622") NULL #
 
 sample.order <- (read_delim(
-#  file="../analysis-20230823/pca/pcod-lcWGS_filtered_bamslist.txt", 
-  file="../analysis-20230922/pcod-lcWGS_filtered_bamslist.txt", 
+  file="../analysis-20230823/pca/pcod-lcWGS_filtered_bamslist.txt", 
+#  file="../analysis-20230922/pcod-lcWGS_filtered_bamslist.txt", 
                             delim = "/t", col_names = "sample") %>%
                    mutate(
-#                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230828/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
-                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230922/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
+                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230828/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
+#                     sample=gsub("/home/lspencer/pcod-lcwgs-2023/analysis-20230922/bamtools/pcod-lcWGS_|_sorted_dedup_clipped.bam", 
                                       "", sample)))$sample
                    
 
 filenames <- read_delim(
-#  file="../analysis-20230823/pca/cov-results.txt", 
-  file="../analysis-20230922/pca/cov-results.txt", 
+  file="../analysis-20230823/pca/cov-results.txt", 
+#  file="../analysis-20230922/pca/cov-results.txt", 
   col_names = c("filename", "chromosome"), delim = "\t") %>%
   mutate(chromosome=gsub("pcod-lcWGS_|_polymorphic|-polymorphic", "", chromosome))
 files <- file.path(filenames$filename) #extract vector of filenames
@@ -148,14 +159,14 @@ Separate PCA for each chromosome (#1-23) and for the whole genome
 
 ```{r}
 # Filter sample info to only include those we used in our lcWGS pipeline 
-sample.info <- sample.info %>% 
+sample.info.lcwgs <- sample.info.lcwgs %>% 
   mutate(sample.id=case_when(
       (treatment=="0" | treatment=="5" | treatment=="9" | treatment=="16") ~ paste("GM", sample, sep=""), 
       TRUE ~ paste("ABLG", sample, sep=""))) %>%
   filter(sample.id %in% sample.order)
 
 # Get sample IDs for those from our likely spawning populations, and experimental animals (i.e. those to include in a PCA)
-likely.pops <- (sample.info %>%
+likely.pops <- (sample.info.lcwgs %>%
                   filter(sample.id != outlier) %>% #remove outlier sample(s)
         filter(treatment %in% c("0", "5", "9", "16", "Kodiak", "Shumagins", "HecateStrait")))$sample.id #keep only likely source pops
 ```
@@ -173,7 +184,7 @@ for (i in 1:length(filenames$chromosome)){
   pc.percent[1:2] %>% sum()
   
   #### Generate dataframe with prcomp results 
-  tab.expr <- data.frame(sample.id = colnames(covar[,likely.pops]),
+  tab.gen <- data.frame(sample.id = colnames(covar[,likely.pops]),
       EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
       EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
       EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
@@ -183,8 +194,8 @@ for (i in 1:length(filenames$chromosome)){
       stringsAsFactors = FALSE)
   #shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
   #hist(pca.princomp$x) #normal? hard to say, maybe
-  tab.expr.annot <- left_join(tab.expr %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
-                              sample.info[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
+  tab.gen.annot <- left_join(tab.gen %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                              sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
     mutate(treatment=factor(treatment, ordered = T, 
                             levels = c("0", "5", "9", "16", 
                                        "Russia", "Pervenets", "TanagaIsland", 
@@ -192,10 +203,10 @@ for (i in 1:length(filenames$chromosome)){
                                        "Kodiak", "HecateStrait")))
   
   
-  pcas[[i]] <- print(ggscatter(tab.expr.annot,
+  pcas[[i]] <- print(ggscatter(tab.gen.annot,
             group=c("temperature"),
             x="EV1.all", y="EV2.all", col="treatment", size=3, alpha=0.85, 
-            ellipse = FALSE, star.plot = T) + #, label="sample.id"
+            ellipse = FALSE, star.plot = F) + #, label="sample.id"
     theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
     xlab(paste("PC1 (", round(pc.percent[1], digits = 2), "%)", sep="")) + 
     ylab(paste("PC2 (", round(pc.percent[2], digits = 2), "%)", sep="")) + 
@@ -203,7 +214,9 @@ for (i in 1:length(filenames$chromosome)){
     # scale_color_manual(name="Temperature/Population", 
     #                    values=c("0"="purple", "5"="blue", "9"="orange", "16"="red")) +
     scale_color_manual(name="Temperature/Population",
-                       values=c("0"="gray90", "5"="gray50", "9"="gray25", "16"="black",
+                       values=c(
+                         "0"="royalblue1","5"="darkgreen", "9"="yellow3","16"="firebrick4",
+#                         "0"="gray90", "5"="gray50", "9"="gray25", "16"="black",
                                 "Russia"="navyblue", "Pervenets"="cornflowerblue",
                                 "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476",
                                 "Unimak"="antiquewhite", "Shumagins"="mistyrose",
@@ -218,7 +231,7 @@ for (i in 1:length(filenames$chromosome)){
 # # Save objects for Plotly in RStudio Cloud 
 # save(filenames, file = "../analysis-20230922/pca/plotly/filenames")
 # save(chrom_covar, file = "../analysis-20230922/pca/plotly/chrom_covar")
-# save(sample.info, file = "../analysis-20230922/pca/plotly/sample.info")
+# save(sample.info.lcwgs, file = "../analysis-20230922/pca/plotly/sample.info.lcwgs")
 # save(pcas, file="../analysis-20230922/pca/plotly/pcas")
 ```
 
@@ -232,7 +245,7 @@ pca.princomp <- prcomp(chrom_covar$wholegenome[,likely.pops], scale=F) #scale=F 
   pc.percent[1:6] %>% sum()
   
   #### Generate dataframe with prcomp results 
-  tab.expr <- data.frame(sample.id = colnames(chrom_covar$wholegenome[,likely.pops]),
+  tab.gen <- data.frame(sample.id = colnames(chrom_covar$wholegenome[,likely.pops]),
       EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
       EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
       EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
@@ -242,7 +255,7 @@ pca.princomp <- prcomp(chrom_covar$wholegenome[,likely.pops], scale=F) #scale=F 
       stringsAsFactors = FALSE)
   #shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
   #hist(pca.princomp$x) #normal? hard to say, maybe
-  tab.expr.annot <- left_join(tab.expr %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), sample.info[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
+  tab.gen.annot <- left_join(tab.gen %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
     mutate(treatment=factor(treatment, ordered = T, 
                             levels = c("0", "5", "9", "16", 
                                        "Russia", "Pervenets", "TanagaIsland", 
@@ -257,10 +270,10 @@ variance <- pc.percent %>% as.data.frame() %>% set_names("variance") %>% rowname
 
 pcas.genome<-list(1:nrow(axes))
 for (i in 1:nrow(axes)){
-  pcas.genome[[i]] <- print(ggscatter(tab.expr.annot,
+  pcas.genome[[i]] <- print(ggscatter(tab.gen.annot,
             group=c("temperature"),
             x=axes[i,"ev.y"], y=axes[i,"ev.x"], col="treatment", size=3, alpha=0.85, 
-            ellipse = FALSE, star.plot = T) + #, label="sample.id"
+            ellipse = FALSE, star.plot = F) + #, label="sample.id"
     theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
     xlab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
     ylab(paste("PC", axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
@@ -274,17 +287,18 @@ for (i in 1:nrow(axes)){
       ggtitle(paste("PC", axes[i, "pc.y"], "x", "PC", axes[i, "pc.x"], sep="")))
 }
 
-pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
+#pdf('../analysis-20230922/pca/pcas-genomewide.pdf', width = 8.5, height = 7)
 pcas.genome
-dev.off()
+#dev.off()
 
 ```
 
 Zoom in on temperature experiment animals in PC1xPC2 space to look at slight separation of 16C animals - why would that be? 
 
 ```{r}
+require(colorspace)
 i<-1
-ggscatter(tab.expr.annot,
+ggscatter(tab.gen.annot,
             group=c("temperature"),
             x=axes[i,"ev.x"], y=axes[i,"ev.y"], col="treatment", size=3, alpha=0.85, 
             ellipse = T, star.plot = F) + #, label="sample.id"
@@ -296,7 +310,7 @@ ggscatter(tab.expr.annot,
                        values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
     scale_fill_manual(name="Temperature/Population", 
                        values=c("0"=lighten("#2c7bb6"), "5"=lighten("#abd9e9"), "9"=lighten("#fdae61"), "16"=lighten("#d7191c"))) +
-      ggtitle(paste("Experimental animals only, PC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")) + 
+      ggtitle(paste("Experimental animals only, PC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")) #+ 
   xlim(-.1,-.01) + ylim(-0.12, 0.1)
 ```
 
@@ -311,7 +325,7 @@ first3pcs <- data.frame(pca_e$vectors[,1:3])
 dim(pca)
 pca_df <- cbind(as.numeric(gsub("GM|ABLG", "", sample.order)), first3pcs) %>% 
   set_names(c("sample", "PC1", "PC2", "PC3")) %>%
-  left_join(sample.info) %>%
+  left_join(sample.info.lcwgs) %>%
     mutate(treatment=factor(treatment, ordered = T, 
                           levels = c("0", "5", "9", "16", 
                                      "Russia", "Pervenets", "TanagaIsland", 
@@ -348,7 +362,7 @@ Look at size distribution of P. cod by temperature
 ```{r}
 phenotypes <- read_excel("../../Pcod Temp Growth experiment 2022-23 DATA.xlsx", sheet = "AllData") %>% clean_names() %>%
   mutate_at(c("tank", "temperature", "microchip_id", "dissection_date", "genetic_sampling_count"), factor) %>%
-  rename("sl_final"="sl_mm", "wwt_final"="whole_body_ww_g") #%>% 
+  dplyr::rename("sl_final"="sl_mm", "wwt_final"="whole_body_ww_g") #%>% 
   # pivot_longer(cols = c("sl_11212022", "wwt_11212022", 
   #                       "sl_12272022", "wwt_12272022", 
   #                       "sl_final", "ww_final",
@@ -363,7 +377,7 @@ TukeyHSD(aov(total_liver_ww_mg~temperature, phenotypes)) #16C smaller liver than
 # Summarize by temperature - mean and SD
 phenotypes %>%
   group_by(temperature) %>%
-  summarise(sl_mean.1=mean(sl_11212022),sl_sd.1=sd(sl_11212022), 
+  dplyr::summarise(sl_mean.1=mean(sl_11212022),sl_sd.1=sd(sl_11212022), 
             sl_mean.2=mean(sl_12272022),sl_sd.2=sd(sl_12272022),
             sl_mean.3=mean(sl_final),sl_sd.3=sd(sl_final),
             
@@ -383,9 +397,727 @@ NEW PCA
  - SHUMAGINS (VERY SIMILAR TO KODIAK) 
  - KODIAK 
  - HECATE STRAIT 
+
+Chromosomes with some clustering: 
+PC1: 11, 12, 14, 15, 16, 21, 2, 3
+PC2: 18, 20
+PC1xPC2: 23 
+
+## ADD ZP3 HAPLOTYPES FROM RNASEQ DATA
  
 ```{r}
-tab.expr.annot
+phenotypes <- phenotypes %>% dplyr::rename(., sample=genetic_sampling_count) %>%
+  left_join(
+  read_sheet("https://docs.google.com/spreadsheets/d/1NL_pYKnF71_aptfxZQe8zxEmAQNdfPi3RUtz1Hrz5QU/edit?usp=drive_link", "Haplotypes") %>%
+  clean_names() %>%
+  dplyr::select(-tank, -temperature) %>%
+  mutate(dplyr::across(c("x542", "x339", "x313"), as.factor)) %>%
+  mutate(haplotype=as.factor(paste(x313, x339, x542, sep="."))) %>%
+  mutate(haplotype=factor(haplotype, ordered=T, levels=c("T.A.T", "T/G.A/G.T/A", "T.A.T/A", "G.G.A", "T/G.A/G.A","G.A.T/A", "T/G.A.T"))) %>%
+  # mutate(x542=factor(x542, ordered=T, levels=c("T", "T/A", "A")), 
+  #        x339=factor(x339, ordered=T, levels=c("A", "A/G", "G")), 
+  #        x313=factor(x313, ordered=T, levels=c("T", "T/G", "G"))) %>%
+  mutate(sample=factor(sample)), by="sample")
+
+phenotypes %>% filter(!is.na(haplotype)) %>% nrow() #all 71 samples have haplotypes, good 
 ```
  
+Add ZP3 haplotypes from lcWGS (ANGSD called)
+
+```{r}
+require(tidyverse)
+# haplos <- read.delim("../zp3/angsdput.zp3.exonic.haplo", sep = "\t", header = T) %>% dplyr::select(-Chromosome) %>%
+#       column_to_rownames("Locus") %>% t() %>% as.data.frame() %>% rownames_to_column("sample") %>% 
+#   mutate(sample=gsub("GM", "", sample)) %>% 
+#   pivot_longer(cols = c(`1872275`,`1872249`, `1872046`), names_to = "locus", values_to = "allele") %>%
+#   mutate_at("allele", function(x) {
+#     case_when(
+#     x == "A" ~ "T",
+#     x == "T" ~ "A",
+#     x == "C" ~ "G",
+#     x == "G" ~ "C",
+#     x == "N" ~ "N")}) %>% 
+#   pivot_wider(names_from = "locus", values_from = "allele") %>%
+#   mutate(haplo.lcwgs=as.factor(paste(`1872275`,`1872249`, `1872046`, sep="."))) %>% as.data.frame()
+# 
+# haplos$haplo.lcwgs %>% table() %>% as.data.frame() %>% arrange(desc(Freq))
+# 
+# phenotypes %>% left_join(haplos[c("sample", "haplo.lcwgs")]) %>%
+#   dplyr::select(temperature, tank, sample, haplotype, haplo.lcwgs) %>% 
+#   arrange(temperature, tank, sample) %>% filter(!is.na(haplotype)) %>% View()
+# 
+# # I think these chromosome loci are the exonic loci referenced in Spies 2021
+# 1872275 # 313
+# 1872249 # 339
+# 1872046 # 542
+# 
+# # Let's double check
+# 1872275-1872249==-1*(313-339)
+# 1872249-1872046==-1*(339-542)
+# 1872275-1872046==-1*(313-542)
+```
+
+```{r}
+# I want to translate our Chr9 locus to the locus numbers Ingrid uses. Figure out what to subtract from each Chr9 locus. 
+
+1872275+313
+1872249+339
+1872046+542
+
+1872275-1872588
+1872249-1872588
+1872046-1872588
+
+haplos.allzp3 <- read.delim("../zp3/angsdput.zp3.haplo", sep = "\t", header = T, 
+                            col.names = colnames(read.delim("../zp3/angsdput.zp3.exonic.haplo", sep = "\t", header = T))) %>% #add sample IDs
+  mutate(pos_haplo=Locus-1872588) %>% dplyr::rename("pos_chr9"="Locus") %>% dplyr::select(Chromosome, pos_chr9, pos_haplo, everything()) %>%
+  #filter(pos_haplo %in% c(-313, -339, -542)) %>%
+  dplyr::select(-Chromosome, -pos_chr9) %>% column_to_rownames("pos_haplo") %>% t() %>% as.data.frame() %>% rownames_to_column("sample") %>% 
+  mutate(sample=gsub("GM", "", sample)) %>% 
+  pivot_longer(cols = -sample, names_to = "locus", values_to = "allele") %>%
+  mutate(locus=gsub("-", "loc.", locus)) %>%
+  mutate_at("allele", function(x) {
+    case_when(
+    x == "A" ~ "T",
+    x == "T" ~ "A",
+    x == "C" ~ "G",
+    x == "G" ~ "C",
+    x == "N" ~ "N")}) %>% 
+  pivot_wider(names_from = "locus", values_from = "allele") %>% 
+  dplyr::select(sample, loc.17, loc.313, loc.339, loc.447, loc.448, loc.449, loc.451, loc.452, loc.542) %>%
+  #column_to_rownames("sample") %>% 
+  unite("haplo.lcwgs", 2:ncol(.), sep="", remove = F) %>%
+  unite("haplo.exons.lcwgs", c(loc.313, loc.339, loc.542), sep="", remove = F) %>%
+  mutate_at(vars("haplo.lcwgs", "haplo.exons.lcwgs"), factor) %>% dplyr::select(sample, haplo.lcwgs, haplo.exons.lcwgs, everything())
+
+# Copy to clipboard
+haplos.allzp3 %>% group_by(haplo.lcwgs) %>% tally() %>% arrange(desc(n)) %>% write_clip()
+haplos.allzp3 %>% group_by(haplo.exons.lcwgs) %>% tally() %>% arrange(desc(n)) %>% write_clip()
+haplos.allzp3 %>% dplyr::select(sample, haplo.lcwgs, haplo.exons.lcwgs) %>% write_clip()
+
+haplos.allzp3 %>% dplyr::select(-starts_with("loc")) %>% left_join(
+  phenotypes %>% dplyr::select(sample, haplotype) %>% filter(!is.na(haplotype))) %>%
+  dplyr::rename("haplo.rna"="haplotype") %>% write_clip()
+```
+
+```{r}
+phenotypes <- phenotypes %>%
+  rename("haplotype.rnaseq"="haplotype") %>%
+  dplyr::select(-x542, -x339, -x313) %>%
+  mutate(growth.sl=sl_final-sl_11212022,
+         growth.wwt=wwt_final-wwt_11212022,
+         hsi=total_liver_ww_mg/wwt_final) %>%
+  left_join(haplos.allzp3 %>% mutate(sample=as.factor(sample)) %>%
+              dplyr::select(sample, haplo.lcwgs, haplo.exons.lcwgs),
+            by="sample")
+```
+
+## Bunch of plots to explore relationships among genotype, PC axes, and response to temperature 
+
+
+```{r}
+pcas<-list(1:length(filenames$chromosome))
+for (i in 1:length(filenames$chromosome)){
+
+    print(names(chrom_covar[i]))
+  covar<- chrom_covar[[i]]
+  pca.princomp <- prcomp(covar[,likely.pops], scale=F) #scale=F for variance-covariance matrix
+  #pca.eigenval(pca.princomp) #The Proporation of Variance = %variance 
+  pc.percent <- pca.eigenval(pca.princomp)[2,1:6]*100
+#  screeplot(pca.princomp, bstick=FALSE) 
+  pc.percent[1:2] %>% sum()
+  
+  #### Generate dataframe with prcomp results 
+  tab.gen <- data.frame(sample.id = colnames(covar[,likely.pops]),
+      EV1.all = pca.princomp$rotation[,1],    # the first eigenvector
+      EV2.all = pca.princomp$rotation[,2],    # the second eigenvector
+      EV3.all = pca.princomp$rotation[,3],    # the third eigenvector
+      EV4.all = pca.princomp$rotation[,4],    # the fourth eigenvector
+      EV5.all = pca.princomp$rotation[,5],    # the fourth eigenvector
+      EV6.all = pca.princomp$rotation[,6],    # the fourth eigenvector
+      stringsAsFactors = FALSE)
+  #shapiro.test(pca.princomp$x) #sample size too large for shapiro test which is weird 
+  #hist(pca.princomp$x) #normal? hard to say, maybe
+  tab.gen.annot <- left_join(tab.gen %>% mutate(sample.id=as.numeric(sub("GM|ABLG", "", sample.id))), 
+                              sample.info.lcwgs[c("treatment", "sample")], by=c("sample.id"="sample")) %>% droplevels() %>%
+    mutate(treatment=factor(treatment, ordered = T, 
+                            levels = c("0", "5", "9", "16", 
+                                       "Russia", "Pervenets", "TanagaIsland", 
+                                       "AmchitkaPass", "Unimak", "Shumagins", 
+                                       "Kodiak", "HecateStrait"))) %>%
+    mutate(sample.id=as.factor(as.character(sample.id))) %>%
+    left_join(phenotypes, by=c("sample.id"="sample"))
+  
+  
+  pcas[[i]] <- print(ggscatter(tab.gen.annot %>% filter(!grepl("N", haplo.exons.lcwgs)) %>% filter(haplo.exons.lcwgs!="TAT") %>% droplevels(),
+            group=c("temperature"),
+            x="EV1.all", y="EV2.all", 
+            #col="treatment", 
+            col="haplo.exons.lcwgs",
+            size=3, alpha=0.85, 
+            ellipse = FALSE, star.plot = T) + #, label="sample.id"
+    theme_minimal() + ggtitle("Global gene expression PC1xPC2") + 
+    xlab(paste("PC1 (", round(pc.percent[1], digits = 2), "%)", sep="")) + 
+    ylab(paste("PC2 (", round(pc.percent[2], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+    # scale_color_manual(name="Temperature/Population", 
+    #                    values=c("0"="purple", "5"="blue", "9"="orange", "16"="red")) +
+#     scale_color_manual(name="Temperature/Population",
+#                        values=c(
+#                          "0"="royalblue1","5"="darkgreen", "9"="yellow3","16"="firebrick4",
+# #                         "0"="gray90", "5"="gray50", "9"="gray25", "16"="black",
+#                                 "Russia"="navyblue", "Pervenets"="cornflowerblue",
+#                                 "TanagaIsland"="#31a354", "AmchitkaPass"="#74c476",
+#                                 "Unimak"="antiquewhite", "Shumagins"="mistyrose",
+#                                 "Kodiak"="palevioletred2", "HecateStrait"="purple")) +
+      ggtitle(names(chrom_covar[i])))
+}
+
+```
+
+Chromosomes with some clustering: 
+PC1: 11, 12, 14, 15, 16, 21, 2, 3
+PC2: 18, 20
+PC1xPC2: 23 
+
+```{r}
+i <- 1
+ggscatter(tab.gen.annot %>% filter(treatment %in% c("0", "5", "9", "16")) %>%
+            left_join(haplos.allzp3 %>% filter(sample!="Major") %>% 
+                                        mutate(sample=as.numeric(sample)) %>% dplyr::select(-starts_with("loc")), 
+                                      by=c("sample.id"="sample")) %>%
+            filter(haplo.lcwgs %in% c("GTATATGCT","AGGTATGCA","AGGTATGCT", "ATATATGCA", "GTATATGCN", 
+                                      "NTATATGCT", "AGATATGCT","ATATATGCT","GGGTATGCA","GGGTATGCT")),
+#            filter(haplo.exons.lcwgs %in% c("TAT","GGA","GAT", "TAA", "GGT", "TAN")),
+            group=c("temperature"),
+            x=axes[i,"ev.x"], y=axes[i,"ev.y"], col="haplo.lcwgs", size=3, alpha=0.85, # haplo.exons.lcwgs 
+            ellipse = T, star.plot = F) + #, label="sample.id"
+    theme_minimal() + 
+    xlab(paste("PC", axes[i, "pc.x"], " (", round(variance[variance$axis==axes[i, "pc.x"], "variance"], digits = 2), "%)", sep="")) + 
+    ylab(paste("PC", axes[i, "pc.y"], " (", round(variance[variance$axis==axes[i, "pc.y"], "variance"], digits = 2), "%)", sep="")) + 
+    theme(legend.position = "right", legend.text=element_text(size=8), legend.title=element_text(size=9)) + 
+    # scale_color_manual(name="Temperature/Population", 
+    #                    values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+    # scale_fill_manual(name="Temperature/Population", 
+    #                    values=c("0"=lighten("#2c7bb6"), "5"=lighten("#abd9e9"), "9"=lighten("#fdae61"), "16"=lighten("#d7191c"))) +
+      ggtitle(paste("Experimental animals\nTop 10 ZP3 haplotypes\nPC", axes[i, "pc.x"], "x", "PC", axes[i, "pc.y"], sep="")) #+ 
+  xlim(-.1,-.01) + ylim(-0.12, 0.1)
+```
+
+
+
+```{r}
+summary(aov(total_liver_ww_mg ~ temperature, phenotypes))
+TukeyHSD(aov(total_liver_ww_mg ~ temperature, phenotypes))
+phenotypes %>% group_by(temperature) %>% dplyr::summarise(mean=mean(total_liver_ww_mg), sd=sd(total_liver_ww_mg))
+
+phenotypes %>%
+    ggplot(aes(y=total_liver_ww_mg, x=temperature, fill=temperature)) + geom_boxplot() + theme_minimal() +
+    ggtitle("Liver weight") +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes %>% filter(!is.na(x542)) %>%
+#  pivot_longer(cols = c(x542, x313, x339), names_to = "variant", values_to = "allele") %>%
+    ggplot(aes(y=total_liver_ww_mg, x=haplotype)) + geom_violin() + theme_minimal() +
+    geom_point(aes(color=temperature), position = "jitter", width=0.05) + 
+    ggtitle("Liver weight") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) #+
+#  facet_wrap(~variant, nrow=1, scales = "free")
+```
+
+```{r}
+summary(aov(wwt_final ~ temperature, phenotypes))
+TukeyHSD(aov(wwt_final ~ temperature, phenotypes))
+
+phenotypes %>%
+    ggplot(aes(y=wwt_final, x=temperature, fill=temperature)) + geom_boxplot() + theme_minimal() +
+    ggtitle("Final wet weight") +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+
+phenotypes %>% filter(!is.na(x542)) %>%
+#  pivot_longer(cols = c(x542, x313, x339), names_to = "variant", values_to = "allele") %>%
+    ggplot(aes(y=wwt_final, x=droplevels(haplotype))) + geom_violin() + theme_minimal() +
+    geom_point(aes(color=temperature), position = "jitter", width=0.05) + 
+    ggtitle("Final wet weight") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) #+
+#  facet_wrap(~variant, nrow=1, scales = "free")
+
+```
+
+```{r}
+summary(aov(I(wwt_final/sl_final) ~ temperature, phenotypes))
+TukeyHSD(aov(I(wwt_final/sl_final) ~ temperature, phenotypes))
+
+phenotypes %>% mutate(mort=as.factor(case_when(is.na(mort_date) ~ "No", TRUE ~ "Yes"))) %>%
+  filter(mort == "No") %>%
+    ggplot(aes(y=(wwt_final/sl_final), x=temperature, fill=temperature)) + #, shape=mort 
+    geom_boxplot() + geom_jitter() + 
+    theme_minimal() +
+    ggtitle("mass/length") +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes %>% filter(!is.na(x542)) %>%
+#  pivot_longer(cols = c(x542, x313, x339), names_to = "variant", values_to = "allele") %>%
+    ggplot(aes(y=(wwt_final/sl_final), x=haplotype)) + geom_violin() + theme_minimal() +
+    geom_point(aes(color=temperature), position = "jitter", width=0.05) + 
+    ggtitle("final mass/length") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) #+
+#  facet_wrap(~variant, nrow=1, scales = "free")
+```
+
+```{r}
+summary(aov(sl_final ~ temperature, phenotypes))
+TukeyHSD(aov(sl_final ~ temperature, phenotypes))
+
+phenotypes %>%
+    ggplot(aes(y=sl_final, x=temperature, fill=temperature)) + geom_boxplot() + theme_minimal() +
+    ggtitle("Length") +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes %>% filter(!is.na(x542)) %>%
+#  pivot_longer(cols = c(x542, x313, x339), names_to = "variant", values_to = "allele") %>%
+    ggplot(aes(y=sl_final, x=haplotype)) + geom_violin() + theme_minimal() +
+    geom_point(aes(color=temperature), position = "jitter", width=0.05) + 
+    ggtitle("Final length") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) #+
+#  facet_wrap(~variant, nrow=1, scales = "free")
+```
+
+
+```{r}
+summary(aov(I(sl_final-sl_11212022) ~ temperature, phenotypes))
+TukeyHSD(aov(I(sl_final-sl_11212022) ~ temperature, phenotypes))
+
+
+phenotypes %>% mutate(growth=sl_final-sl_11212022) %>%
+  ggplot(aes(y=growth, x=temperature, fill=temperature)) + geom_boxplot() + theme_minimal() +
+    ggtitle("Total Growth") +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+
+phenotypes %>% mutate(growth=sl_final-sl_11212022) %>%
+  ggplot(aes(y=growth, x=temperature, color=temperature)) + 
+  geom_point() + theme_minimal() +
+    ggtitle("Total Growth") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+
+phenotypes %>% filter(!is.na(x542)) %>% mutate(growth=sl_final-sl_11212022) %>%
+#  pivot_longer(cols = c(x542, x313, x339), names_to = "variant", values_to = "allele") %>%
+    ggplot(aes(y=growth, x=haplotype)) + geom_violin() + theme_minimal() +
+    geom_point(aes(color=temperature), position = "jitter", width=0.05) + 
+    ggtitle("Total Growth") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) #+
+ # facet_wrap(~variant, nrow=1, scales = "free")
+
+```
+
+Linear model of growth ~ temperature 
+
+```{r}
+lm.growth <- lm(growth~temperature,
+  data=phenotypes %>% mutate(growth=sl_final-sl_11212022, temperature=as.numeric(as.character(temperature))))
+
+summary(lm.growth)
+resid(lm.growth)
+plot(density(resid(lm.growth)))
+qqnorm(resid(lm.growth))
+qqline(resid(lm.growth))
+
+#save residuals
+residuals <-cbind(
+  resid(lm.growth) %>% as.data.frame(),
+(phenotypes %>% mutate(growth=sl_final-sl_11212022, temperature=as.numeric(as.character(temperature))))$microchip_id)
+colnames(residuals) <- c("growth.temp.resids", "microchip_id")
+```
+
+Plot residuals from growth~temperature linear model against PC1 scores
+
+```{r}
+phenotypes.pca <- tab.gen.annot %>% 
+  mutate(sample.id=gsub("GM", "", sample.id)) %>% 
+  left_join(phenotypes, by=c("sample.id"="sample")) %>%
+   mutate(growth=sl_final-sl_11212022) %>%
+  left_join(residuals)
+
+phenotypes.pca %>%
+  ggplot(aes(x=EV1.all, y=growth, color=treatment)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ growth") +
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes.pca %>%
+  ggplot(aes(x=EV2.all, y=growth, color=treatment)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC2 ~ growth") +
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes.pca %>%
+  ggplot(aes(x=EV1.all, y=growth.temp.resids, color=treatment, group=temperature)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ growth~temp residuals") + 
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+phenotypes.pca %>%
+  ggplot(aes(x=EV2.all, y=growth.temp.resids, color=treatment)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC2 ~ growth~temp residuals") +
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+```
+```{r}
+# Look at growth residuals by haplotype 
+phenotypes.pca %>%
+  mutate(across(c("x542", "x339", "x313"), as.factor)) %>% filter(!is.na(x542)) %>%
+  ggplot(aes(x=EV1.all, y=growth, color=treatment)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ growth") +
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  facet_wrap(~x542, nrow=1, scales="free")
+```
+Plot residuals from growth~temperature linear model by haplotype
+
+```{r}
+
+require(ggrepel)
+left_join(phenotypes, residuals, by="microchip_id") %>%
+  filter(!is.na(haplotype)) %>%
+  #filter(haplotype%in%c("T.A.T", "T/G.A/G.T/A")) %>% #two most common haplotypes
+  mutate(growth=sl_final-sl_11212022) %>%
+  ggplot(aes(x=temperature, y=growth.temp.resids, fill=temperature, label=sample)) + 
+  geom_violin(alpha=0.5) +  theme_pubclean()+
+  #geom_point(position = "jitter") +
+  geom_text_repel(color="gray25") + 
+  theme(legend.position = "bottom", axis.title.x = element_blank(),
+        axis.text.x = element_blank()) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("Growth~Temp residuals by ZP3 haplotype, 2 most common haplotypes") +
+  facet_wrap(~haplotype)
+
+left_join(phenotypes, residuals, by="microchip_id") %>%
+  filter(!is.na(x542)) %>%
+   mutate(growth=sl_final-sl_11212022) %>%
+  ggplot(aes(x=haplotype, y=growth.temp.resids)) + geom_violin(width=1.5) +
+  geom_point(aes(color=temperature), position = position_jitter(width = 0.25)) + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("Growth~Temp residuals by ZP3 haplotype")
+
+left_join(phenotypes, residuals, by="microchip_id") %>%
+  filter(!is.na(haplotype)) %>%
+  group_by(temperature, haplotype) %>% dplyr::summarize(n=n()) %>%
+  ggplot(aes(x=temperature, y=n, fill=haplotype)) + 
+  geom_bar(position="dodge", stat="identity") + theme_pubclean() +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# linear model of growth by temperature and haplotype
+lm.growth.hap <- lm(growth~temperature*haplotype,
+  data=phenotypes %>% mutate(growth=sl_final-sl_11212022, temperature=as.numeric(as.character(temperature))) %>%  filter(haplotype%in%c("T.A.T", "T/G.A/G.T/A")))
+
+summary(lm.growth.hap)
+resid(lm.growth.hap)
+plot(density(resid(lm.growth.hap)))
+qqnorm(resid(lm.growth.hap))
+qqline(resid(lm.growth.hap))
+```
+
+
+```{r}
+phenotypes.pca %>%
+  ggplot(aes(x=EV1.all, y=sl_11212022, color=treatment)) + geom_point() + theme_minimal() +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ initial size") + 
+  geom_smooth(method=lm)
+```
+
+```{r}
+phenotypes.pca %>% 
+  mutate(hsi=100*(total_liver_ww_mg/wwt_final)) %>%
+  ggplot(aes(x=EV1.all, y=hsi, color=treatment, label=sample.id)) + geom_point() + theme_minimal() +geom_text(hjust=0, vjust=0) + 
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ HSI")
+```
+
+```{r}
+summary(aov(growth.temp.resids ~ temperature, data=phenotypes.pca))
+TukeyHSD(aov(growth.temp.resids ~ temperature, data=phenotypes.pca))
+
+phenotypes.pca %>%
+  ggplot(aes(y=growth.temp.resids, x=temperature, color=temperature)) + 
+  geom_boxplot() + theme_minimal() +
+    ggtitle("Residuals from Growth~Temp linear model") +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+```
+
+```{r}
+(fig <- ggplotly(
+phenotypes.pca %>%
+#  filter(!is.na(haplotype)) %>%
+  # mutate(mbd=as.factor(case_when(
+  #   sample.id %in% c("3","4","11","12","18","20","29","30",
+  #                    "39","40","48","50","57","59","69","70","79",
+  #                    "80","88","94","97","99","108","116","118","119",
+  #                    "120","127","131","138","148","156") ~ "yes",
+  #   TRUE ~ "no"))) %>%
+  mutate(rna=as.factor(case_when(
+    sample.id %in% sample.info.lcwgs.rna$sample_number ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>%
+  ggplot(aes(x=EV1.all, y=growth.temp.resids, color=temperature, group=temperature)) + # 100*(total_liver_ww_mg/wwt_final)
+  #geom_point(aes(text=sample.id)) + 
+  geom_text(aes(label=sample.id), size=4.5) + 
+  geom_point(aes(shape=rna), size=4) + scale_shape_manual(values=c("yes"=19, "no"=3)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ Growth-Temperature residuals") + 
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  # stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+  # stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  facet_wrap(~temp2),
+    hoverinfo = 'text', tooltip = "text"))
+
+htmlwidgets::saveWidget(
+                widget = fig, #the plotly object
+                file = "pca_growth-resids.html", #the path & file name
+                selfcontained = TRUE #creates a single html file
+                )
+```
+
+```{r}
+phenotypes.pca %>%
+  ggplot(aes(x=factor(as.character(treatment), ordered=T, levels=c("0","5","9","16")), y=EV1.all, fill=treatment)) + 
+  geom_boxplot(outlier.shape = NA) + theme_minimal() + xlab("Temperature") + ylab("Genetic PC1") +
+  geom_text_repel(aes(label=sample.id)) +
+  scale_fill_manual(name="Temperature", 
+                     values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c"))
+
+```
+
+
+```{r}
+ggplotly(
+phenotypes.pca %>%
+  filter(!is.na(haplotype)) %>%
+  left_join(haplos.allzp3 %>% filter(sample!="Major") %>%  dplyr::select(-starts_with("loc")), 
+            by=c("sample.id"="sample")) %>%
+  mutate(mbd=as.factor(case_when(
+    sample.id %in% c("3","4","11","12","18","20","29","30",
+                     "39","40","47","50","57","59","69","70","79",
+                     "80","88","94","97","99","108","116","118","119",
+                     "120","127","131","138","148","156") ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>% 
+  filter(mbd=="yes") %>%
+  ggplot(aes(x=EV1.all, y=100*(total_liver_ww_mg/wwt_final), color=temperature)) + #  growth.temp.resids
+  #geom_point(aes(text=sample.id)) + 
+  #geom_text(aes(label=sample.id), size=4.5) + 
+  geom_point(aes(shape=haplo.lcwgs), size=4) + scale_shape_manual(values=c(1:20)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("PC1 ~ Growth-Temperature residuals") + 
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+  # stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+  # stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")), #+ facet_wrap(~temp2),
+    hoverinfo = 'text', tooltip = "text")
+```
+
+```{r}
+ggplotly(phenotypes.pca %>%
+  left_join(haplos.allzp3 %>% filter(sample!="Major") %>%  dplyr::select(-starts_with("loc")), 
+            by=c("sample.id"="sample")) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>% 
+  filter(!is.na(haplo.lcwgs)) %>%
+  # filter(haplo.lcwgs %in% c("GTATATGCT","AGGTATGCA","AGGTATGCT", "ATATATGCA", "GTATATGCN", 
+  #                         "NTATATGCT", "AGATATGCT","ATATATGCT","GGGTATGCA","GGGTATGCT")) %>%
+  mutate(growth=sl_final-sl_11212022) %>%
+  ggplot(aes(x=temperature, y=growth, fill=temperature)) +   # 100*(total_liver_ww_mg/wwt_final)
+  geom_violin(alpha=0.5) +  theme_pubclean()+
+  geom_point(aes(shape=haplo.exons.lcwgs), size=3, position = "jitter") +
+  #geom_text_repel(color="gray25") + 
+  theme(legend.position = "right", axis.title.x = element_blank(),
+        axis.text.x = element_blank()) +
+  scale_fill_manual(name="Temperature", values=c("0"="#2c7bb6", "5"="#abd9e9", "9"="#fdae61", "16"="#d7191c")) +
+  scale_shape_manual(values=c(1:20)) +
+  ggtitle("Growth~Temp residuals by ZP3 haplotype, 2 most common haplotypes"))
+```
+
+### Informing lipid and methylation sample selection 
+
+Which samples have RNASeq data? 
+
+```{r}
+(fig <- ggplotly(
+phenotypes.pca %>%
+  filter(!is.na(temperature)) %>%
+  #  filter(!is.na(haplotype)) %>%
+  # mutate(mbd=as.factor(case_when(
+  #   sample.id %in% c("3","4","11","12","18","20","29","30",
+  #                    "39","40","48","50","57","59","69","70","79",
+  #                    "80","88","94","97","99","108","116","118","119",
+  #                    "120","127","131","138","148","156") ~ "yes",
+  #   TRUE ~ "no"))) %>%
+  mutate(hsi=100*(total_liver_ww_mg/wwt_final)) %>%
+  mutate(rna=as.factor(case_when(
+    sample.id %in% sample.info.lcwgs.rna$sample_number ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>%
+  ggplot(aes(x=growth.temp.resids, y=hsi, color=temperature, group=temperature)) + # 100*(total_liver_ww_mg/wwt_final)
+  geom_text(aes(label=sample.id), size=4.5) + 
+  geom_point(aes(shape=rna), size=4) + scale_shape_manual(values=c("yes"=19, "no"=3)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("Growth-Temperature residuals ~ HSI estimate") + 
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+#  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+#  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  xlab("~HSI estimate (liver wet weight / total wet weight)") + 
+  ylab("Growth ~ Temperature model residuals") + 
+  facet_wrap(~temp2),
+  hoverinfo = 'text', tooltip = "text"))
+# 
+# htmlwidgets::saveWidget(
+#                 widget = fig, #the plotly object
+#                 file = "pca_growth-resids.html", #the path & file name
+#                 selfcontained = TRUE #creates a single html file
+#                 )
+```
+
+```{r}
+(fig <- ggplotly(
+phenotypes.pca %>%
+  filter(!is.na(temperature)) %>%
+  #  filter(!is.na(haplotype)) %>%
+  # mutate(mbd=as.factor(case_when(
+  #   sample.id %in% c("3","4","11","12","18","20","29","30",
+  #                    "39","40","48","50","57","59","69","70","79",
+  #                    "80","88","94","97","99","108","116","118","119",
+  #                    "120","127","131","138","148","156") ~ "yes",
+  #   TRUE ~ "no"))) %>%
+  mutate(hsi=100*(total_liver_ww_mg/wwt_final)) %>%
+  mutate(rna=as.factor(case_when(
+    sample.id %in% sample.info.lcwgs.rna$sample_number ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>%
+  ggplot(aes(x=temp2, y=growth.temp.resids, color=temp2, group=temp2)) + # 100*(total_liver_ww_mg/wwt_final)
+  geom_bar() +
+  geom_text(aes(label=sample.id), size=4.5) + 
+  geom_point(aes(shape=rna), size=4) + scale_shape_manual(values=c("yes"=19, "no"=3)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("Growth-Temperature residuals ~ HSI estimate") + 
+  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+#  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+#  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  xlab("~HSI estimate (liver wet weight / total wet weight)") + 
+  ylab("Growth ~ Temperature model residuals"),
+  hoverinfo = 'text', tooltip = "text"))
+```
+
+```{r}
+(fig <- ggplotly(
+phenotypes.pca %>%
+  filter(!is.na(temperature)) %>%
+  #  filter(!is.na(haplotype)) %>%
+  # mutate(mbd=as.factor(case_when(
+  #   sample.id %in% c("3","4","11","12","18","20","29","30",
+  #                    "39","40","48","50","57","59","69","70","79",
+  #                    "80","88","94","97","99","108","116","118","119",
+  #                    "120","127","131","138","148","156") ~ "yes",
+  #   TRUE ~ "no"))) %>%
+  mutate(hsi=100*(total_liver_ww_mg/wwt_final)) %>%
+  mutate(growth.wt=100*(wwt_final-wwt_11212022)) %>%
+  mutate(rna=as.factor(case_when(
+    sample.id %in% sample.info.lcwgs.rna$sample_number ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>%
+  ggplot(aes(x=temperature, y=hsi, color=temperature, group=temp2)) + # 100*(total_liver_ww_mg/wwt_final)
+  geom_boxplot() +
+  geom_text(aes(label=sample.id), size=4.5, position=position_jitter(seed=1)) + 
+  geom_point(aes(shape=rna), size=4, position=position_jitter(seed=1)) + 
+  scale_shape_manual(values=c("yes"=19, "no"=3)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ggtitle("Growth-Temperature residuals ~ HSI estimate") + 
+#  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+#  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+#  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ylab("Change in wet weight"),
+  hoverinfo = 'text', tooltip = "text"))
+```
+
 

@@ -1,0 +1,4 @@
+GOterm,over_represented_pvalue,under_represented_pvalue,numDEInCat,numInCat,term,ontology,fdr_over,fdr_under,treatment
+GO:0048663,1.0353884482040664e-5,0.9999996104777249,6,10,neuron fate commitment,BP,0.05006448276549395,1,Cool_Upregulated
+GO:0005886,3.9441825604198444e-7,1,182,2114,plasma membrane,CC,0.005721431222145026,1,Cool_Upregulated
+GO:0005615,2.4390330307234754e-6,0.9999989900147996,59,546,extracellular space,CC,0.01769030657183737,1,Cool_Upregulated

@@ -1,0 +1,560 @@
+﻿Order,Number,ABLG,AlternateID_s_,CommonName,DonatingLab,Collector,CollectionDate,CollectionYear,CollectionMonth,CollectionDay,StateCountry,MarineRegion,MarineRegion2,Location1,StartLatitudeDD,StartLongitudeDD,LengthMM,WeightG,Lifestage,Sex
+1,ABLG10408,10408,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #01",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+2,ABLG10409,10409,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #02",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+3,ABLG10410,10410,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #03",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+4,ABLG10411,10411,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #04",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+5,ABLG10412,10412,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #05",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+6,ABLG10413,10413,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #06",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+7,ABLG10414,10414,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #07",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+8,ABLG10415,10415,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #08",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+9,ABLG10416,10416,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #09",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+10,ABLG10417,10417,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #10",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+11,ABLG10418,10418,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #11",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+12,ABLG10419,10419,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #12",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+13,ABLG10420,10420,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #13",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+14,ABLG10422,10422,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #15",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+15,ABLG10423,10423,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #16",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+16,ABLG10424,10424,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #17",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+17,ABLG10425,10425,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #18",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+18,ABLG10426,10426,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #19",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+19,ABLG10427,10427,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #20",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+20,ABLG10428,10428,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #21",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+21,ABLG10429,10429,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #22",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+22,ABLG10430,10430,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #23",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+23,ABLG10432,10432,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #25",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+24,ABLG10433,10433,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #26",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+25,ABLG10436,10436,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #29",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+26,ABLG10437,10437,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #30",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+27,ABLG10438,10438,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #31",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+28,ABLG10439,10439,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #32",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+29,ABLG10443,10443,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #36",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+30,ABLG10444,10444,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #37",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+31,ABLG10445,10445,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #38",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+32,ABLG10446,10446,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #39",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+33,ABLG10447,10447,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #40",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+34,ABLG10448,10448,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #41",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+35,ABLG10449,10449,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #42",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+36,ABLG10450,10450,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #43",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+37,ABLG10451,10451,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #44",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+38,ABLG10453,10453,"Adult Pacific cod, 100% EtOH, 2022, Kodiak West #46",pacific cod,Canino/Spies,Alisa Abookire,2/28/22,2022,2,28,,wGOA,wGOA,WestKodiak,57.72,-154.05,0,0,---,---
+39,ABLG10458,10458,Gmac_PWS12_063,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+40,ABLG10459,10459,Gmac_PWS12_064,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+41,ABLG10460,10460,Gmac_PWS12_065,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+42,ABLG10461,10461,Gmac_PWS12_066,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+43,ABLG10462,10462,Gmac_PWS12_067,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+44,ABLG10463,10463,Gmac_PWS12_068,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+45,ABLG10464,10464,Gmac_PWS12_069,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+46,ABLG10465,10465,Gmac_PWS12_070,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+47,ABLG10466,10466,Gmac_PWS12_071,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+48,ABLG10467,10467,Gmac_PWS12_072,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+49,ABLG10468,10468,Gmac_PWS12_073,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+50,ABLG10469,10469,Gmac_PWS12_074,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+51,ABLG10470,10470,Gmac_PWS12_075,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+52,ABLG10471,10471,Gmac_PWS12_076,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+53,ABLG10472,10472,Gmac_PWS12_077,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+54,ABLG10473,10473,Gmac_PWS12_078,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+55,ABLG10474,10474,Gmac_PWS12_079,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+56,ABLG10475,10475,Gmac_PWS12_080,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+57,ABLG10476,10476,Gmac_PWS12_081,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+58,ABLG10477,10477,Gmac_PWS12_082,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+59,ABLG10478,10478,Gmac_PWS12_083,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+60,ABLG10479,10479,Gmac_PWS12_084,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+61,ABLG10480,10480,Gmac_PWS12_085,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+62,ABLG10481,10481,Gmac_PWS12_086,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+63,ABLG10482,10482,Gmac_PWS12_087,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+64,ABLG10483,10483,Gmac_PWS12_088,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+65,ABLG10484,10484,Gmac_PWS12_089,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+66,ABLG10485,10485,Gmac_PWS12_090,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+67,ABLG10486,10486,Gmac_PWS12_091,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+68,ABLG10487,10487,Gmac_PWS12_092,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+69,ABLG10488,10488,Gmac_PWS12_093,pacific cod,Canino/Spies,Lorenz Hauzer,12-Mar,2012,3,,"AK, USA",wGOA,wGOA,PWS,60.5,-147.03,0,0,---,---
+83,ABLG10718,10718,PCOD16w_0001,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+84,ABLG10719,10719,PCOD16w_0002,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+85,ABLG10720,10720,PCOD16w_0003,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+86,ABLG10721,10721,PCOD16w_0004,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+87,ABLG10723,10723,PCOD16w_0006,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+88,ABLG10724,10724,PCOD16w_0007,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+89,ABLG10725,10725,PCOD16w_0008,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+90,ABLG10728,10728,PCOD16w_0012,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+91,ABLG10729,10729,PCOD16w_0013,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+92,ABLG10730,10730,PCOD16w_0014,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+93,ABLG10731,10731,PCOD16w_0015,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+94,ABLG10732,10732,PCOD16w_0016,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+95,ABLG10733,10733,PCOD16w_0017,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+96,ABLG10734,10734,PCOD16w_0018,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+97,ABLG10735,10735,PCOD16w_0019,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+98,ABLG10737,10737,PCOD16w_0021,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+99,ABLG10738,10738,PCOD16w_0022,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+100,ABLG10739,10739,PCOD16w_0023,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+101,ABLG10740,10740,PCOD16w_0024,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+102,ABLG10742,10742,PCOD16w_0026,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+103,ABLG10743,10743,PCOD16w_0027,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+104,ABLG10744,10744,PCOD16w_0028,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+105,ABLG10746,10746,PCOD16w_0030,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+106,ABLG10747,10747,PCOD16w_0031,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+107,ABLG10749,10749,PCOD16w_0033,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+108,ABLG10752,10752,PCOD16w_0036,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+109,ABLG10753,10753,PCOD16w_0037,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+110,ABLG10755,10755,PCOD16w_0039,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+111,ABLG10757,10757,PCOD16w_0041,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,NBS,Zhemchug,57.66,-175.31,0,0,---,---
+112,ABLG10758,10758,PCOD16w_0042,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,NBS,Zhemchug,57.66,-175.31,0,0,---,---
+113,ABLG10759,10759,PCOD16w_0043,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+114,ABLG10761,10761,PCOD16w_0045,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+115,ABLG10763,10763,PCOD16w_0047,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+116,ABLG10764,10764,PCOD16w_0048,pacific cod,Canino/Spies,,17-May,2017,5,,,EBS,EBS,Zhemchug,57.66,-175.31,0,0,---,---
+117,ABLG10818,10818,PCOD16S_0603,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,NBS,Pribilof,57.04,-169.86,0,0,---,---
+118,ABLG10820,10820,PCOD16S_0605,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+119,ABLG10821,10821,PCOD16S_0606,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+120,ABLG10823,10823,PCOD16S_0608,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+121,ABLG10824,10824,PCOD16S_0609,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+122,ABLG10825,10825,PCOD16S_0610,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+123,ABLG10827,10827,PCOD16S_0612,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,NBS,Pribilof,57.04,-169.86,0,0,---,---
+124,ABLG10828,10828,PCOD16S_0613,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+125,ABLG10832,10832,PCOD16S_0617,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+126,ABLG10833,10833,PCOD16S_0618,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+127,ABLG10834,10834,PCOD16S_0619,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+128,ABLG10836,10836,PCOD16S_0621,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+129,ABLG10837,10837,PCOD16S_0622,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+130,ABLG10839,10839,PCOD16S_0624,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+131,ABLG10843,10843,PCOD16S_0628,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+132,ABLG10844,10844,PCOD16S_0630,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+133,ABLG10846,10846,PCOD16S_0632,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+134,ABLG10847,10847,PCOD16S_0633,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+135,ABLG10849,10849,PCOD16S_0635,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+136,ABLG10850,10850,PCOD16S_0636,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+137,ABLG10852,10852,PCOD16S_0638,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+138,ABLG10853,10853,PCOD16S_0639,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+139,ABLG10854,10854,PCOD16S_0640,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+140,ABLG10855,10855,PCOD16S_0641,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+141,ABLG10856,10856,PCOD16S_0642,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+142,ABLG10857,10857,PCOD16S_0643,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+143,ABLG10858,10858,PCOD16S_0644,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,NBS,Pribilof,57.04,-169.86,0,0,---,---
+144,ABLG10859,10859,PCOD16S_0645,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+145,ABLG10860,10860,PCOD16S_0646,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+146,ABLG10861,10861,PCOD16S_0647,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,NBS,Pribilof,57.04,-169.86,0,0,---,---
+147,ABLG10862,10862,PCOD16S_0648,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+148,ABLG10863,10863,PCOD16S_0649,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+149,ABLG10864,10864,PCOD16S_0650,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+150,ABLG10865,10865,PCOD16S_0651,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+151,ABLG10866,10866,PCOD16S_0652,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+152,ABLG10867,10867,PCOD16S_0653,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+153,ABLG10868,10868,PCOD16S_0654,pacific cod,Canino/Spies,Elliott Hammond,Apr 10-23 2017,2017,4,,,EBS,EBS,Pribilof,57.04,-169.86,0,0,---,---
+162,ABLG1927,1927,"HS04-49,PCod2004_HcteSt_49",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+163,ABLG1928,1928,"HS04-50,PCod2004_HcteSt_50",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+164,ABLG1929,1929,"HS04-51,PCod2004_HcteSt_51",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+165,ABLG1930,1930,"HS04-52,PCod2004_HcteSt_52",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+166,ABLG1931,1931,"HS04-53,PCod2004_HcteSt_53",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+167,ABLG1932,1932,"HS04-54,PCod2004_HcteSt_54",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+168,ABLG1936,1936,"HS04-58,PCod2004_HcteSt_58",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+169,ABLG1937,1937,"HS04-59,PCod2004_HcteSt_59",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+170,ABLG1938,1938,"HS04-60,PCod2004_HcteSt_60",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+171,ABLG1941,1941,"HS04-63,PCod2004_HcteSt_63",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+172,ABLG1942,1942,"HS04-64,PCod2004_HcteSt_64",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+173,ABLG1943,1943,"HS04-65,PCod2004_HcteSt_65",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+174,ABLG1944,1944,"HS04-66,PCod2004_HcteSt_66",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+175,ABLG1945,1945,"HS04-67,PCod2004_HcteSt_67",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+176,ABLG1946,1946,"HS04-68,PCod2004_HcteSt_68",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+177,ABLG1947,1947,"HS04-69,PCod2004_HcteSt_69",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+178,ABLG1950,1950,"HS04-72,PCod2004_HcteSt_72",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+179,ABLG1952,1952,"HS04-74,PCod2004_HcteSt_74",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+180,ABLG1953,1953,"HS04-75,PCod2004_HcteSt_75",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+181,ABLG1955,1955,"HS04-77,PCod2004_HcteSt_77",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+182,ABLG1956,1956,"HS04-78,PCod2004_HcteSt_78",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+183,ABLG1957,1957,"HS04-79,PCod2004_HcteSt_79",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+184,ABLG1958,1958,"HS04-80,PCod2004_HcteSt_80",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+185,ABLG1961,1961,"HS04-83,PCod2004_HcteSt_83",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+186,ABLG1962,1962,"HS04-84,PCod2004_HcteSt_84",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+187,ABLG1963,1963,"HS04-85,PCod2004_HcteSt_85",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+188,ABLG1965,1965,"HS04-87,PCod2004_HcteSt_87",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+189,ABLG1968,1966,"HS04-88,PCod2004_HcteSt_88",pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+190,ABLG1969,1969,PCod2005_Near_SF147,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,780,6320,---,female
+191,ABLG1970,1970,PCod2005_Near_SF148,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,NBS,NearIslands,0,0,920,12540,---,female
+192,ABLG1971,1971,PCod2005_Near_SF149,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,870,9650,---,female
+193,ABLG1974,1974,PCod2005_Near_SF153,pacific cod,Ingrid Spies,---,3/3/05,2005,3,3,---,Aleutians,Aleutians,NearIslands,0,0,930,11770,---,female
+194,ABLG1975,1975,PCod2005_Near_SF154,pacific cod,Ingrid Spies,---,3/3/05,2005,3,3,---,Aleutians,Aleutians,NearIslands,0,0,1090,23710,---,female
+195,ABLG1976,1976,PCod2005_Near_5455-20,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,0,0,---,---
+196,ABLG1977,1977,PCod2005_Near_5455-21,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,0,0,---,---
+197,ABLG1981,1981,PCod2005_Tnga_103-4,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+198,ABLG1982,1982,PCod2005_Tnga_103-5,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+199,ABLG1987,1987,PCod2005_Tnga_103-10,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+200,ABLG1988,1988,PCod2005_Tnga_103-11,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+201,ABLG1990,1990,PCod2005_Tnga_103-13,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+202,ABLG1991,1991,PCod2005_Tnga_103-14,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+203,ABLG1992,1992,PCod2005_Tnga_103-15,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,eGOA,TanagaIsland,51.67,-178.27,0,0,---,---
+204,ABLG1993,1993,PCod2005_Tnga_103-16,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+205,ABLG1994,1994,PCod2005_Tnga_103-17,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+206,ABLG1996,1996,PCod2005_Tnga_103-19,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+207,ABLG1997,1997,PCod2005_Tnga_103-20,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+208,ABLG1999,1999,PCod2005_Tnga_103-22,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+209,ABLG2004,2004,PCod2005_Tnga_103-27,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+210,ABLG2005,2005,PCod2005_Tnga_103-28,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+211,ABLG2009,2009,PCod2005_Tnga_103-32,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+212,ABLG2010,2010,PCod2005_Tnga_103-33,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+213,ABLG2012,2012,PCod2005_Tnga_103-35,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+214,ABLG2013,2013,PCod2005_Tnga_103-36,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+215,ABLG2014,2014,PCod2005_Tnga_103-37,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+216,ABLG2017,2017,PCod2005_Tnga_103-40,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+217,ABLG2018,2018,PCod2005_Tnga_103-41,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+218,ABLG2020,2020,PCod2005_Tnga_103-43,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+219,ABLG2021,2021,PCod2005_Tnga_103-44,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+220,ABLG2022,2022,PCod2005_Tnga_103-45,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+221,ABLG2023,2023,PCod2005_Tnga_103-46,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+222,ABLG2027,2027,PCod2005_Tnga_103-50,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+223,ABLG2032,2032,PCod2005_Tnga_103-55,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+224,ABLG2037,2037,PCod2005_Tnga_103-60,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+225,ABLG2042,2042,PCod2005_Tnga_103-65,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+226,ABLG2045,2045,PCod2005_Tnga_103-68,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+227,ABLG2054,2054,PCod2005_Tnga_103-77,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+228,ABLG2060,2060,PCod2005_Tnga_103-83,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+229,ABLG2063,2063,PCod2005_Tnga_103-86,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+230,ABLG2065,2065,PCod2005_Tnga_103-88,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+231,ABLG2067,2067,PCod2005_Tnga_103-90,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+232,ABLG2071,2071,PCod2005_Tnga_103-94,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+233,ABLG2076,2076,PCod2005_Tnga_103-99,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+234,ABLG2077,2077,PCod2005_Tnga_103-100,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+235,ABLG2079,2079,PCod2005_Tnga_103-102,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+236,ABLG2080,2080,PCod2005_Tnga_103-103,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+237,ABLG2082,2082,PCod2005_Tnga_103-105,pacific cod,Ingrid Spies,Olav Ormseth,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,51.67,-178.27,0,0,---,---
+238,ABLG2083,2083,PCod2005_Tnga_103-106,pacific cod,Ingrid Spies,---,3/12/05,2005,3,12,---,Aleutians,Aleutians,TanagaIsland,0,0,0,0,---,---
+239,ABLG2086,2086,"PCOD16S_0903,PCod2018_Unimk_16S_903",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,600,0,adult,male
+240,ABLG2087,2087,"PCOD16S_0904,PCod2018_Unimk_16S_904",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,710,0,adult,male
+241,ABLG2088,2088,"PCOD16S_0905,PCod2018_Unimk_16S_905",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,700,0,adult,female
+242,ABLG2090,2090,"PCOD16S_0907,PCod2018_Unimk_16S_907",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,680,0,adult,male
+243,ABLG2091,2091,"PCOD16S_0908,PCod2018_Unimk_16S_908",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,640,0,adult,female
+244,ABLG2092,2092,"PCOD16S_0909,PCod2018_Unimk_16S_909",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,720,0,adult,male
+245,ABLG2093,2093,"PCOD16S_0910,PCod2018_Unimk_16S_910",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,640,0,adult,female
+246,ABLG2094,2094,"PCOD16S_0911,PCod2018_Unimk_16S_911",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,810,0,adult,female
+247,ABLG2095,2095,"PCOD16S_0912,PCod2018_Unimk_16S_912",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,690,0,adult,male
+248,ABLG2096,2096,"PCOD16S_0913,PCod2018_Unimk_16S_913",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,590,0,adult,female
+249,ABLG2097,2097,"PCOD16S_0914,PCod2018_Unimk_16S_914",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,730,0,adult,female
+250,ABLG2098,2098,"PCOD16S_0915,PCod2018_Unimk_16S_915",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,630,0,adult,male
+251,ABLG2099,2099,"PCOD16S_0916,PCod2018_Unimk_16S_916",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,700,0,adult,female
+252,ABLG2100,2100,"PCOD16S_0917,PCod2018_Unimk_16S_917",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,730,0,adult,female
+253,ABLG2101,2101,"PCOD16S_0918,PCod2018_Unimk_16S_918",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,810,0,adult,female
+254,ABLG2102,2102,"PCOD16S_0919,PCod2018_Unimk_16S_919",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,760,0,adult,female
+255,ABLG2103,2103,"PCOD16S_0920,PCod2018_Unimk_16S_920",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,600,0,adult,male
+256,ABLG2104,2104,"PCOD16S_0921,PCod2018_Unimk_16S_921",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,680,0,adult,male
+257,ABLG2105,2105,"PCOD16S_0922,PCod2018_Unimk_16S_922",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,640,0,adult,female
+258,ABLG2107,2107,"PCOD16S_0924,PCod2018_Unimk_16S_924",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,680,0,adult,female
+259,ABLG2108,2108,"PCOD16S_0925,PCod2018_Unimk_16S_925",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,670,0,adult,male
+260,ABLG2109,2109,"PCOD16S_0926,PCod2018_Unimk_16S_926",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,770,0,adult,female
+261,ABLG2110,2110,"PCOD16S_0927,PCod2018_Unimk_16S_927",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,660,0,adult,female
+262,ABLG2111,2111,"PCOD16S_0928,PCod2018_Unimk_16S_928",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,720,0,adult,female
+263,ABLG2112,2112,"PCOD16S_0929,PCod2018_Unimk_16S_929",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,720,0,adult,female
+264,ABLG2113,2113,"PCOD16S_0930,PCod2018_Unimk_16S_930",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,700,0,adult,female
+265,ABLG2114,2114,"PCOD16S_0931,PCod2018_Unimk_16S_931",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,650,0,adult,female
+266,ABLG2115,2115,"PCOD16S_0932,PCod2018_Unimk_16S_932",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,720,0,adult,female
+267,ABLG2116,2116,"PCOD16S_0933,PCod2018_Unimk_16S_933",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,670,0,adult,female
+268,ABLG2117,2117,"PCOD16S_0934,PCod2018_Unimk_16S_934",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,590,0,adult,male
+269,ABLG2118,2118,"PCOD16S_0935,PCod2018_Unimk_16S_935",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,650,0,adult,male
+270,ABLG2120,2120,"PCOD16S_0937,PCod2018_Unimk_16S_937",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,620,0,adult,female
+271,ABLG2121,2121,"PCOD16S_0938,PCod2018_Unimk_16S_938",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,660,0,adult,male
+272,ABLG2123,2123,"PCOD16S_0940,PCod2018_Unimk_16S_940",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,690,0,adult,female
+273,ABLG2124,2124,"PCOD16S_0941,PCod2018_Unimk_16S_941",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,720,0,adult,female
+274,ABLG2125,2125,"PCOD16S_0942,PCod2018_Unimk_16S_942",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,560,0,adult,male
+275,ABLG2126,2126,"PCOD16S_0943,PCod2018_Unimk_16S_943",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,780,0,adult,male
+276,ABLG2127,2127,"PCOD16S_0944,PCod2018_Unimk_16S_944",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,710,0,adult,male
+277,ABLG2129,2129,"PCOD16S_0946,PCod2018_Unimk_16S_946",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,710,0,adult,male
+278,ABLG2132,2132,"PCOD16S_0949,PCod2018_Unimk_16S_949",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,680,0,adult,female
+279,ABLG2133,2133,"PCOD16S_0950,PCod2018_Unimk_16S_950",pacific cod,Ingrid Spies,,2018,2018,,,---,wGOA,wGOA,Unimak,54.78,-164.91,610,0,adult,male
+280,ABLG2134,2134,PCod2018_KOD_1,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+281,ABLG2135,2135,PCod2018_KOD_2,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+282,ABLG2137,2137,PCod2018_KOD_4,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+283,ABLG2138,2138,PCod2018_KOD_5,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+284,ABLG2139,2139,PCod2018_KOD_6,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+285,ABLG2140,2140,PCod2018_KOD_7,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+286,ABLG2141,2141,PCod2018_KOD_8,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+287,ABLG2142,2142,PCod2018_KOD_9,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+288,ABLG2143,2143,PCod2018_KOD_10,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+289,ABLG2144,2144,PCod2018_KOD_11,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+290,ABLG2145,2145,PCod2018_KOD_12,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+291,ABLG2146,2146,PCod2018_KOD_13,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+292,ABLG2147,2147,PCod2018_KOD_14,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+293,ABLG2149,2149,PCod2018_KOD_16,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+294,ABLG2150,2150,PCod2018_KOD_17,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+295,ABLG2151,2151,PCod2018_KOD_18,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+296,ABLG2152,2152,PCod2018_KOD_19,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+297,ABLG2153,2153,PCod2018_KOD_20,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+298,ABLG2154,2154,PCod2018_KOD_21,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+299,ABLG2155,2155,PCod2018_KOD_22,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+300,ABLG2156,2156,PCod2018_KOD_23,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+301,ABLG2157,2157,PCod2018_KOD_24,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+302,ABLG2158,2158,"Pcod2019_Shum_B48,DF_Shum_B:48",pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,-159.28,0,0,---,---
+303,ABLG2159,2159,Pcod2005_AmchPss_SF001,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1150,24060,---,female
+304,ABLG2160,2160,Pcod2005_AmchPss_SF002,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1050,20220,---,female
+305,ABLG2161,2161,Pcod2005_AmchPss_SF003,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1030,18540,---,female
+306,ABLG2162,2162,Pcod2005_AmchPss_SF004,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1120,25250,---,female
+307,ABLG2163,2163,Pcod2005_AmchPss_SF005,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,930,12040,---,female
+308,ABLG2164,2164,Pcod2005_AmchPss_SF006,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1020,15250,---,male
+309,ABLG2165,2165,Pcod2005_AmchPss_SF007,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1150,21690,---,female
+310,ABLG2166,2166,Pcod2005_AmchPss_SF008,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,810,7170,---,female
+311,ABLG2167,2167,Pcod2005_AmchPss_SF009,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,840,9100,---,female
+312,ABLG2168,2168,Pcod2005_AmchPss_SF010,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1070,20590,---,female
+313,ABLG2169,2169,Pcod2005_AmchPss_SF011,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,950,13600,---,female
+314,ABLG2170,2170,Pcod2005_AmchPss_SF012,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,880,8600,---,male
+315,ABLG2171,2171,Pcod2005_AmchPss_SF013,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1070,13750,---,female
+316,ABLG2172,2172,Pcod2005_AmchPss_SF014,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1150,23780,---,female
+317,ABLG2173,2173,Pcod2005_AmchPss_SF015,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,850,9780,---,female
+318,ABLG2174,2174,Pcod2005_AmchPss_SF016,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,790,6230,---,male
+319,ABLG2175,2175,Pcod2005_AmchPss_SF017,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,820,8490,---,male
+320,ABLG2176,2176,Pcod2005_AmchPss_SF018,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1090,18400,---,male
+321,ABLG2177,2177,Pcod2005_AmchPss_SF019,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,940,13580,---,female
+322,ABLG2178,2178,Pcod2005_AmchPss_SF020,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,790,7240,---,male
+323,ABLG2179,2179,Pcod2005_AmchPss_SF021,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,1020,18680,---,female
+324,ABLG2181,2181,Pcod2005_AmchPss_SF023,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,710,5480,---,female
+325,ABLG2182,2182,Pcod2005_AmchPss_SF024,pacific cod,Ingrid Spies,Olav Ormseth,2/21/05,2005,2,21,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,700,4510,---,male
+326,ABLG2184,2184,Pcod2005_AmchIs_SF026,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,880,9520,---,female
+327,ABLG2185,2185,Pcod2005_AmchIs_SF027,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,470,1170,---,female
+328,ABLG2186,2186,Pcod2005_AmchIs_SF028,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,350,418,---,female
+329,ABLG2188,2188,Pcod2005_AmchIs_SF030,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,680,3390,---,female
+330,ABLG2189,2189,Pcod2005_AmchIs_SF031,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,460,1012,---,female
+331,ABLG2193,2193,Pcod2005_AmchIs_SF035,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,540,1790,---,male
+332,ABLG2194,2194,Pcod2005_AmchIs_SF036,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,500,1260,---,male
+333,ABLG2195,2195,Pcod2005_AmchIs_SF037,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,770,6000,---,female
+334,ABLG2196,2196,Pcod2005_AmchIs_SF038,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,820,8100,---,male
+335,ABLG2198,2198,Pcod2005_AmchIs_SF040,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,880,9810,---,male
+336,ABLG2199,2199,Pcod2005_AmchIs_SF041,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,730,4690,---,male
+337,ABLG2201,2201,Pcod2005_AmchIs_SF043,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,760,6520,---,female
+338,ABLG2203,2203,Pcod2005_AmchIs_SF045,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,NBS,AmchitkaPass,51.67,-179.82,910,10370,---,female
+339,ABLG2204,2204,Pcod2005_AmchIs_SF046,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,720,4470,---,female
+340,ABLG2205,2205,Pcod2005_AmchIs_SF047,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,NBS,AmchitkaPass,51.67,-179.82,910,11180,---,male
+341,ABLG2206,2206,Pcod2005_AmchIs_SF048,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,710,5040,---,female
+342,ABLG2207,2207,Pcod2005_AmchIs_SF049,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,620,3090,---,female
+343,ABLG2208,2208,Pcod2005_AmchIs_SF050,pacific cod,Ingrid Spies,Olav Ormseth,2/22/05,2005,2,22,---,Aleutians,Aleutians,AmchitkaPass,51.67,-179.82,700,4520,---,male
+344,ABLG2209,2209,PCod2005_Near_SF051,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,1040,16030,---,female
+345,ABLG2211,2211,PCod2005_Near_SF053,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,1070,21040,---,female
+346,ABLG2212,2212,PCod2005_Near_SF054,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,910,11070,---,female
+347,ABLG2213,2213,PCod2005_Near_SF055,pacific cod,Ingrid Spies,---,2/23/05,2005,2,23,---,Aleutians,Aleutians,NearIslands,0,0,1030,20220,---,female
+348,ABLG2215,2215,PCod2005_Near_SF092,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,720,4730,---,female
+349,ABLG2216,2216,PCod2005_Near_SF093,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,840,9430,---,female
+350,ABLG2217,2217,PCod2005_Near_SF094,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,810,7580,---,female
+351,ABLG2218,2218,PCod2005_Near_SF095,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,820,7450,---,female
+352,ABLG2219,2219,PCod2005_Near_SF096,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,640,3340,---,male
+353,ABLG2220,2220,PCod2005_Near_SF097,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,670,3470,---,male
+354,ABLG2221,2221,PCod2005_Near_SF098,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,1100,21070,---,female
+355,ABLG2222,2222,PCod2005_Near_SF099,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,1110,22660,---,female
+356,ABLG2224,2224,PCod2005_Near_SF101,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,970,12880,---,female
+357,ABLG2225,2225,PCod2005_Near_SF102,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,930,11220,---,male
+358,ABLG2226,2226,PCod2005_Near_SF103,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,830,7830,---,female
+359,ABLG2228,2228,PCod2005_Near_SF105,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,820,7430,---,female
+360,ABLG2229,2229,PCod2005_Near_SF106,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,530,1510,---,male
+361,ABLG2230,2230,PCod2005_Near_SF107,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,860,9350,---,female
+362,ABLG2231,2231,PCod2005_Near_SF108,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,1060,19630,---,female
+363,ABLG2232,2232,PCod2005_Near_SF109,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,780,6420,---,female
+364,ABLG2233,2233,PCod2005_Near_SF110,pacific cod,Ingrid Spies,---,2/25/05,2005,2,25,---,Aleutians,Aleutians,NearIslands,0,0,900,11920,---,female
+365,ABLG2235,2235,PCod2005_Near_SF141,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,790,7270,---,female
+366,ABLG2236,2236,PCod2005_Near_SF142,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,890,10740,---,female
+367,ABLG2237,2237,PCod2005_Near_SF143,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,740,5940,---,female
+368,ABLG2238,2238,PCod2005_Near_SF144,pacific cod,Ingrid Spies,---,2/27/05,2005,2,27,---,Aleutians,Aleutians,NearIslands,0,0,730,4980,---,female
+369,ABLG2239,2239,PCod2016_Prvnts_16W-254,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+370,ABLG2241,2241,PCod2016_Prvnts_16W-256,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+371,ABLG2244,2244,PCod2016_Prvnts_16W-259,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+372,ABLG2245,2245,PCod2016_Prvnts_16W-260,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+373,ABLG2276,2276,PCod2016_Prvnts_16W-291,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+374,ABLG2278,2278,PCod2016_Prvnts_16W-293,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+375,ABLG2279,2279,PCod2016_Prvnts_16W-294,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+376,ABLG2282,2282,PCod2016_Prvnts_16W-297,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+377,ABLG2286,2286,PCod2004_HcteSt_01,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+378,ABLG2287,2287,PCod2004_HcteSt_02,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+379,ABLG2288,2288,PCod2004_HcteSt_03,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+380,ABLG2289,2289,PCod2004_HcteSt_04,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+381,ABLG2292,2292,PCod2004_HcteSt_07,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+382,ABLG2293,2293,PCod2004_HcteSt_08,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+383,ABLG2298,2298,PCod2004_HcteSt_13,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+384,ABLG2302,2302,PCod2004_HcteSt_17,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+385,ABLG2304,2304,PCod2004_HcteSt_19,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+386,ABLG2305,2305,PCod2004_HcteSt_20,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+387,ABLG2306,2306,PCod2004_HcteSt_21,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+388,ABLG2308,2308,PCod2004_HcteSt_23,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+389,ABLG2309,2309,PCod2004_HcteSt_24,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+390,ABLG2310,2310,PCod2004_HcteSt_25,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+391,ABLG2312,2312,PCod2004_HcteSt_27,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+392,ABLG2314,2314,PCod2004_HcteSt_29,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+393,ABLG2317,2317,PCod2004_HcteSt_32,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+394,ABLG2318,2318,PCod2004_HcteSt_33,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+395,ABLG2322,2322,PCod2004_HcteSt_37,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+396,ABLG2331,2331,PCod2004_HcteSt_46,pacific cod,Ingrid Spies,---,3/23/04-3/26/04,2004,3,,---,eGOA,eGOA,HecateStrait,0,0,0,0,---,---
+397,ABLG2334,2334,PCod2018_KOD_25,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+398,ABLG2335,2335,PCod2018_KOD_26,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+399,ABLG2336,2336,PCod2018_KOD_27,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+400,ABLG2337,2337,PCod2018_KOD_28,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+401,ABLG2338,2338,PCod2018_KOD_29,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+402,ABLG2339,2339,PCod2018_KOD_30,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+403,ABLG2340,2340,PCod2018_KOD_31,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+404,ABLG2341,2341,PCod2018_KOD_32,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+405,ABLG2342,2342,PCod2018_KOD_33,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+406,ABLG2343,2343,PCod2018_KOD_34,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+407,ABLG2344,2344,PCod2018_KOD_35,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+408,ABLG2345,2345,PCod2018_KOD_36,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+409,ABLG2346,2346,PCod2018_KOD_37,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+410,ABLG2347,2347,PCod2018_KOD_38,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+411,ABLG2348,2348,PCod2018_KOD_39,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+412,ABLG2349,2349,PCod2018_KOD_40,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+413,ABLG2350,2350,PCod2018_KOD_41,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+414,ABLG2351,2351,PCod2018_KOD_42,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+415,ABLG2352,2352,PCod2018_KOD_43,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+416,ABLG2353,2353,PCod2018_KOD_44,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+417,ABLG2354,2354,PCod2018_KOD_45,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+418,ABLG2356,2356,PCod2018_KOD_47,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+419,ABLG2358,2358,PCod2018_KOD_49,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+420,ABLG2359,2359,PCod2018_KOD_50,pacific cod,Ingrid Spies,Steve Prices,2018,2018,,,---,wGOA,wGOA,Kodiak,58.3,151.5,0,0,---,---
+421,ABLG2362,2362,"C200103,C03,Pcod2020_Cook_103",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,660,3580,---,---
+422,ABLG2363,2363,"C200104,C04,Pcod2020_Cook_104",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,710,4930,---,---
+423,ABLG2364,2364,"C200105,C05,Pcod2020_Cook_105",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,610,2600,---,---
+424,ABLG2365,2365,"C200106,C06,Pcod2020_Cook_106",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,620,2990,---,---
+425,ABLG2366,2366,"C200107,C07,Pcod2020_Cook_107",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,550,2110,---,---
+426,ABLG2367,2367,"C200108,C08,Pcod2020_Cook_108",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,510,1730,---,---
+427,ABLG2368,2368,"C200109,C09,Pcod2020_Cook_109",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,700,4280,---,---
+428,ABLG2369,2369,"C200110,C10,Pcod2020_Cook_110",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,550,2050,---,---
+429,ABLG2370,2370,"C200111,C11,Pcod2020_Cook_111",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,820,6950,---,---
+430,ABLG2371,2371,"C200112,C12,Pcod2020_Cook_112",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,550,1930,---,---
+431,ABLG2377,2377,"C200118,C18,Pcod2020_Cook_118",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,540,2090,---,---
+432,ABLG2378,2378,"C200119,C19,Pcod2020_Cook_119",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,500,1530,---,---
+433,ABLG2379,2379,"C200120,C20,Pcod2020_Cook_120",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,500,1650,---,---
+434,ABLG2380,2380,"C200121,C21,Pcod2020_Cook_121",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,620,3110,---,---
+435,ABLG2381,2381,"C200122,C22,Pcod2020_Cook_122",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,650,3280,---,---
+436,ABLG2382,2382,"C200123,C23,Pcod2020_Cook_123",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,870,8110,---,---
+437,ABLG2383,2383,"C200124,C24,Pcod2020_Cook_124",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,740,4640,---,---
+438,ABLG2386,2386,"C200203,C27,Pcod2020_Cook_203",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,490,1280,---,---
+439,ABLG2388,2388,"C200205,C29,Pcod2020_Cook_205",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,680,3670,---,---
+440,ABLG2389,2389,"C200206,C30,Pcod2020_Cook_206",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,620,2700,---,---
+441,ABLG2394,2394,"C200211,C35,Pcod2020_Cook_211",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,770,4850,---,---
+442,ABLG2396,2396,"C200213,C37,Pcod2020_Cook_213",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,690,3740,---,---
+443,ABLG2402,2402,"C200219,C43,Pcod2020_Cook_219",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,850,6920,---,---
+444,ABLG2404,2404,"C200221,C45,Pcod2020_Cook_221",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,650,2960,---,---
+445,ABLG2405,2405,"C200222,C46,Pcod2020_Cook_222",pacific cod,Ingrid Spies,---,2/13/20,2020,2,13,---,wGOA,wGOA,CookInlet,0,0,550,1710,---,---
+446,ABLG2483,2483,"P200404,E28,Pcod2020_PWSIn_404",pacific cod,Ingrid Spies,---,2/7/20,2020,2,7,---,wGOA,wGOA,PWS,0,0,700,3970,---,---
+447,ABLG2490,2490,"P200411,E35,Pcod2020_PWSIn_411",pacific cod,Ingrid Spies,---,2/7/20,2020,2,7,---,wGOA,eGOA,PWS,0,0,640,3690,---,---
+448,ABLG2501,2501,"P200422,E46,Pcod2020_PWSIn_422",pacific cod,Ingrid Spies,---,2/7/20,2020,2,7,---,wGOA,wGOA,PWS,0,0,660,3740,---,---
+449,ABLG2504,2504,Pcod2019_Shum_B16,pacific cod,Ingrid Spies,Dwain Foster,3/29/19,2019,3,29,---,wGOA,wGOA,Shumagins,55.58,-160.31,0,0,---,---
+450,ABLG2505,2505,Pcod2019_Shum_B34,pacific cod,Ingrid Spies,Dwain Foster,3/29/19,2019,3,29,---,wGOA,wGOA,Shumagins,55.58,-160.31,0,0,---,---
+451,ABLG2507,2507,Pcod2019_Shum_B31,pacific cod,Ingrid Spies,Dwain Foster,3/29/19,2019,3,29,---,wGOA,wGOA,Shumagins,55.58,-160.31,0,0,---,---
+452,ABLG2510,2510,Pcod2019_Shum_B15,pacific cod,Ingrid Spies,Dwain Foster,3/29/19,2019,3,29,---,wGOA,wGOA,Shumagins,55.58,-160.31,0,0,---,---
+453,ABLG2511,2511,Pcod2019_Shum_B32,pacific cod,Ingrid Spies,Dwain Foster,3/29/19,2019,3,29,---,wGOA,wGOA,Shumagins,55.58,-160.31,0,0,---,---
+454,ABLG2514,2514,Pcod2019_Shum_B42,pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,-159.28,0,0,---,---
+455,ABLG2516,2516,Pcod2019_Shum_B46,pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,-159.28,0,0,---,---
+456,ABLG2517,2517,Pcod2019_Shum_B44,pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,-159.28,0,0,---,---
+457,ABLG2518,2518,Pcod2019_Shum_B50,pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,-159.28,0,0,---,---
+458,ABLG2531,2531,"AK_2019_1,PCod2019_Knight_01",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+459,ABLG2532,2532,"AK_2019_2,PCod2019_Knight_02",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+460,ABLG2533,2533,"AK_2019_3,PCod2019_Knight_03",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+461,ABLG2534,2534,"AK_2019_4,PCod2019_Knight_04",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+462,ABLG2535,2535,"AK_2019_5,PCod2019_Knight_05",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+463,ABLG2536,2536,"AK_2019_7,PCod2019_Knight_06",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+464,ABLG2537,2537,"AK_2019_6,PCod2019_Knight_07",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+465,ABLG2538,2538,"AK_2019_8,PCod2019_Knight_08",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+466,ABLG2539,2539,"AK_2019_9,PCod2019_Knight_09",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+467,ABLG2540,2540,"AK_2019_10,PCod2019_Knight_10",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+468,ABLG2541,2541,"AK_2019_11,PCod2019_Knight_11",pacific cod,Ingrid Spies,,2019,2019,NBS,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+469,ABLG2542,2542,"AK_2019_12,PCod2019_Knight_12",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+470,ABLG2543,2543,"AK_2019_13,PCod2019_Knight_13",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+471,ABLG2544,2544,"AK_2019_14,PCod2019_Knight_14",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+472,ABLG2545,2545,"AK_2019_15,PCod2019_Knight_15",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+473,ABLG2546,2546,"AK_2019_16,PCod2019_Knight_16",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+474,ABLG2547,2547,"AK_2019_17,PCod2019_Knight_17",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+475,ABLG2548,2548,"AK_2019_18,PCod2019_Knight_18",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+476,ABLG2549,2549,"AK_2019_19,PCod2019_Knight_19",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+477,ABLG2550,2550,"AK_2019_20,PCod2019_Knight_20",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,AK_Knight-tagged,53.33,-166.6,0,0,---,---
+478,ABLG2551,2551,"Vest_2019_1,PCod2019_Vest_01",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+479,ABLG2552,2552,"Vest_2019_2,PCod2019_Vest_02",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+480,ABLG2553,2553,"Vest_2019_3,PCod2019_Vest_03",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+481,ABLG2554,2554,"Vest_2019_4,PCod2019_Vest_04",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+482,ABLG2555,2555,"Vest_2019_5,PCod2019_Vest_05",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+483,ABLG2556,2556,"Vest_2019_6,PCod2019_Vest_06",pacific cod,Ingrid Spies,,2019,2019,,,---,EBS,EBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+484,ABLG2557,2557,"Vest_2019_7,PCod2019_Vest_07",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+485,ABLG2558,2558,"Vest_2019_8,PCod2019_Vest_08",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+486,ABLG2559,2559,"Vest_2019_9,PCod2019_Vest_09",pacific cod,Ingrid Spies,,2019,2019,,,---,NBS,NBS,Vesteraalen-tagged,53.33,-166.6,0,0,---,---
+487,ABLG2561,2561,PCod2016_Prvnts_16W-201,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+488,ABLG2563,2563,PCod2016_Prvnts_16W-203,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+489,ABLG2565,2565,PCod2016_Prvnts_16W-205,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+490,ABLG2566,2566,PCod2016_Prvnts_16W-206,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+491,ABLG2568,2568,PCod2016_Prvnts_16W-208,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+492,ABLG2572,2572,PCod2016_Prvnts_16W-212,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+493,ABLG2575,2575,PCod2016_Prvnts_16W-215,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+494,ABLG2576,2576,PCod2016_Prvnts_16W-216,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+495,ABLG2577,2577,PCod2016_Prvnts_16W-217,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+496,ABLG2578,2578,PCod2016_Prvnts_16W-218,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+497,ABLG2579,2579,PCod2016_Prvnts_16W-219,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+498,ABLG2581,2581,PCod2016_Prvnts_16W-221,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+499,ABLG2582,2582,PCod2016_Prvnts_16W-222,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+500,ABLG2585,2585,PCod2016_Prvnts_16W-225,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+501,ABLG2588,2588,PCod2016_Prvnts_16W-228,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+502,ABLG2591,2591,PCod2016_Prvnts_16W-231,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+503,ABLG2593,2593,PCod2016_Prvnts_16W-233,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+504,ABLG2594,2594,PCod2016_Prvnts_16W-234,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+505,ABLG2596,2596,PCod2016_Prvnts_16W-236,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+506,ABLG2597,2597,PCod2016_Prvnts_16W-237,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,NBS,Pervenets,59.35,-177.22,0,0,---,---
+507,ABLG2598,2598,PCod2016_Prvnts_16W-238,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+508,ABLG2600,2600,PCod2016_Prvnts_16W-240,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+509,ABLG2605,2605,PCod2016_Prvnts_16W-245,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+510,ABLG2607,2607,PCod2016_Prvnts_16W-247,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+511,ABLG2608,2608,PCod2016_Prvnts_16W-248,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+512,ABLG2609,2609,PCod2016_Prvnts_16W-249,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+513,ABLG2611,2611,PCod2016_Prvnts_16W-251,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+514,ABLG2612,2612,PCod2016_Prvnts_16W-252,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+515,ABLG2613,2613,PCod2016_Prvnts_16W-253,pacific cod,Ingrid Spies,,03/?/2016,2016,3,?,---,EBS,EBS,Pervenets,59.35,-177.22,0,0,---,---
+516,ABLG2615,2615,Pcod2019_Shum_B39,pacific cod,Ingrid Spies,Dwain Foster,3/13/19,2019,3,13,---,wGOA,wGOA,Shumagins,55.28,159.28,0,0,---,---
+517,ABLG2619,2619,Pcod2019_Shum_C2,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,male
+518,ABLG2620,2620,Pcod2019_Shum_C3,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,male
+519,ABLG2621,2621,Pcod2019_Shum_C4,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,female
+520,ABLG2622,2622,Pcod2019_Shum_C5,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,female
+521,ABLG2625,2625,Pcod2019_Shum_C8,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,male
+522,ABLG2627,2627,Pcod2019_Shum_C10,pacific cod,Ingrid Spies,Dwain Foster,3/12/19,2019,3,12,---,wGOA,wGOA,Shumagins,55.27,-159.55,0,0,---,male
+523,ABLG2640,2640,PCIcy2020_4077-1,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,790,5170,adult,female
+524,ABLG2641,2641,PCIcy2020_4077-2,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,710,4150,adult,female
+525,ABLG2642,2642,PCIcy2020_4077-3,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,770,4670,adult,female
+526,ABLG2643,2643,PCIcy2020_4077-4,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,660,3380,adult,male
+527,ABLG2644,2644,PCIcy2020_4077-5,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,640,2930,adult,female
+528,ABLG2645,2645,PCIcy2020_4077-6,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,600,2650,adult,male
+529,ABLG2646,2646,PCIcy2020_4077-7,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,640,3150,adult,female
+530,ABLG2648,2648,PCIcy2020_4077-9,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,740,4940,adult,female
+531,ABLG2649,2649,PCIcy2020_4077-10,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,660,3790,adult,male
+532,ABLG2650,2650,PCIcy2020_4077-11,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,720,4510,adult,male
+533,ABLG2651,2651,PCIcy2020_4077-12,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,700,4040,adult,female
+534,ABLG2652,2652,PCIcy2020_4077-13,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,630,3200,adult,male
+535,ABLG2653,2653,PCIcy2020_4077-14,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,730,4650,adult,male
+536,ABLG2654,2654,PCIcy2020_4077-15,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,460,1180,juvenile,male
+537,ABLG2655,2655,PCIcy2020_4077-16,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,740,4260,adult,female
+538,ABLG2656,2656,PCIcy2020_4077-17,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,780,5650,adult,female
+539,ABLG2658,2658,PCIcy2020_4077-19,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,700,4650,adult,male
+540,ABLG2659,2659,PCIcy2020_4077-20,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,770,4510,adult,female
+541,ABLG2661,2661,PCIcy2020_4077-22,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,740,4790,adult,female
+542,ABLG2662,2662,PCIcy2020_4077-23,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,580,2430,adult,male
+543,ABLG2663,2663,PCIcy2020_4077-24,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,630,2970,adult,male
+544,ABLG2664,2664,PCIcy2020_4077-25,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,700,4450,adult,male
+545,ABLG2665,2665,PCIcy2020_4077-26,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,480,1110,juvenile,male
+546,ABLG2666,2666,PCIcy2020_4077-27,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,560,1970,adult,female
+547,ABLG2667,2667,PCIcy2020_4077-28,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,740,4400,adult,female
+548,ABLG2668,2668,PCIcy2020_4077-29,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,690,3920,adult,male
+549,ABLG2669,2669,PCIcy2020_4077-30,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,640,3560,adult,male
+550,ABLG2670,2670,PCIcy2020_4077-31,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,550,1950,adult,female
+551,ABLG2671,2671,PCIcy2020_4077-32,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,830,6210,adult,female
+552,ABLG2672,2672,PCIcy2020_4077-33,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,560,2040,adult,female
+553,ABLG2673,2673,PCIcy2020_4077-34,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,580,2700,adult,male
+554,ABLG2674,2674,PCIcy2020_4077-35,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,570,2000,adult,female
+555,ABLG2675,2675,PCIcy2020_4077-36,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,630,2790,adult,male
+556,ABLG2676,2676,PCIcy2020_4077-37,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,650,3220,adult,female
+557,ABLG2677,2677,PCIcy2020_4077-38,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,690,4110,adult,male
+558,ABLG2678,2678,PCIcy2020_4077-39,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,710,4240,adult,female
+559,ABLG2679,2679,PCIcy2020_4077-40,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,600,2490,adult,male
+560,ABLG2680,2680,PCIcy2020_4077-41,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,690,3720,adult,female
+561,ABLG2681,2681,PCIcy2020_4077-42,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,670,3130,adult,female
+562,ABLG2682,2682,PCIcy2020_4077-43,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,670,3740,adult,male
+563,ABLG2683,2683,PCIcy2020_4077-44,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,660,3740,adult,male
+564,ABLG2684,2684,PCIcy2020_4077-45,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,590,2430,adult,male
+565,ABLG2685,2685,PCIcy2020_4077-46,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,560,2270,adult,male
+566,ABLG2687,2687,PCIcy2020_4077-48,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,710,4060,adult,male
+567,ABLG2688,2688,PCIcy2020_4077-49,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,550,2090,adult,male
+568,ABLG2689,2689,PCIcy2020_4077-50,pacific cod,Canino/Spies,,,,,,,eGOA,eGOA,LynnCanal,58.17,-135.27,680,3290,adult,female
+569,ABLG2920,2920,"Russian_#3,PCOD19s_0505",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+570,ABLG2923,2923,"Russian_#6,PCOD19s_0511",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+571,ABLG2924,2924,"Russian_#7,PCOD19s_0513",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+572,ABLG2926,2926,"Russian_#9,PCOD19s_0517",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+573,ABLG2928,2928,"Russian_#11,PCOD19s_0521",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+574,ABLG2929,2929,"Russian_#12,PCOD19s_0522",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+575,ABLG2930,2930,"Russian_#13,PCOD19s_0525",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+576,ABLG2931,2931,"Russian_#14,PCOD19s_0526",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+577,ABLG2935,2935,"Russian_#18,PCOD19s_0535",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+578,ABLG2936,2936,"Russian_#19,PCOD19s_0537",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+579,ABLG2937,2937,"Russian_#20,PCOD19s_0539",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---
+580,ABLG2938,2938,"Russian_#21,PCOD19s_0541",pacific cod,Canino/Spies,,1/16/18,2018,1,16,,NBS,NBS,Russia,62.36,179.54,0,0,---,---

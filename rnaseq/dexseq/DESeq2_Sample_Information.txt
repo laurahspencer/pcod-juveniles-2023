@@ -1,0 +1,73 @@
+sample_name	sample_number	tank	temp_treatment	tissue_type	notes
+sample_37	37	12	0	Liver	
+sample_38	38	12	0	Liver	
+sample_39	39	12	0	Liver	
+sample_40	40	12	0	Liver	
+sample_41	41	12	0	Liver	
+sample_47	47	11	0	Liver	
+sample_48	48	11	0	Liver	
+sample_49	49	11	0	Liver	
+sample_50	50	11	0	Liver	
+sample_57	57	10	0	Liver	
+sample_58	58	10	0	Liver	
+sample_59	59	10	0	Liver	
+sample_60	60	10	0	Liver	
+sample_67	67	9	0	Liver	
+sample_68	68	9	0	Liver	
+sample_69	69	9	0	Liver	
+sample_70	70	9	0	Liver	
+sample_RESUB-76	76	9	0	Liver	
+sample_117	117	5	5	Liver	
+sample_118	118	5	5	Liver	
+sample_119	119	5	5	Liver	
+sample_120	120	5	5	Liver	
+sample_121	121	5	5	Liver	lcWGS outlier
+sample_127	127	6	5	Liver	
+sample_128	128	6	5	Liver	
+sample_129	129	6	5	Liver	RNASeq outlier
+sample_131	131	6	5	Liver	
+sample_137	137	7	5	Liver	
+sample_138	138	7	5	Liver	
+sample_139	139	7	5	Liver	
+sample_140	140	7	5	Liver	
+sample_147	147	8	5	Liver	
+sample_148	148	8	5	Liver	
+sample_149	149	8	5	Liver	RNASeq outlier
+sample_150	150	8	5	Liver	
+sample_RESUB-156	156	8	5	Liver	
+sample_78	78	13	9	Liver	
+sample_79	79	13	9	Liver	
+sample_80	80	13	9	Liver	
+sample_83	83	13	9	Liver	
+sample_88	88	14	9	Liver	
+sample_90	90	14	9	Liver	
+sample_91	91	14	9	Liver	
+sample_92	92	14	9	Liver	Missing RNASeq data
+sample_RESUB-94	94	14	9	Liver	
+sample_97	97	15	9	Liver	
+sample_98	98	15	9	Liver	
+sample_99	99	15	9	Liver	
+sample_100	100	15	9	Liver	
+sample_107	107	16	9	Liver	
+sample_108	108	16	9	Liver	
+sample_109	109	16	9	Liver	
+sample_110	110	16	9	Liver	
+sample_RESUB-116	116	16	9	Liver	
+sample_1	1	1	16	Liver	Genetic outlier
+sample_2	2	1	16	Liver	Genetic outlier
+sample_3	3	1	16	Liver	
+sample_4	4	1	16	Liver	
+sample_5	5	1	16	Liver	
+sample_10	10	2	16	Liver	
+sample_11	11	2	16	Liver	
+sample_12	12	2	16	Liver	
+sample_13	13	2	16	Liver	
+sample_18	18	3	16	Liver	
+sample_19	19	3	16	Liver	
+sample_20	20	3	16	Liver	
+sample_21	21	3	16	Liver	
+sample_28	28	4	16	Liver	
+sample_29	29	4	16	Liver	
+sample_30	30	4	16	Liver	
+sample_31	31	4	16	Liver	
+sample_RESUB-36	36	4	16	Liver	

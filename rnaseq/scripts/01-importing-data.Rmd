@@ -48,6 +48,18 @@ lapply(all.packages, FUN = function(X) {
 
 ```
 
+
+How many raw reads? 
+
+```{r}
+ggplotly(
+   ggplot(multiqc.stats %>% mutate(M_reads=total_reads/1000000)) + 
+     geom_bar(aes(x=sample, y=M_reads), stat = "identity") + ggtitle("Total reads (M) by sample") + 
+              theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())) 
+
+```
+
+
 Before I can successfully run featureCounts using the correct gene identifier -- the NCBI gene id which is denoted by "db_xref" in the 9th column -- I need to remove the few genes from the GTF that do NOT have a db_xref in some exons. This is better than using the "gene_id" identifier, since there are many duplicated gene_id's. Here is my code to explore the GTF and determine which genes to remove and test to make sure I can successfully use grep to identify the rows to remove. The actual removal is executed in the featurecounts2.sh script. 
 
 ```{r}
@@ -278,6 +290,9 @@ counts <- counts.fc
 #counts <- counts.star
 ```
 
+```{r}
+colnames(counts.fc) %>% gsub("sample_", "", .) %>% as.numeric() %>% sort() %>% as.data.frame()
+```
 
 ### Summarize counts and visualize
 
@@ -315,6 +330,7 @@ all(sort(sample.info.rna$sample_name) == sort(colnames(counts))) #should = TRUE
 
 # resave sample info object
 save(sample.info.rna, file="../sample.info.rna")
+#load(file="../sample.info.rna")
 ```
 ### Transpose dataframe so each row = a sample (aka "objects"), and each column = genes (aka "variables") 
 
@@ -522,8 +538,6 @@ pcod.blast.GO <- left_join(pcod.blast, read_delim(file = "../../references/cds_f
 
 save(pcod.blast.GO, file = "../../references/pcod.blast.GO")
 #load(file = "../../references/pcod.blast.GO")
-
-pcod.blast.GO %>% View()
 ```
 
 ### Annotate gene counts dataframe
@@ -541,9 +555,10 @@ pcod.blast.GO %>% View()
 <!-- ``` -->
 
 # featureCounts-generated counts 
+
 ```{r}
 counts.annot.pcod <- right_join(
-  pcod.blast %>% ungroup(),
+  pcod.blast %>% rename("gene" = "gene_pcod") %>% ungroup(),
   counts.ts %>% t() %>% as.data.frame() %>% rownames_to_column("gene") %>% mutate(ncbi_id=gsub("GeneID:", "", gene)), by="ncbi_id") %>%
   left_join(pcod.blast.GO %>% dplyr::select(ncbi_id, protein_names, gene_names), "ncbi_id") #%>%
   #dplyr::select(Chr, Start, End, Strand, Length, geneID, evalue, SPID, gene.Uni, species, pident, gene_names, protein_names, everything())
@@ -557,7 +572,7 @@ View(counts.annot.pcod)
 #LOC132464016
 ```
 
-#### How many of our analyzed genes are annotated? Answer- 28,386
+#### How many of our analyzed genes are annotated?
 
 ```{r}
 right_join(

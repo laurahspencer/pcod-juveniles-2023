@@ -1,0 +1,959 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">
+<html>
+<head>
+	<title>DNA QC Report</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"></meta>
+	<link rel="stylesheet" type="text/css" href="src/css/base_detection.css"></link>
+	<link rel="StyleSheet" href="src/js/tree/tree.css" type="text/css"></link>
+	<link rel="stylesheet" type="text/css" href="src/js/fancybox/jquery.fancybox-1.3.4.css" media="screen"/>
+	<link rel="stylesheet" href="src/css/style.css"/>
+	<script src="src/js/jquery-1.4.2.min.js" type="text/javascript"></script>
+	<script src="src/js/scrollTop.js" type="text/javascript"></script>
+	<script src="src/js/common.js" type="text/javascript"></script>
+	<script src="src/js/jquery.albumSlider.min.detect.js" type="text/javascript"></script>
+	<script type="text/javascript" src="src/js/tree/tree.js"></script>
+	<script type="text/javascript" src="src/js/fancybox/jquery.mousewheel-3.0.4.pack.js"></script>
+	<script type="text/javascript" src="src/js/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+	<script type="text/javascript">
+		$(document).ready(function () {
+			/*
+			 *   Examples - images
+			 */
+
+			$("a#example1").fancybox();
+
+			$("a#example2").fancybox({
+				'overlayShow': false,
+				'transitionIn': 'elastic',
+				'transitionOut': 'elastic',
+				'titlePosition': 'inside',
+				'titleFormat': function (title, currentArray, currentIndex, currentOpts) {
+					return '<div id="fancybox-title-inside">' + title + '</div>';
+//					return '<span id="fancybox-title-inside">Image ' + (currentIndex + 1) + ' / ' + currentArray.length + (title.length ? ' &nbsp; ' + title : '') + '</span>';
+				}
+			});
+			$("a#example3").fancybox({
+				'transitionIn': 'none',
+				'transitionOut': 'none'
+			});
+
+			$("a#example4").fancybox({
+				'opacity': true,
+				'overlayShow': false,
+				'transitionIn': 'elastic',
+				'transitionOut': 'none'
+			});
+
+			$("a#example5").fancybox();
+
+			$("a#example6").fancybox({
+				'titlePosition': 'outside',
+				'overlayColor': '#000',
+				'overlayOpacity': 0.9
+			});
+
+			$("a#example7").fancybox({
+				'titlePosition': 'inside'
+			});
+
+			$("a#example8").fancybox({
+				'titlePosition': 'over'
+			});
+
+			$("a[rel=example_group]").fancybox({
+				'transitionIn': 'none',
+				'transitionOut': 'none',
+				'titlePosition': 'over',
+				'titleFormat': function (title, currentArray, currentIndex, currentOpts) {
+					return '<span id="fancybox-title-over">Image ' + (currentIndex + 1) + ' / ' + currentArray.length + (title.length ? ' &nbsp; ' + title : '') + '</span>';
+				}
+			});
+
+			/*
+			 *   Examples - various
+			 */
+
+			$("#various1").fancybox({
+				'titlePosition': 'inside',
+				'transitionIn': 'none',
+				'transitionOut': 'none'
+			});
+
+			$("#various2").fancybox();
+
+			$("#various3").fancybox({
+				'width': '75%',
+				'height': '75%',
+				'autoScale': false,
+				'transitionIn': 'none',
+				'transitionOut': 'none',
+				'type': 'iframe'
+			});
+
+			$("#various4").fancybox({
+				'padding': 0,
+				'autoScale': false,
+				'transitionIn': 'none',
+				'transitionOut': 'none'
+			});
+		});
+	</script>
+
+
+	<style type="text/css">
+		table {
+			align-self: center;
+			overflow-x: auto;
+			word-break: keep-all;
+			white-space: nowrap;
+			width: 100%;
+		}
+
+		table#LibInfo {
+			text-align: center;
+		}
+
+	</style>
+
+	<style media="print">
+		.noprint {
+			DISPLAY: none;
+		}
+	</style>
+
+	<div class="noprint">
+		<div style="display: block;" id="goTopBtn">
+			<a class="backtotop" title="回顶部"><img src="src/images/goTop.jpg" width="30" height="30"
+			                                      class="back-tip"/></a>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+		function displaySubMenu(li) {
+			var subMenu = li.getElementsByTagName("ul")[0];
+			subMenu.style.display = "block";
+		}
+		function hideSubMenu(li) {
+			var subMenu = li.getElementsByTagName("ul")[0];
+			subMenu.style.display = "none";
+		}
+	</script>
+
+	<script type="text/javascript">
+		var Tree = new Array;
+		// nodeId | parentNodeId | nodeName | nodeUrl
+	</script>
+
+	<script type="text/javascript">
+		$(function () {
+			//纵向，默认，移动间隔2
+			$('div.albumSlider').albumSlider();
+			//横向设置
+			$('div.albumSlider-h').albumSlider({direction: 'h', step: 3});
+		});
+	</script>
+
+	<style type="text/css">
+		table {
+			align-self: center;
+			overflow-x: scroll;
+		}
+	</style>
+
+</head>
+<body>
+
+
+<!---------------------------------------- Menu bar ------------------------------------------>
+<!--<div class="noprint">-->
+<div class="menu">
+	<ul class="main_menu">
+		<li onmouseover="displaySubMenu(this)" onmouseout="hideSubMenu(this)"><a href="#检测报告">Qc Report</a>
+			<ul id="menu_list">
+				<li><a href="#项目信息">Project General Information</a></li>
+				<li><a href="#检测类型">QC Methods</a></li>
+				<li><a href="#样品检测结果">QC Results</a></li>
+				<li><a href="#样品分级标准表">Note</a></li>
+				<li><a href="#Description of QC Results">Description of QC Results</a></li>
+			</ul>
+		</li>
+	</ul>
+</div>
+
+<!---------------------------------------- 目录 ---------------------------------------------->
+<div>
+	<p><a name="home"><img class="logo" src="src/images/logo.png"/></a></p>
+
+	<p>
+
+	<h1>DNA QC Report</h1>
+
+	<p align="right"><b>Report Date:2023-05-15 06:46:15</b></p>
+	<br/><br/></p>
+	<p class="paragraph">
+	<ul>
+
+		<li><a href="#项目信息">Project General Information</a></li>
+
+		<li><a href="#检测类型">QC Methods</a></li>
+
+		<li><a href="#样品检测结果">QC Results</a></li>
+		<ul class="alt">
+
+			<li><a href="#检测结果总表">QC Results Summary</a></li>
+			<li><a href="#琼脂糖凝胶电泳检测结果">Agarose Gel Electrophoresis Results</a></li>
+            
+
+		</ul>
+		<li><a href="#样品分级标准表">Note</a></li>
+		<ul class="alt">
+			<div id = "app1">
+				<li v-show = "aaTest"><a href="#Note1">Sample classification standard table</a></li>
+				<li v-show = "bbTest"><a href="#Note2">Sample volume</a></li>
+            <div>
+		</ul>
+		<li><a href="#Description of QC Results">Description of QC Results</a></li>
+
+
+	</ul>
+
+
+	</ul>
+	</p>
+
+</div>
+
+<!---------------------------------------- 项目信息 ---------------------------------------------->
+
+<div>
+	<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png"/></a>
+		<a name="项目信息">Novogene Sample Quality Control Report</a>
+	<hr/>
+	</p><br/>
+
+
+	<h2>1.Project General Information</h2>
+
+
+	<table align="center" border="1" cellpadding="5" cellspacing="0">
+		<tr>
+			<td><p align="center">Project Name </p></td>
+			<td><p align="center">Davis-US-UW-160-Fish-WGS-2G-WOBI-NVUS2023022347</p></td>
+			<td><p align="center">Contract No. </p></td>
+			<td><p align="center">X202SC23041287-Z01</p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Client </p></td>
+			<td><p align="center">Steven Roberts</p></td>
+			<td><p align="center">Institute/Company </p></td>
+			<td><p align="center">University of Washington</p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Received By </p></td>
+			<td><p align="center">RAZAN.RASHID</p></td>
+			<td><p align="center">Received Date </p></td>
+			<td><p align="center">2023-05-04</p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Tested By </p></td>
+			<td><p align="center">DNA QC Group</p></td>
+			<td><p align="center">Test Date </p></td>
+			<td><p align="center">2023-05-04</p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Verified By </p></td>
+			<td><p align="center">ANGELA.FLETCHER</p></td>
+			<td><p align="center">Verified Date </p></td>
+			<td><p align="center">2023-05-15</p></td>
+		</tr>
+
+	</table>
+
+	<br><br>
+
+</div>
+
+
+<!---------------------------------------- 检测类型 ---------------------------------------------->
+
+<div>
+	<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png"/></a>
+		<a name="检测类型">Novogene Sample Quality Control Report</a>
+	<hr/>
+	</p><br/>
+
+
+	<h2>2.QC Methods</h2>
+
+	<table align="center" border="1" cellpadding="5" cellspacing="0">
+		<tr>
+			<td colspan="2"><p align="center">Assay Type </p></td>
+			<td><p align="left"><strong> &nbsp;&nbsp;&nbsp;√ </strong>DNA;□ RNA;□ smRNA;□ Tissue;□
+				Library<u> </u>;□ Others<u>        </u></p></td>
+		</tr>
+		<tr>
+			<td rowspan="5"><p align="center">Assay Type </p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Sample Quantitation </p></td>
+			<td><p><strong>&nbsp;&nbsp;&nbsp;√</strong> Qubit Fluorometer or Agilent;□ Agarose Gel Electrophoresis Quantitation;□ Nanodrop</p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Sample Integrity </p></td>
+			<td><p>&nbsp;&nbsp;&nbsp;<strong>√</strong> Agilent or Agarose Gel Electrophoresis Quantitation </p></td>
+		</tr>
+		<tr>
+			<td><p align="center">Sample Purity </p></td>
+			<td><p>&nbsp;&nbsp;&nbsp;<strong>√</strong> Agarose Gel Electrophoresis Quantitation or Agilent </p></td>
+		</tr>
+	</table>
+	<p>&nbsp; </p>
+
+
+</div>
+
+
+<!-------------------------------------- 样品检测结果 ---------------------------------------------->
+
+<div>
+	<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png"/></a>
+		<a name="样品检测结果">Novogene Sample Quality Control Report</a>
+	<hr/>
+	</p><br/>
+
+
+	<h2>3.QC Result</h2>
+	<a name="检测结果总表"><h3>3.1 QC Results Summary</h3></a>
+
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+	<div style="overflow-x:auto;width:100%;">
+				<table id = "LibInfo" align="center" border="1" cellpadding="5" cellspacing="0"><tr>
+						<th>No.</th>
+						<th>Sample Name</th>
+						<th>Nucleic Acid ID</th><th>Concentration（ng/ul）</th><th>Volume(ul)</th><th>Total amount(ug)</th><th>Sample QC Results</th><th>Sample QC Memo</th></tr><tr>
+					<td>1</td>
+					<td>GM1</td>
+					<td>CKDN230011839-1A</td> <td>3.74</td><td>149</td><td>0.55726</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>2</td>
+					<td>GM2</td>
+					<td>CKDN230011840-1A</td> <td>7.08</td><td>137</td><td>0.96996</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>3</td>
+					<td>GM3</td>
+					<td>CKDN230011841-1A</td> <td>6.60</td><td>137</td><td>0.90420</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>4</td>
+					<td>GM4</td>
+					<td>CKDN230011842-1A</td> <td>28.00</td><td>151</td><td>4.22800</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>5</td>
+					<td>GM5</td>
+					<td>CKDN230011843-1A</td> <td>5.38</td><td>126</td><td>0.67788</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>6</td>
+					<td>GM6</td>
+					<td>CKDN230011844-1A</td> <td>6.84</td><td>151</td><td>1.03284</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>7</td>
+					<td>GM7</td>
+					<td>CKDN230011845-1A</td> <td>9.18</td><td>129</td><td>1.18422</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>8</td>
+					<td>GM8</td>
+					<td>CKDN230011846-1A</td> <td>13.80</td><td>136</td><td>1.87680</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>9</td>
+					<td>GM9</td>
+					<td>CKDN230011847-1A</td> <td>2.84</td><td>136</td><td>0.38624</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>10</td>
+					<td>GM10</td>
+					<td>CKDN230011848-1A</td> <td>8.20</td><td>141</td><td>1.15620</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>11</td>
+					<td>GM11</td>
+					<td>CKDN230011849-1A</td> <td>4.38</td><td>155</td><td>0.67890</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>12</td>
+					<td>GM12</td>
+					<td>CKDN230011850-1A</td> <td>10.40</td><td>125</td><td>1.30000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>13</td>
+					<td>GM13</td>
+					<td>CKDN230011851-1A</td> <td>4.66</td><td>145</td><td>0.67570</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>14</td>
+					<td>GM14</td>
+					<td>CKDN230011852-1A</td> <td>9.84</td><td>127</td><td>1.24968</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>15</td>
+					<td>GM15</td>
+					<td>CKDN230011853-1A</td> <td>3.58</td><td>139</td><td>0.49762</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>16</td>
+					<td>GM16</td>
+					<td>CKDN230011854-1A</td> <td>4.14</td><td>157</td><td>0.64998</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>17</td>
+					<td>GM17</td>
+					<td>CKDN230011855-1A</td> <td>6.72</td><td>135</td><td>0.90720</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>18</td>
+					<td>GM18</td>
+					<td>CKDN230011856-1A</td> <td>8.58</td><td>139</td><td>1.19262</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>19</td>
+					<td>GM19</td>
+					<td>CKDN230011857-1A</td> <td>8.08</td><td>149</td><td>1.20392</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>20</td>
+					<td>GM20</td>
+					<td>CKDN230011858-1A</td> <td>8.80</td><td>142</td><td>1.24960</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>21</td>
+					<td>GM21</td>
+					<td>CKDN230011859-1A</td> <td>6.74</td><td>115</td><td>0.77510</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>22</td>
+					<td>GM22</td>
+					<td>CKDN230011860-1A</td> <td>8.46</td><td>146</td><td>1.23516</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>23</td>
+					<td>GM23</td>
+					<td>CKDN230011861-1A</td> <td>6.40</td><td>141</td><td>0.90240</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>24</td>
+					<td>GM24</td>
+					<td>CKDN230011862-1A</td> <td>11.30</td><td>116</td><td>1.31080</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>25</td>
+					<td>GM25</td>
+					<td>CKDN230011863-1A</td> <td>6.10</td><td>151</td><td>0.92110</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>26</td>
+					<td>GM26</td>
+					<td>CKDN230011864-1A</td> <td>11.80</td><td>131</td><td>1.54580</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>27</td>
+					<td>GM27</td>
+					<td>CKDN230011865-1A</td> <td>1.88</td><td>256</td><td>0.48128</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>28</td>
+					<td>GM28</td>
+					<td>CKDN230011866-1A</td> <td>11.20</td><td>125</td><td>1.40000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>29</td>
+					<td>GM29</td>
+					<td>CKDN230011867-1A</td> <td>5.44</td><td>129</td><td>0.70176</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>30</td>
+					<td>GM30</td>
+					<td>CKDN230011868-1A</td> <td>9.00</td><td>126</td><td>1.13400</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>31</td>
+					<td>GM31</td>
+					<td>CKDN230011869-1A</td> <td>3.92</td><td>134</td><td>0.52528</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>32</td>
+					<td>GM32</td>
+					<td>CKDN230011870-1A</td> <td>9.86</td><td>129</td><td>1.27194</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>33</td>
+					<td>GM33</td>
+					<td>CKDN230011871-1A</td> <td>6.34</td><td>128</td><td>0.81152</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>34</td>
+					<td>GM34</td>
+					<td>CKDN230011872-1A</td> <td>9.56</td><td>112</td><td>1.07072</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>35</td>
+					<td>GM35</td>
+					<td>CKDN230011873-1A</td> <td>11.40</td><td>150</td><td>1.71000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>36</td>
+					<td>GM36</td>
+					<td>CKDN230011874-1A</td> <td>8.08</td><td>123</td><td>0.99384</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>37</td>
+					<td>GM37</td>
+					<td>CKDN230011875-1A</td> <td>14.80</td><td>133</td><td>1.96840</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>38</td>
+					<td>GM38</td>
+					<td>CKDN230011876-1A</td> <td>6.90</td><td>128</td><td>0.88320</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>39</td>
+					<td>GM39</td>
+					<td>CKDN230011877-1A</td> <td>7.10</td><td>126</td><td>0.89460</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>40</td>
+					<td>GM40</td>
+					<td>CKDN230011878-1A</td> <td>7.76</td><td>137</td><td>1.06312</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>41</td>
+					<td>GM41</td>
+					<td>CKDN230011879-1A</td> <td>8.54</td><td>152</td><td>1.29808</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>42</td>
+					<td>GM42</td>
+					<td>CKDN230011880-1A</td> <td>8.66</td><td>138</td><td>1.19508</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>43</td>
+					<td>GM43</td>
+					<td>CKDN230011881-1A</td> <td>10.50</td><td>259</td><td>2.71950</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>44</td>
+					<td>GM44</td>
+					<td>CKDN230011882-1A</td> <td>38.80</td><td>140</td><td>5.43200</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>45</td>
+					<td>GM45</td>
+					<td>CKDN230011883-1A</td> <td>7.20</td><td>146</td><td>1.05120</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>46</td>
+					<td>GM46</td>
+					<td>CKDN230011884-1A</td> <td>21.60</td><td>136</td><td>2.93760</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>47</td>
+					<td>GM47</td>
+					<td>CKDN230011885-1A</td> <td>3.66</td><td>132</td><td>0.48312</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>48</td>
+					<td>GM48</td>
+					<td>CKDN230011886-1A</td> <td>5.92</td><td>131</td><td>0.77552</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>49</td>
+					<td>GM49</td>
+					<td>CKDN230011887-1A</td> <td>8.04</td><td>132</td><td>1.06128</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>50</td>
+					<td>GM50</td>
+					<td>CKDN230011888-1A</td> <td>39.00</td><td>145</td><td>5.65500</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>51</td>
+					<td>GM51</td>
+					<td>CKDN230011889-1A</td> <td>4.96</td><td>135</td><td>0.66960</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>52</td>
+					<td>GM52</td>
+					<td>CKDN230011890-1A</td> <td>17.30</td><td>142</td><td>2.45660</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>53</td>
+					<td>GM53</td>
+					<td>CKDN230011891-1A</td> <td>4.18</td><td>141</td><td>0.58938</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>54</td>
+					<td>GM54</td>
+					<td>CKDN230011892-1A</td> <td>12.60</td><td>144</td><td>1.81440</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>55</td>
+					<td>GM55</td>
+					<td>CKDN230011893-1A</td> <td>4.78</td><td>138</td><td>0.65964</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>56</td>
+					<td>GM56</td>
+					<td>CKDN230011894-1A</td> <td>13.00</td><td>157</td><td>2.04100</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>57</td>
+					<td>GM57</td>
+					<td>CKDN230011895-1A</td> <td>7.22</td><td>128</td><td>0.92416</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>58</td>
+					<td>GM58</td>
+					<td>CKDN230011896-1A</td> <td>6.82</td><td>149</td><td>1.01618</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>59</td>
+					<td>GM59</td>
+					<td>CKDN230011897-1A</td> <td>5.92</td><td>271</td><td>1.60432</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>60</td>
+					<td>GM60</td>
+					<td>CKDN230011898-1A</td> <td>7.74</td><td>154</td><td>1.19196</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>61</td>
+					<td>GM61</td>
+					<td>CKDN230011899-1A</td> <td>11.60</td><td>133</td><td>1.54280</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>62</td>
+					<td>GM62</td>
+					<td>CKDN230011900-1A</td> <td>7.96</td><td>153</td><td>1.21788</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>63</td>
+					<td>GM63</td>
+					<td>CKDN230011901-1A</td> <td>3.48</td><td>138</td><td>0.48024</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>64</td>
+					<td>GM64</td>
+					<td>CKDN230011902-1A</td> <td>4.94</td><td>148</td><td>0.73112</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>65</td>
+					<td>GM65</td>
+					<td>CKDN230011903-1A</td> <td>6.78</td><td>135</td><td>0.91530</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>66</td>
+					<td>GM66</td>
+					<td>CKDN230011904-1A</td> <td>11.00</td><td>154</td><td>1.69400</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>67</td>
+					<td>GM67</td>
+					<td>CKDN230011905-1A</td> <td>5.90</td><td>141</td><td>0.83190</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>68</td>
+					<td>GM68</td>
+					<td>CKDN230011906-1A</td> <td>31.20</td><td>143</td><td>4.46160</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>69</td>
+					<td>GM69</td>
+					<td>CKDN230011907-1A</td> <td>38.40</td><td>132</td><td>5.06880</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>70</td>
+					<td>GM70</td>
+					<td>CKDN230011908-1A</td> <td>16.30</td><td>143</td><td>2.33090</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>71</td>
+					<td>GM71</td>
+					<td>CKDN230011909-1A</td> <td>13.90</td><td>131</td><td>1.82090</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>72</td>
+					<td>GM72</td>
+					<td>CKDN230011910-1A</td> <td>7.24</td><td>149</td><td>1.07876</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>73</td>
+					<td>GM73</td>
+					<td>CKDN230011911-1A</td> <td>5.86</td><td>131</td><td>0.76766</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>74</td>
+					<td>GM74</td>
+					<td>CKDN230011912-1A</td> <td>15.60</td><td>142</td><td>2.21520</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>75</td>
+					<td>GM75</td>
+					<td>CKDN230011913-1A</td> <td>7.54</td><td>257</td><td>1.93778</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>76</td>
+					<td>GM76</td>
+					<td>CKDN230011914-1A</td> <td>5.94</td><td>160</td><td>0.95040</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>77</td>
+					<td>GM77</td>
+					<td>CKDN230011915-1A</td> <td>8.96</td><td>124</td><td>1.11104</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>78</td>
+					<td>GM78</td>
+					<td>CKDN230011916-1A</td> <td>13.60</td><td>144</td><td>1.95840</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>79</td>
+					<td>GM79</td>
+					<td>CKDN230011917-1A</td> <td>40.20</td><td>128</td><td>5.14560</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>80</td>
+					<td>GM80</td>
+					<td>CKDN230011918-1A</td> <td>5.04</td><td>146</td><td>0.73584</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>81</td>
+					<td>GM81</td>
+					<td>CKDN230011919-1A</td> <td>6.74</td><td>130</td><td>0.87620</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>82</td>
+					<td>GM82</td>
+					<td>CKDN230011920-1A</td> <td>6.14</td><td>166</td><td>1.01924</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>83</td>
+					<td>GM83</td>
+					<td>CKDN230011921-1A</td> <td>22.00</td><td>145</td><td>3.19000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>84</td>
+					<td>GM84</td>
+					<td>CKDN230011922-1A</td> <td>16.00</td><td>140</td><td>2.24000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>85</td>
+					<td>GM85</td>
+					<td>CKDN230011923-1A</td> <td>42.20</td><td>134</td><td>5.65480</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>86</td>
+					<td>GM86</td>
+					<td>CKDN230011924-1A</td> <td>25.20</td><td>135</td><td>3.40200</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>87</td>
+					<td>GM87</td>
+					<td>CKDN230011925-1A</td> <td>3.48</td><td>140</td><td>0.48720</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>88</td>
+					<td>GM88</td>
+					<td>CKDN230011926-1A</td> <td>6.02</td><td>149</td><td>0.89698</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>89</td>
+					<td>GM89</td>
+					<td>CKDN230011927-1A</td> <td>2.32</td><td>130</td><td>0.30160</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>90</td>
+					<td>GM90</td>
+					<td>CKDN230011928-1A</td> <td>30.60</td><td>141</td><td>4.31460</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>91</td>
+					<td>GM91</td>
+					<td>CKDN230011929-1A</td> <td>72.20</td><td>128</td><td>9.24160</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>92</td>
+					<td>GM92</td>
+					<td>CKDN230011930-1A</td> <td>5.72</td><td>144</td><td>0.82368</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>93</td>
+					<td>GM93</td>
+					<td>CKDN230011931-1A</td> <td>7.98</td><td>122</td><td>0.97356</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>94</td>
+					<td>GM94</td>
+					<td>CKDN230011932-1A</td> <td>12.60</td><td>142</td><td>1.78920</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>95</td>
+					<td>GM95</td>
+					<td>CKDN230011933-1A</td> <td>6.22</td><td>135</td><td>0.83970</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>96</td>
+					<td>GM96</td>
+					<td>CKDN230011934-1A</td> <td>8.86</td><td>154</td><td>1.36444</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>97</td>
+					<td>GM97</td>
+					<td>CKDN230011935-1A</td> <td>4.50</td><td>124</td><td>0.55800</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>98</td>
+					<td>GM98</td>
+					<td>CKDN230011936-1A</td> <td>5.18</td><td>139</td><td>0.72002</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>99</td>
+					<td>GM99</td>
+					<td>CKDN230011937-1A</td> <td>7.76</td><td>134</td><td>1.03984</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>100</td>
+					<td>GM100</td>
+					<td>CKDN230011938-1A</td> <td>7.00</td><td>139</td><td>0.97300</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>101</td>
+					<td>GM101</td>
+					<td>CKDN230011939-1A</td> <td>2.68</td><td>130</td><td>0.34840</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>102</td>
+					<td>GM102</td>
+					<td>CKDN230011940-1A</td> <td>7.26</td><td>139</td><td>1.00914</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>103</td>
+					<td>GM103</td>
+					<td>CKDN230011941-1A</td> <td>22.80</td><td>124</td><td>2.82720</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>104</td>
+					<td>GM104</td>
+					<td>CKDN230011942-1A</td> <td>26.40</td><td>147</td><td>3.88080</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>105</td>
+					<td>GM105</td>
+					<td>CKDN230011943-1A</td> <td>1.46</td><td>272</td><td>0.39712</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>106</td>
+					<td>GM106</td>
+					<td>CKDN230011944-1A</td> <td>18.00</td><td>148</td><td>2.66400</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>107</td>
+					<td>GM107</td>
+					<td>CKDN230011945-1A</td> <td>12.20</td><td>104</td><td>1.26880</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>108</td>
+					<td>GM108</td>
+					<td>CKDN230011946-1A</td> <td>6.52</td><td>148</td><td>0.96496</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>109</td>
+					<td>GM109</td>
+					<td>CKDN230011947-1A</td> <td>7.08</td><td>139</td><td>0.98412</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>110</td>
+					<td>GM110</td>
+					<td>CKDN230011948-1A</td> <td>13.60</td><td>147</td><td>1.99920</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>111</td>
+					<td>GM111</td>
+					<td>CKDN230011949-1A</td> <td>3.24</td><td>142</td><td>0.46008</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>112</td>
+					<td>GM112</td>
+					<td>CKDN230011950-1A</td> <td>12.70</td><td>143</td><td>1.81610</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>113</td>
+					<td>GM113</td>
+					<td>CKDN230011951-1A</td> <td>6.76</td><td>125</td><td>0.84500</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>114</td>
+					<td>GM114</td>
+					<td>CKDN230011952-1A</td> <td>48.00</td><td>145</td><td>6.96000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>115</td>
+					<td>GM115</td>
+					<td>CKDN230011953-1A</td> <td>9.94</td><td>133</td><td>1.32202</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>116</td>
+					<td>GM116</td>
+					<td>CKDN230011954-1A</td> <td>12.20</td><td>150</td><td>1.83000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>117</td>
+					<td>GM117</td>
+					<td>CKDN230011955-1A</td> <td>35.60</td><td>131</td><td>4.66360</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>118</td>
+					<td>GM118</td>
+					<td>CKDN230011956-1A</td> <td>15.70</td><td>143</td><td>2.24510</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>119</td>
+					<td>GM119</td>
+					<td>CKDN230011957-1A</td> <td>14.40</td><td>128</td><td>1.84320</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>120</td>
+					<td>GM120</td>
+					<td>CKDN230011958-1A</td> <td>6.78</td><td>134</td><td>0.90852</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>121</td>
+					<td>GM121</td>
+					<td>CKDN230011959-1A</td> <td>5.00</td><td>308</td><td>1.54000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>122</td>
+					<td>GM122</td>
+					<td>CKDN230011960-1A</td> <td>11.90</td><td>138</td><td>1.64220</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>123</td>
+					<td>GM123</td>
+					<td>CKDN230011961-1A</td> <td>5.90</td><td>119</td><td>0.70210</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>124</td>
+					<td>GM124</td>
+					<td>CKDN230011962-1A</td> <td>10.70</td><td>137</td><td>1.46590</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>125</td>
+					<td>GM125</td>
+					<td>CKDN230011963-1A</td> <td>9.90</td><td>115</td><td>1.13850</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>126</td>
+					<td>GM126</td>
+					<td>CKDN230011964-1A</td> <td>6.98</td><td>140</td><td>0.97720</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>127</td>
+					<td>GM127</td>
+					<td>CKDN230011965-1A</td> <td>4.34</td><td>143</td><td>0.62062</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>128</td>
+					<td>GM128</td>
+					<td>CKDN230011966-1A</td> <td>38.40</td><td>135</td><td>5.18400</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>129</td>
+					<td>GM129</td>
+					<td>CKDN230011967-1A</td> <td>5.80</td><td>127</td><td>0.73660</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>130</td>
+					<td>GM130</td>
+					<td>CKDN230011968-1A</td> <td>12.60</td><td>137</td><td>1.72620</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>131</td>
+					<td>GM131</td>
+					<td>CKDN230011969-1A</td> <td>7.00</td><td>128</td><td>0.89600</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>132</td>
+					<td>GM132</td>
+					<td>CKDN230011970-1A</td> <td>27.20</td><td>147</td><td>3.99840</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>133</td>
+					<td>GM133</td>
+					<td>CKDN230011971-1A</td> <td>8.04</td><td>143</td><td>1.14972</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>134</td>
+					<td>GM134</td>
+					<td>CKDN230011972-1A</td> <td>9.22</td><td>153</td><td>1.41066</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>135</td>
+					<td>GM135</td>
+					<td>CKDN230011973-1A</td> <td>5.36</td><td>122</td><td>0.65392</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>136</td>
+					<td>GM136</td>
+					<td>CKDN230011974-1A</td> <td>9.22</td><td>149</td><td>1.37378</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>137</td>
+					<td>GM137</td>
+					<td>CKDN230011975-1A</td> <td>3.44</td><td>314</td><td>1.08016</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>138</td>
+					<td>GM138</td>
+					<td>CKDN230011976-1A</td> <td>23.40</td><td>114</td><td>2.66760</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>139</td>
+					<td>GM139</td>
+					<td>CKDN230011977-1A</td> <td>10.10</td><td>114</td><td>1.15140</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>140</td>
+					<td>GM140</td>
+					<td>CKDN230011978-1A</td> <td>14.00</td><td>140</td><td>1.96000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>141</td>
+					<td>GM141</td>
+					<td>CKDN230011979-1A</td> <td>5.80</td><td>136</td><td>0.78880</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>142</td>
+					<td>GM142</td>
+					<td>CKDN230011980-1A</td> <td>7.78</td><td>145</td><td>1.12810</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>143</td>
+					<td>GM143</td>
+					<td>CKDN230011981-1A</td> <td>6.52</td><td>121</td><td>0.78892</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>144</td>
+					<td>GM144</td>
+					<td>CKDN230011982-1A</td> <td>7.30</td><td>145</td><td>1.05850</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>145</td>
+					<td>GM145</td>
+					<td>CKDN230011983-1A</td> <td>5.40</td><td>140</td><td>0.75600</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>146</td>
+					<td>GM146</td>
+					<td>CKDN230011984-1A</td> <td>17.60</td><td>140</td><td>2.46400</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>147</td>
+					<td>GM147</td>
+					<td>CKDN230011985-1A</td> <td>11.80</td><td>141</td><td>1.66380</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>148</td>
+					<td>GM148</td>
+					<td>CKDN230011986-1A</td> <td>20.00</td><td>138</td><td>2.76000</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>149</td>
+					<td>GM149</td>
+					<td>CKDN230011987-1A</td> <td>9.42</td><td>129</td><td>1.21518</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>150</td>
+					<td>GM150</td>
+					<td>CKDN230011988-1A</td> <td>7.98</td><td>144</td><td>1.14912</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>151</td>
+					<td>GM151</td>
+					<td>CKDN230011989-1A</td> <td>7.80</td><td>135</td><td>1.05300</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>152</td>
+					<td>GM152</td>
+					<td>CKDN230011990-1A</td> <td>15.60</td><td>143</td><td>2.23080</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>153</td>
+					<td>GM153</td>
+					<td>CKDN230011991-1A</td> <td>4.74</td><td>303</td><td>1.43622</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>154</td>
+					<td>GM154</td>
+					<td>CKDN230011992-1A</td> <td>12.00</td><td>139</td><td>1.66800</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>155</td>
+					<td>GM155</td>
+					<td>CKDN230011993-1A</td> <td>7.26</td><td>140</td><td>1.01640</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>156</td>
+					<td>GM156</td>
+					<td>CKDN230011994-1A</td> <td>6.72</td><td>149</td><td>1.00128</td><td>Pass</td><td>Slightly degraded, slightly impure</td></tr><tr>
+					<td>157</td>
+					<td>GM157</td>
+					<td>CKDN230011995-1A</td> <td>18.40</td><td>135</td><td>2.48400</td><td>Fail</td><td>Severely degraded</td></tr><tr>
+					<td>158</td>
+					<td>GM158</td>
+					<td>CKDN230011996-1A</td> <td>30.20</td><td>150</td><td>4.53000</td><td>Fail</td><td>Severely degraded</td></tr><tr>
+					<td>159</td>
+					<td>GM159</td>
+					<td>CKDN230011997-1A</td> <td>30.80</td><td>136</td><td>4.18880</td><td>Fail</td><td>Severely degraded</td></tr><tr>
+					<td>160</td>
+					<td>GM160</td>
+					<td>CKDN230011998-1A</td> <td>6.00</td><td>151</td><td>0.90600</td><td>Pass</td><td>Slightly degraded</td></tr></table></div>
+	<p>&nbsp;</p>
+
+
+	<p>&nbsp;</p>
+
+	<DIV STYLE="PADDING-LEFT: 30PX">
+	
+
+ <p>&nbsp;</p><p>&nbsp;</p>
+	</DIV>
+	
+		<a name="Agarose Gel Electrophoresis Results"><h3>3.2 Agarose Gel Electrophoresis Results</h3></a>
+	<h4 style="padding-left: 20px">3.2.1 Electrophoresis Condition </h4>
+
+	<p style="padding-left: 30px">
+		GenomicsDNA---GelConc.：1% Voltage：100v Run Time：40min
+		<br>PCR Product------GelConc.：2% Voltage：80v Run Time：50min
+	</p>
+
+	<h4 style="padding-left: 20px">3.2.2 Electrophoresis Results </h4>
+
+
+	<div class="albumSlider" id="ArgoseAS">
+		<div class="fullview"><img src=''/></div>
+		<div class="slider">
+			<div class="button movebackward" title="向上滚动"></div>
+			<div class="imglistwrap">
+				<ul class="imglist">
+				1093989-11.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-11 9C859796-7EC2-4CE5-9ED2-F92C60F79586.JPG' title="">
+    	<img src='src/Caliper/1093989-11 9C859796-7EC2-4CE5-9ED2-F92C60F79586.JPG'/>
+	</a>
+</li>				1093989-3.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-3 F24A4326-CA57-49D7-B367-7F8CF9FF0BA9.JPG' title="">
+    	<img src='src/Caliper/1093989-3 F24A4326-CA57-49D7-B367-7F8CF9FF0BA9.JPG'/>
+	</a>
+</li>				1093989-5.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-5 65D4208C-BBDE-4756-BAFE-82D69B842C6F.JPG' title="">
+    	<img src='src/Caliper/1093989-5 65D4208C-BBDE-4756-BAFE-82D69B842C6F.JPG'/>
+	</a>
+</li>				1093989-8.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-8 2DB4EE38-398E-4FC5-8FC6-533032A9EA71.JPG' title="">
+    	<img src='src/Caliper/1093989-8 2DB4EE38-398E-4FC5-8FC6-533032A9EA71.JPG'/>
+	</a>
+</li>				1093989-7.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-7 6EFE4685-8029-4871-8138-AEEA9C206A80.JPG' title="">
+    	<img src='src/Caliper/1093989-7 6EFE4685-8029-4871-8138-AEEA9C206A80.JPG'/>
+	</a>
+</li>				1093989-4.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-4 EE1A7A7A-9A61-4230-AE6F-E70D226EBC6F.JPG' title="">
+    	<img src='src/Caliper/1093989-4 EE1A7A7A-9A61-4230-AE6F-E70D226EBC6F.JPG'/>
+	</a>
+</li>				1093989-2.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-2 C6F4DBDD-E567-4243-97BC-B12A689661E8.JPG' title="">
+    	<img src='src/Caliper/1093989-2 C6F4DBDD-E567-4243-97BC-B12A689661E8.JPG'/>
+	</a>
+</li>				1093989-10.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-10 2AE169CD-1B12-4CA3-BE4B-63D138434670.JPG' title="">
+    	<img src='src/Caliper/1093989-10 2AE169CD-1B12-4CA3-BE4B-63D138434670.JPG'/>
+	</a>
+</li>				1093989-6.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-6 CF78FE2E-727F-4516-B999-3CB61354C21E.JPG' title="">
+    	<img src='src/Caliper/1093989-6 CF78FE2E-727F-4516-B999-3CB61354C21E.JPG'/>
+	</a>
+</li>				1093989-1.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-1 A47D05C1-9324-4E2C-9031-30D47473DA69.JPG' title="">
+    	<img src='src/Caliper/1093989-1 A47D05C1-9324-4E2C-9031-30D47473DA69.JPG'/>
+	</a>
+</li>				1093989-9.JPG<li>
+    <a id="example2" href='src/Caliper/1093989-9 7FA497ED-59C4-4E41-AFDC-A2D2CC498615.JPG' title="">
+    	<img src='src/Caliper/1093989-9 7FA497ED-59C4-4E41-AFDC-A2D2CC498615.JPG'/>
+	</a>
+</li>				
+				</ul>
+			</div>
+			<div class="button moveforward" title="向下滚动"></div>
+		</div>
+
+		<div id="theTitle" style="position: absolute;top:465px;width: 100%;text-align: center"></div>
+	</div>
+
+<br>
+	
+
+<div>
+	<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png"/></a>
+		<a name="样品分级标准表">Novogene Sample Quality Control Report</a>
+	<hr/>
+	</p><br/>
+
+	<style>
+		table#judgeRlue {
+			white-space: normal;
+		  word-break: normal;
+		}
+	</style>
+
+
+
+
+	<h2>4.Note</h2>
+
+
+		</br>
+		<a name="Note1">4.1 Sample classification standard table</a>
+		<div style="padding-left: 30px">
+			<p style="line-height: 150%;"><strong>Notes</strong>：<br>
+			The test conclusion is a comprehensive evaluation based on Novogene’s sample quality requirements for library preparation and sequencing <br>
+			The test result based on the “DNA Samples QC Criteria”explains whether the testing sample meets the requirement of library construction. <br>
+			a) Pass: The sample is qualified and the library preparation can be prepared regularly; <br>
+			b) Hold: The sample does not totally meet the requirements of library construction and sequencing. Novogene can try to construct library but the sequencing quality is not guaranteed; <br>
+			c) Fail: It is highly recommended for clients to resend the sample or the library could be constructed at high risk and the sequencing quality is not guaranteed (not recommended). <br>
+			</p>
+		</div>
+		<a name="Note2">4.2 Sample volume</a>
+		<div style="padding-left: 30px">
+			<p>
+			If the incoming sample volume is less than 10 μL, 15 μL of EB will be added into the sample to ensure sufficient total volume for both sample QC and downstream processes.<br>
+			</p>
+		</div>
+		
+	<br>
+
+
+</div>
+<br>
+<br>
+
+<div>
+	<p class="head"><a href="#home" title="返回首页"><img class="logo" align="left" src="src/images/logo.png"/></a>
+		<a name="Description of QC Results">Novogene Sample Quality Control Report</a>
+	<hr/>
+	</p><br/>
+	<br>
+</div>
+      <h2>  <a href='src\Caliper\20230515065932Description of DNA QC Results.pdf' style='color:Green; font-family: Times New Roman' target='_blank'>5.Description of QC Results (Please Click to Enter) </a></h2>
+    </div>
+</div>	
+
+</body>
+</html>
+

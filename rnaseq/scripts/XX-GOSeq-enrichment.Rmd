@@ -1,0 +1,334 @@
+---
+title: "X-GoSeq-enrichment"
+author: "Laura Spencer"
+date: "2024-06-11"
+output: html_document
+---
+
+## Let's test out goseq (enrichment program that Ariana uses)
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("goseq")
+require(goseq)
+require(tidyverse)
+`%!in%` = Negate(`%in%`)
+
+if ("GSEABase" %in% rownames(installed.packages()) == 'FALSE') BiocManager::install("GSEABase")
+if ("GOSim" %in% rownames(installed.packages()) == 'FALSE') BiocManager::install("GOSim")
+if ("stats" %in% rownames(installed.packages()) == 'FALSE') install.packages("stats")
+if ("ggdendro" %in% rownames(installed.packages()) == 'FALSE') BiocManager::install("ggdendro")
+if ("GO.db" %in% rownames(installed.packages()) == 'FALSE') BiocManager::install("GO.db")
+if ("rrvgo" %in% rownames(installed.packages()) == 'FALSE') BiocManager::install("rrvgo")
+
+BiocManager::install("org.Dr.eg.db", force=TRUE) #install if needed 
+
+library("GSEABase")
+library("GOSim")
+library("stats")
+library("ggdendro")
+library("GO.db")
+library("rrvgo")
+```
+
+GOSeq Enrichment Analysis with Differentially Expressed Genes 
+
+```{r}
+DEGs.4GoSeq <- list(
+
+  "Cold_All" = 
+    res.0 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & abs(log2FoldChange)>0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Cool_All" = 
+    res.5 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & abs(log2FoldChange)>0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Warm_All" = 
+    res.16 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & abs(log2FoldChange)>0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+
+  "Cold_Downregulated"  =
+    res.0 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange < -0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Cold_Upregulated" = 
+    res.0 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange > 0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Cool_Downregulated" = 
+    res.5 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange > 0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Cool_Upregulated" = 
+    res.5 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange < -0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+
+  "Warm_Downregulated" = 
+    res.16 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange < -0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)),
+  
+  "Warm_Upregulated" = 
+    res.16 %>% as.data.frame() %>% rownames_to_column("gene") %>%
+    mutate(DEG=case_when((padj<0.05 & log2FoldChange > 0.5) ~ 1, TRUE~0)) %>% 
+    left_join(pcod.blast.GO %>% dplyr::select(-length), by = c("gene"="gene_pcod")) %>% 
+    left_join(pcod.gtf %>% filter(feature=="transcript") %>% mutate(length=end-start) %>%
+                group_by(gene_id) %>% summarize(median_length=round(median(length), digits = 0)), #add median transcript length for each gene 
+              by=c("gene"="gene_id")) %>% filter(!is.na(spid)))
+```
+
+Conduct functional enrichment for each contrast using goseq and rrvgo. Compare against all genes detected in the dataset. I am choosing to compare against genes in our dataset because we are looking at one developmental stage (larvae). Therefore, I do not want to conduct enrichment of all genes in the genome because many functions including calcification and gametogenesis do not apply to the biological function of larvae.  
+
+Conduct at biological process level. Filter for FDR < 0.1
+
+
+```{r}
+#Explore length options for each gene in P. cod genome
+
+# This option uses only the gene start and end, doesn't account for the fact that I counted fragments that aligned only to exonic regions
+test1 <- pcod.gtf %>% filter(feature=="gene") %>% mutate(length=end-start) %>%
+  filter(gene_id %in% rownames(res.0))
+
+# This option uses the sum of exon lengths for each gene  
+test2 <- pcod.gtf %>% filter(feature=="exon") %>% mutate(length=end-start) %>%
+  group_by(gene_id) %>% summarize(exonic_length=sum(length)) %>%
+  filter(gene_id %in% rownames(res.0))
+
+# What is the relationship between total gene length and exonic length?
+test1[c("gene_id", "length")] %>% left_join(test2[c("gene_id", "exonic_length")]) %>%
+ggplot() + geom_point(aes(x=log(length), y=log(exonic_length)), size=0.2)
+  # mutate(perc_delta=(exonic_length-length)/length) %>% summary()
+  # ggplot() + geom_density(aes(perc_delta)) + xlim(-10,10)
+
+DEGs.4GoSeq[[i]]$length
+```
+
+Prep and run GOSeq analysis for each differentially expressed gene set using loop
+
+```{r, warning=F, message=F, echo=F}
+GOSeq.results <- data.frame()
+
+for (i in 1:length(DEGs.4GoSeq)) {
+
+    ##== Prep gene lists and weights
+  
+    ##Construct named vector of all genes (names=gene IDs) with 1 indicating DEG and 0 not a DEG
+    gene.vector=setNames(DEGs.4GoSeq[[i]]$DEG, DEGs.4GoSeq[[i]]$gene)
+
+    ### Generate vector with DEG gene IDs
+    ID.vector <- DEGs.4GoSeq[[i]] %>%
+      filter(DEG==1)%>%
+      pull(gene)
+
+    ### Generate length vector for all genes
+    LENGTH.vector <- c(DEGs.4GoSeq[[i]]$median_length)
+
+    #weight gene vector by bias for length of gene 
+    pwf<-nullp(gene.vector, ID.vector, bias.data=LENGTH.vector) 
+    
+    ## === Prep GO information 
+    
+     ##Get a list of GO Terms for all genes detected in our dataset 
+    GO.terms <- DEGs.4GoSeq[[i]] %>%
+      dplyr::select(gene, gene_ontology_i_ds) %>% dplyr::rename("GOs"="gene_ontology_i_ds")
+    
+    ##Format to have one goterm per row with gene ID repeated
+    split <- strsplit(as.character(GO.terms$GOs), ";") 
+    split2 <- data.frame(v1 = rep.int(GO.terms$gene, sapply(split, length)), v2 = unlist(split)) 
+    colnames(split2) <- c("gene", "GOs")
+    GO.terms<-split2 %>% mutate(GOs=gsub(" ", "", GOs))
+
+    ### === Run GOSeq analysis
+    
+    #run goseq using Wallenius method for all categories of GO terms 
+    GO.wall<- goseq(pwf, ID.vector, gene2cat=GO.terms, test.cats=c("GO:BP"), method="Wallenius", use_genes_without_cat=TRUE)
+
+    GO <- GO.wall[order(GO.wall$over_represented_pvalue),]
+    colnames(GO)[1] <- "GOterm"
+    
+    #adjust p-values (FDR)
+    GO$fdr_over <-  p.adjust(GO$over_represented_pvalue, method="fdr") #add adjusted p-values
+    GO$fdr_under <-  p.adjust(GO$under_represented_pvalue, method="fdr") #add adjusted p-values
+
+    #Filtering for fdr < 10%
+    GO <- GO %>%
+        dplyr::filter(fdr_over<0.1) %>%
+        dplyr::arrange(., ontology, fdr_over) %>%
+      mutate(treatment=names(DEGs.4GoSeq[i]))
+
+    #Write file of results 
+    write_csv(GO, file = paste0("../goseq/goseq_results_", names(DEGs.4GoSeq[i]), ".csv"))
+    
+    #Add to GOSeq results list
+    GOSeq.results <- rbind(GOSeq.results, GO)
+    
+    print(paste("Treatment: ", names(DEGs.4GoSeq[i]), ", enriched BP GO Terms (@ FDR<10%) = ", nrow(GO), sep=""))
+}
+```
+Use REVIGO to collapse GO terms into parent GO terms using semantic similarity 
+
+```{r}
+# Create dataframe to save collapsed GO enrichment results to. 
+# To collapse using Revigo there needs to be 2+ GO terms. Here, I add enrichment results for treatments with less than 2 enriched BP 
+GOSeq.revigo <- (GOSeq.results %>% group_by(treatment, ontology) %>% summarise(n=n()) %>%
+  filter(ontology=="BP") %>% 
+#  filter(ontology=="MF") %>% 
+#  filter(ontology=="CC") %>% 
+    filter(n>1))$treatment
+
+GOSeq.results.collapsed <- GOSeq.results %>% 
+  filter(ontology=="BP") %>% 
+#  filter(ontology=="MF") %>% 
+#  filter(ontology=="CC") %>% 
+  filter(treatment %!in% GOSeq.revigo) %>% 
+  separate(treatment, into = c("treatment", "response")) %>% mutate(ParentTerm=NA)
+
+for (i in 1:length(GOSeq.revigo)) {
+
+    #Read relevant file of results from goseq analysis  
+    go_results<-read_csv(file = paste0("../goseq/goseq_results_", GOSeq.revigo[i], ".csv"))
+    
+    go_results<-go_results%>%
+      filter(ontology=="BP")%>%
+#      filter(ontology=="MF")%>%
+#      filter(ontology=="CC")%>%
+      filter(fdr_under != "NA") %>%
+      #filter(numInCat>5)%>%
+      arrange(., fdr_under)
+    
+    print(GOSeq.revigo[i])
+    print(length(unique(go_results$GOterm)))
+    
+    #Reduce/collapse GO term set with the rrvgo package 
+    simMatrix <- calculateSimMatrix(go_results$GOterm,
+                                orgdb="org.Dr.eg.db", #zebrafish database
+                                ont=c("BP"),
+#                                ont=c("MF"),
+#                                ont=c("CC"),
+                                method="Rel")
+    #calculate similarity 
+    scores <- setNames(-log10(go_results$fdr_under), go_results$GOterm)
+    reducedTerms <- reduceSimMatrix(simMatrix,
+                                scores,
+                                threshold=0.7,
+                                orgdb="org.Dr.eg.db")
+    
+    #keep only the goterms from the reduced list
+    go_results<-go_results%>%
+      filter(GOterm %in% reducedTerms$go)
+    
+    #add in parent terms to list of go terms 
+    go_results$ParentTerm<-reducedTerms$parentTerm[match(go_results$GOterm, reducedTerms$go)]
+    
+    #add in contrast and regulation
+    go_results <- go_results %>% separate(treatment, into = c("treatment", "response"))
+    # go_results$direction<-c("upregulated")
+    # go_results$contrast<-temp
+    
+    print(length(unique(go_results$GOterm)))
+    
+    #add to data frame 
+    temp_go_df <- go_results
+    GOSeq.results.collapsed <- rbind(GOSeq.results.collapsed, temp_go_df) 
+}
+GOSeq.results.collapsed %>% filter(response!="All") %>%
+  mutate(treatment=as.factor(treatment), response=as.factor(response)) %>%
+  
+  ungroup() %>% arrange(response, rev(treatment), fdr_over) %>%
+  mutate(ParentTerm = factor(ParentTerm, rev(unique(ParentTerm)), ordered = TRUE),
+         treatment=factor(treatment, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
+
+ggplot(aes(y = str_wrap(ParentTerm), x=treatment:response, col=treatment, shape=response)) + 
+  geom_point(alpha=0.75, aes(size=-log10(fdr_over))) + #size=count,  alpha=p_value, 
+ facet_wrap(~ontology,scales="free", nrow = 2) +
+  scale_shape_manual(name="Gene Set", labels=c("Upregulated"="More gene transcripts",
+                                               "Downregulated"="Fewer gene transcripts"),
+                     values=c("Upregulated"=17, "Downregulated"=16),
+                     guide = guide_legend(override.aes = list(size=3))) +
+  scale_color_manual(name="Temperature", values=c("Cold"="royalblue1","Cool"="darkgreen", "Warm"="firebrick4"),
+                                guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 FDR", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(order = 1, override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=7), 
+        legend.title = element_text(size=7),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Enriched Biological Processes (GO Terms)")
+#   ggtitle("Enriched Molecular Functions (GO Terms)")
+#  ggtitle("Enriched Cellular Components (GO Terms)")
+```
+
+Enrichment analysis,  WGCNA gene modules 
+
+START HERE 
+
+```{r}
+geneInfo.wgcna.degs <- vector("list", length(modules.all)) 
+names(geneInfo.wgcna.degs) <- modules.all
+
+geneInfo.david <- vector("list", length(modules.all)) 
+names(geneInfo.david) <- modules.all
+WGCNA.4David <- vector("list", length(modules.all))
+names(WGCNA.4David) <- modules.all
+
+for (i in 1:length(modules.all)) {
+  geneInfo.wgcna.degs[[i]] <- geneInfo %>%   
+#  geneInfo.david[[i]] <- geneInfo %>%   
+    filter(moduleColor == modules.all[[i]]) %>% #keep all genes assigned to each module 
+#    filter(moduleColor == modules.all[[i]] & p.GS.temperature < 0.05) %>% #only keep genes assigned to each module if they also correlate with temperature themselves
+    filter(moduleColor == modules.all[[i]]) %>% filter(id %in% degs) %>% #only keep genes assigned to each module if they also are DEGs from DESeq2 (in any contrast)
+  dplyr::select(id, SPID, gene_pcod, ncbi_id, description, moduleColor, GS.temperature, p.GS.temperature, !!as.symbol(modules.all.cor[i])) %>%
+    remove_rownames() %>% 
+#    filter(id %in% degs) %>% # optoinal, only include genes that are also DEGs 
+#    arrange(desc(!!as.symbol(modules.cor[i])))
+    arrange(p.GS.temperature)
+  
+  WGCNA.4David[[i]] <- geneInfo.david[[i]] %>% filter(!is.na(SPID)) %>%
+    dplyr::select(SPID) %>% na.omit() %>% unlist() %>% as.vector()
+}
+
+```
+

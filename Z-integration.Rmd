@@ -1,0 +1,257 @@
+---
+title: "Z-Integration"
+author: "Laura Spencer"
+date: "2024-05-02"
+output: html_document
+---
+
+```{r}
+eigengene.anno
+
+integrated.data <- 
+  MEs %>% # WGCNA eigengenes
+  rownames_to_column("sample_name") %>% 
+  pivot_longer(cols = -sample_name, names_to = "module", values_to = "eigenvalue") %>%
+  mutate(module=as.factor(gsub("^ME", "", module))) %>%
+  pivot_wider(names_from = "module", values_from = "eigenvalue") %>%
+  left_join(tab.expr %>% rename_with(~ gsub("all", "rna", .x, fixed = TRUE)), by=c("sample_name"="sample.id")) %>% 
+  mutate(sample=gsub("sample_", "", sample_name)) %>%
+  left_join(haplos.allzp3 %>% filter(sample!="Major") %>% # lcwgs haplotypes
+              dplyr::select(sample, haplo.lcwgs, haplo.exons.lcwgs)) %>%
+#  left_join(phenotypes) %>%
+  left_join(phenotypes.pca %>% 
+               rename_with(~ gsub("all", "lcwgs", .x, fixed = TRUE)) %>%
+              dplyr::select(-x542, -x339, -x313), by=c("sample"="sample.id")) %>%
+  rename_with(~ gsub("EV", "PC", .x, fixed = TRUE)) %>%
+  mutate(hsi=total_liver_ww_mg/wwt_final, 
+         growth.wt=wwt_final-wwt_11212022,
+         haplo.exons.numeric=as.numeric(haplo.exons.lcwgs),
+         temperature=as.numeric(as.character(temperature))) %>% 
+  rename("haplotype"="haplotype.rna", "growth"="growth.sl")
+
+# Corrplot to see which metrics correlate
+cor(integrated.data %>% 
+      dplyr::select_if(is.numeric) %>%
+      dplyr::select(temperature, growth.temp.resids, growth.sl, growth.wt, hsi, sl_final, wwt_final, total_liver_ww_mg, haplo.exons.numeric, everything()) %>%
+      dplyr::select(-wwt_11212022, -wwt_12272022, -sl_11212022, -sl_12272022, -liverfor_lipids_ww_mg, -muscle_w_wfor_lipids_mg, -starts_with("EV")), 
+    use="complete.obs") %>% corrplot::corrplot(., tl.cex=1, lower="circle", type="upper", is.corr = T, cl.cex = 1)
+
+integrated.data.corr <- cor(integrated.data %>% 
+      dplyr::select_if(is.numeric) %>%
+      dplyr::select(-sl_11212022, -sl_12272022, -liverfor_lipids_ww_mg, -muscle_w_wfor_lipids_mg), 
+    use="complete.obs") %>% corrplot::corrplot()
+integrated.data.corr$corrPos %>% filter(corr!=1) %>% filter(abs(corr)>0.5)
+```
+
+Bully gene?
+
+Pan I or Syp I locus = synaptophysin, behavioral differences in Atlantic cod, e.g. https://doi.org/10.1111/j.1095-8649.1997.tb01529.x 
+
+```{r, warning=F}
+sypI <- res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    left_join(pcod.blast) %>% filter(grepl("synaptophysin", protein, .)) %>% mutate(geneID = paste("GeneID:", ncbi_id, sep=""))
+
+sypI.deg <- degs$`16 degC` %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+  filter(ncbi_id %in% sypI)
+
+test <- sypI #all SypI genes
+#test <- sypI.deg %>% paste("GeneID:", ., sep="") #DEG SypI genes
+
+for (i in 1:nrow(test)) {
+a <-  plotCounts(dds.DESeq.temperature, gene=test$geneID[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info.rna[,c("sample_name", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
+  mutate(temperature=fct_relevel(temperature, c("0", "5", "9", "16")))
+
+print(
+  ggplot(a,
+       aes(x=temperature, y=count, color=temperature, label=sample)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(aes(color=temperature), size=2.5, position=position_jitter(w = 0.15,h = 0)) +
+    geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_bw() +
+    ggtitle(str_wrap(test$protein[i])) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none") +
+  scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
+}
+
+```
+```{r}
+ggplotly(phenotypes.pca %>%
+  filter(!is.na(temperature)) %>%
+  #  filter(!is.na(haplotype)) %>%
+  # mutate(mbd=as.factor(case_when(
+  #   sample.id %in% c("3","4","11","12","18","20","29","30",
+  #                    "39","40","48","50","57","59","69","70","79",
+  #                    "80","88","94","97","99","108","116","118","119",
+  #                    "120","127","131","138","148","156") ~ "yes",
+  #   TRUE ~ "no"))) %>%
+  mutate(hsi=100*(total_liver_ww_mg/wwt_final)) %>%
+  mutate(growth.wt=100*(wwt_final-wwt_11212022)) %>%
+  mutate(rna=as.factor(case_when(
+    sample.id %in% sample.info.rna$sample_number ~ "yes",
+    TRUE ~ "no"))) %>%
+  mutate(temp2=case_when(
+    temperature=="0" ~ "Cold (0°C)",
+    temperature=="5" ~ "Cool (5°C)",
+    temperature=="9" ~ "Optimal (9°C)",
+    temperature=="16" ~ "Warm (16°C)")) %>%
+  ggplot(aes(x=temperature, y=growth.wt, color=temperature, group=temp2)) + # 100*(total_liver_ww_mg/wwt_final)
+  geom_boxplot() +
+  geom_text(aes(label=sample.id), size=4.5, position=position_jitter(seed=1)) + 
+  geom_point(aes(shape=rna), size=4, position=position_jitter(seed=1)) + 
+  scale_shape_manual(values=c("yes"=19, "no"=3)) +
+  theme_minimal() + #xlim(0,0.15) +
+  scale_color_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  #ggtitle("Growth-Temperature residuals ~ HSI estimate") + 
+#  geom_smooth(method=lm, aes(fill=treatment), alpha=0.2) +
+#  stat_regline_equation(label.x = -.2, label.y = c(-10,-11.5, -13, -14.5)) +
+#  stat_cor(label.x = -.08, label.y = c(-10,-11.5, -13, -14.5)) +
+  scale_fill_manual(name="Temperature", 
+                       values=c("0"="#2c7bb6", "5"="gray30", "9"="#fdae61", "16"="#d7191c")) +
+  ylab("Change in wet weight"),
+  hoverinfo = 'text', tooltip = "text")
+```
+
+DAVID Enrichment results, DEGs and Genes with DEU 
+
+```{r}
+david.master$filtering %>% levels()
+```
+
+```{r}
+david.master <- 
+  rbind(david.deu %>% mutate(analysis="DEEs"),
+david %>% mutate(analysis="DEGs")) %>% mutate(analysis=as.factor(analysis))
+
+david.master %>%
+  #filter(count>=3) %>% 
+#  filter(p_value<0.01) %>%
+  filter(fdr<0.05) %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+#  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+
+  group_by(analysis, stress, filtering, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david.master %>% 
+              dplyr::select(analysis, stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("analysis", "stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering %in% c("NoDEGs", "Downregulated", "Upregulated")) %>%
+
+  ungroup() %>% arrange(filtering, rev(stress), p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
+         stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
+
+ggplot(aes(y = process, x=stress:filtering, col=stress, shape=filtering)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free", nrow = 2) +
+  scale_shape_manual(name="Gene Set", labels=c("NoDEGs"="Differential exon usage", 
+                                               "Upregulated"="More gene transcripts", 
+                                               "Downregulated"="Fewer gene transcripts"), 
+                     values=c("NoDEGs"=15, "Upregulated"=16, "Downregulated"=17),
+                     guide = guide_legend(override.aes = list(size=3))) +
+  scale_color_manual(name="Temperature", values=c("Cold"="royalblue1","Cool"="darkgreen", "Warm"="firebrick4"),
+                                guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=7.25), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=7), 
+        legend.title = element_text(size=7),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("Enriched Biological Processes (Uniprot Keywords)")
+```
+Exploring gene expression by ZP3 haplotype
+
+TO DO: 
+- hemoglobin subunit expression by haplotype 
+- HSI & CI by expression of zp3, hemoglobin, bully, ... ?
+- Are any hemoglobin isoforms alternatively expressed in response to different temperatures? 
+
+Hemoglobin expression, beta vs. alpha
+```{r}
+test <- counts.annot.pcod %>% filter(str_detect(description, "hemoglobin subunit"))
+hemoglobin.genes <- vector(mode = "list", length = nrow(test))
+names(hemoglobin.genes) <- paste(test$description, " (", test$ncbi_id, ")", sep = "")
+
+for (i in 1:nrow(test)) {
+hemoglobin.genes[[i]] <-  plotCounts(dds.DESeq.temperature, gene=test$gene_pcod[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info.rna[,c("sample_name")], by=c("sample"="sample_name"))
+}
+
+hemoglobin.genes <- bind_rows(hemoglobin.genes, .id = "gene") #%>% #mutate(gene=factor(gene)) %>%
+  #pivot_wider(names_from = gene, values_from = count)
+
+# ggplot() + geom_point(aes(x=hemoglobin.genes$`hemoglobin subunit alpha-2 (132474442)`, y=hemoglobin.genes$`hemoglobin subunit beta-1 (132447235)`)) + theme_minimal()
+# ggplot() + geom_point(aes(x=hemoglobin.genes$`hemoglobin subunit alpha-2 (132474442)`, y=hemoglobin.genes$`hemoglobin subunit beta-like (132447251)`)) + theme_minimal()
+# ggplot() + geom_point(aes(x=hemoglobin.genes$`hemoglobin subunit alpha-2 (132474442)`, y=hemoglobin.genes$`hemoglobin subunit beta-2 (132446572)`)) + theme_minimal()
+# ggplot() + geom_point(aes(x=hemoglobin.genes$`hemoglobin subunit alpha-2 (132474442)`, y=hemoglobin.genes$`hemoglobin subunit beta-2 (132446573)`)) + theme_minimal()
+
+hemoglobin.genes$gene %>% unique()
+
+test2 <- unique(hemoglobin.genes$temperature)
+for (i in 1:4) {
+  print(hemoglobin.genes %>% 
+
+# Alpha-2 compared to Beta-2 expression 
+#          filter(str_detect(gene, "132474442|132447235")) %>%
+#          filter(str_detect(gene, "132474442|132447251")) %>% #beta-like gene very low expression
+#          filter(str_detect(gene, "132474442|132446572")) %>% #Low alpha-2 expression compared to this beta-2 in 0C only
+#          filter(str_detect(gene, "132474442|132446573")) %>%
+
+# Beta-1 that changes compared to other beta genes 
+          filter(str_detect(gene, "132447235|132446572")) %>% #Beta-2 vs. Beta-2
+#          filter(str_detect(gene, "132447235|132447251")) %>% #Beta-2 vs. beta-like
+#          filter(str_detect(gene, "132447235|132446573")) %>% #Beta-2 vs. other Beta-2
+      filter(temperature==test2[i]) %>%
+  ggplot(aes(x=factor(sample), y=count, fill=factor(gene))) +
+  geom_bar(stat="identity", position = "fill") + 
+  ggtitle(paste("Temperature: ", test2[i], sep="")) +
+    theme(axis.text.x = element_blank(), axis.ticks = element_blank()))
+}
+
+for (i in 1:length(test)) {
+a <-  plotCounts(dds.DESeq.temperature, gene=test[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+  rownames_to_column("sample") %>%
+  left_join(sample.info.rna[,c("sample_name", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
+  mutate(temperature=fct_relevel(temperature, c("0", "5", "9", "16")))
+
+print(
+  ggplot(a,
+       aes(x=temperature, y=count, color=temperature, label=sample)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(aes(color=temperature), size=2.5, position=position_jitter(w = 0.15,h = 0)) +
+    #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_bw() +
+    ggtitle(str_wrap((counts.annot.pcod %>% filter(gene_pcod==test[i]))$description)) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none") +
+  scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
+
+print(
+  ggplot(a,
+       aes(x=count)) +
+  geom_density(aes(fill=temperature), alpha=0.5, color="black") +
+    #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_minimal() +
+    ggtitle(paste((counts.annot.pcod %>% filter(gene_pcod==test[i]))$description, "\n", (counts.annot.pcod %>% filter(gene_pcod==test[i]))$gene_pcod, sep="")) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "right") +     scale_fill_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
+}
+```
+```{r}
+pcod.blast.GO %>% filter(gene == "LOC132447235")
+pcod.blast.cds%>% filter(gene == "LOC132447235")
+pcod.blast.cds.headers
+```
+
+

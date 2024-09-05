@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#SBATCH --cpus-per-task=10
+#SBATCH --job-name=pcod-refs_concat-mafs
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=laura.spencer@noaa.gov
+#SBATCH --output=/home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/job_outfiles/pcod-refs_concatenate-mafs_%A.out
+
+module unload bio/angsd/0.933
+module load bio/angsd/0.933
+
+for i in /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr1_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr2_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr3_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr4_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr5_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr6_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr7_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr8_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr9_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr10_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr11_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr12_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr13_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr14_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr15_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr16_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr17_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr18_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr19_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr20_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr21_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr22_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_Chr23_wgassign.mafs.gz /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_mito_wgassign.mafs.gz
+do zcat $i | tail -n +2 -q >> /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_wholegenome_wgassign.mafs; done
+cut -f 1,2,3,4 /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_wholegenome_wgassign.mafs > /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_wholegenome_wgassign.sites
+gzip /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_wholegenome_wgassign.mafs
+
+angsd sites index /home/lspencer/pcod-lcwgs-2023/analysis-20240606/reference/gls_wgassign/pcod-refs_wholegenome_wgassign.sites

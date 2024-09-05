@@ -1,0 +1,56 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##bcftoolsVersion=1.20-1-ga4e70017+htslib-1.20-1-gdeeb9f01
+##bcftoolsCommand=mpileup -f ../GCF_031168955.1_ASM3116895v1_genomic.fna -b bams-list.txt -d 8000 -r NC_082390.1:1869789-1873256
+##reference=file://../GCF_031168955.1_ASM3116895v1_genomic.fna
+##contig=<ID=NC_082382.1,length=26289739>
+##contig=<ID=NC_082383.1,length=23805147>
+##contig=<ID=NC_082384.1,length=26984552>
+##contig=<ID=NC_082385.1,length=35077496>
+##contig=<ID=NC_082386.1,length=22175970>
+##contig=<ID=NC_082387.1,length=27900680>
+##contig=<ID=NC_082388.1,length=28186669>
+##contig=<ID=NC_082389.1,length=23760065>
+##contig=<ID=NC_082390.1,length=23393856>
+##contig=<ID=NC_082391.1,length=23728004>
+##contig=<ID=NC_082392.1,length=26267057>
+##contig=<ID=NC_082393.1,length=27587113>
+##contig=<ID=NC_082394.1,length=22312454>
+##contig=<ID=NC_082395.1,length=26048790>
+##contig=<ID=NC_082396.1,length=24646214>
+##contig=<ID=NC_082397.1,length=29952890>
+##contig=<ID=NC_082398.1,length=16295523>
+##contig=<ID=NC_082399.1,length=21077965>
+##contig=<ID=NC_082400.1,length=17993618>
+##contig=<ID=NC_082401.1,length=23303860>
+##contig=<ID=NC_082402.1,length=19478734>
+##contig=<ID=NC_082403.1,length=19411328>
+##contig=<ID=NC_082404.1,length=20003359>
+##contig=<ID=NC_036931.1,length=16569>
+##ALT=<ID=*,Description="Represents allele(s) other than observed.">
+##INFO=<ID=INDEL,Number=0,Type=Flag,Description="Indicates that the variant is an INDEL.">
+##INFO=<ID=IDV,Number=1,Type=Integer,Description="Maximum number of raw reads supporting an indel">
+##INFO=<ID=IMF,Number=1,Type=Float,Description="Maximum fraction of raw reads supporting an indel">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Raw read depth">
+##INFO=<ID=VDB,Number=1,Type=Float,Description="Variant Distance Bias for filtering splice-site artefacts in RNA-seq data (bigger is better)",Version="3">
+##INFO=<ID=RPBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Read Position Bias (closer to 0 is better)">
+##INFO=<ID=MQBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Mapping Quality Bias (closer to 0 is better)">
+##INFO=<ID=BQBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Base Quality Bias (closer to 0 is better)">
+##INFO=<ID=MQSBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Mapping Quality vs Strand Bias (closer to 0 is better)">
+##INFO=<ID=SCBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Soft-Clip Length Bias (closer to 0 is better)">
+##INFO=<ID=SGB,Number=1,Type=Float,Description="Segregation based metric, http://samtools.github.io/bcftools/rd-SegBias.pdf">
+##INFO=<ID=MQ0F,Number=1,Type=Float,Description="Fraction of MQ0 reads (smaller is better)">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="List of Phred-scaled genotype likelihoods">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DP4,Number=4,Type=Integer,Description="Number of high-quality ref-forward , ref-reverse, alt-forward and alt-reverse bases">
+##INFO=<ID=MQ,Number=1,Type=Integer,Description="Average mapping quality">
+##bcftools_callVersion=1.20-1-ga4e70017+htslib-1.20-1-gdeeb9f01
+##bcftools_callCommand=call -mv -Ob -o ../zp3-calls.bcf; Date=Wed Apr 17 10:16:15 2024
+##bcftools_viewVersion=1.20-1-ga4e70017+htslib-1.20-1-gdeeb9f01
+##bcftools_viewCommand=view -R zp3-exon-variants-locations.bed zp3-calls.bcf; Date=Wed Apr 17 10:19:39 2024
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	1.zp3.sorted.bam	10.zp3.sorted.bam	100.zp3.sorted.bam	107.zp3.sorted.bam	108.zp3.sorted.bam	109.zp3.sorted.bam	11.zp3.sorted.bam	110.zp3.sorted.bam	116.zp3.sorted.bam	117.zp3.sorted.bam	118.zp3.sorted.bam	119.zp3.sorted.bam	12.zp3.sorted.bam	120.zp3.sorted.bam	121.zp3.sorted.bam	127.zp3.sorted.bam	128.zp3.sorted.bam	129.zp3.sorted.bam	13.zp3.sorted.bam	131.zp3.sorted.bam	137.zp3.sorted.bam	138.zp3.sorted.bam	139.zp3.sorted.bam	140.zp3.sorted.bam	147.zp3.sorted.bam	148.zp3.sorted.bam	149.zp3.sorted.bam	150.zp3.sorted.bam	156.zp3.sorted.bam	18.zp3.sorted.bam	19.zp3.sorted.bam	2.zp3.sorted.bam	20.zp3.sorted.bam	21.zp3.sorted.bam	28.zp3.sorted.bam	29.zp3.sorted.bam	3.zp3.sorted.bam	30.zp3.sorted.bam	31.zp3.sorted.bam	36.zp3.sorted.bam	37.zp3.sorted.bam	38.zp3.sorted.bam	39.zp3.sorted.bam	4.zp3.sorted.bam	40.zp3.sorted.bam	41.zp3.sorted.bam	47.zp3.sorted.bam	48.zp3.sorted.bam	49.zp3.sorted.bam	5.zp3.sorted.bam	50.zp3.sorted.bam	57.zp3.sorted.bam	58.zp3.sorted.bam	59.zp3.sorted.bam	60.zp3.sorted.bam	67.zp3.sorted.bam	68.zp3.sorted.bam	69.zp3.sorted.bam	70.zp3.sorted.bam	76.zp3.sorted.bam	78.zp3.sorted.bam	79.zp3.sorted.bam	80.zp3.sorted.bam	83.zp3.sorted.bam	88.zp3.sorted.bam	90.zp3.sorted.bam	91.zp3.sorted.bam	94.zp3.sorted.bam	97.zp3.sorted.bam	98.zp3.sorted.bam	99.zp3.sorted.bam
+NC_082390.1	1872046	.	A	T	2587	.	DP=18623;VDB=0.716082;SGB=-2173.03;RPBZ=3.14217;MQBZ=-0.255807;MQSBZ=-0.056956;BQBZ=-1.35851;SCBZ=1.44065;MQ0F=0;AC=29;AN=142;DP4=3965,7268,1220,2284;MQ=19	GT:PL	0/0:0,96,204	0/1:85,0,26	0/0:0,87,201	0/1:86,0,12	0/0:0,81,203	0/0:0,180,221	0/0:0,39,157	0/0:0,255,255	0/0:0,84,193	0/0:0,255,255	0/0:0,255,255	0/1:20,0,121	0/0:0,10,92	0/0:0,255,255	1/1:147,43,0	0/1:125,0,155	0/1:15,0,118	0/1:41,0,51	0/0:2,0,70	1/1:212,152,0	0/0:0,222,217	0/0:0,154,217	0/0:0,255,232	0/0:0,255,230	0/0:0,118,211	0/0:0,231,227	0/0:0,255,255	0/1:124,0,149	0/1:76,0,136	0/0:0,102,208	0/0:0,45,165	0/0:0,123,214	0/1:12,0,108	0/0:0,51,169	0/1:58,0,100	0/0:0,42,156	0/0:0,18,99	0/0:0,42,149	0/0:0,22,133	0/0:0,1,72	0/0:0,255,255	0/1:149,0,155	0/0:0,255,255	0/0:0,21,108	0/1:130,0,156	0/1:49,0,97	0/0:0,255,255	0/0:0,255,228	1/1:255,255,0	0/0:0,78,204	0/0:0,255,255	0/1:155,0,158	0/1:145,0,163	0/0:0,255,255	0/1:156,0,159	0/1:128,0,159	0/1:155,0,159	0/0:0,255,255	0/0:0,255,255	0/1:150,0,151	0/0:0,79,178	0/1:83,0,147	0/0:0,68,177	0/0:0,238,227	0/0:0,99,193	0/0:1,0,108	0/1:63,0,124	0/0:0,208,219	0/0:0,18,91	0/1:76,0,98	0/1:150,0,93
+NC_082390.1	1872249	.	T	C	2567.29	.	DP=13563;VDB=0.824533;SGB=-432.366;RPBZ=-2.53017;MQBZ=-0.0872189;MQSBZ=0.00282414;BQBZ=-0.430863;SCBZ=2.10338;MQ0F=0;AC=24;AN=142;DP4=3115,5286,949,1815;MQ=19	GT:PL	0/0:0,96,198	0/1:74,0,23	0/0:0,50,176	0/1:61,4,0	0/0:0,78,198	0/0:0,117,214	0/0:0,51,179	0/0:0,255,252	0/0:0,120,212	0/0:0,255,255	0/0:0,255,255	0/1:88,0,144	0/0:1,0,60	0/0:0,255,255	0/1:138,0,15	0/1:160,0,154	0/0:0,4,107	0/1:50,0,33	0/0:0,13,118	1/1:210,186,0	0/0:0,164,184	0/0:0,141,205	0/0:0,253,217	0/0:0,169,203	0/0:0,132,200	0/0:0,222,218	0/0:0,255,198	0/1:139,0,148	0/1:51,0,122	0/0:0,57,157	0/0:0,45,155	0/0:0,108,203	0/0:0,18,98	0/0:0,18,91	0/0:0,21,79	0/0:0,30,136	0/0:0,21,98	0/0:0,9,49	0/0:0,7,98	0/0:0,15,79	0/0:0,255,245	0/1:155,0,134	0/0:0,255,255	0/0:0,30,134	0/1:150,0,144	0/1:46,0,96	0/0:0,255,255	0/0:0,183,216	1/1:255,255,0	0/0:0,54,173	0/0:0,255,255	0/1:154,0,157	0/1:93,0,146	0/0:0,255,255	0/1:158,0,155	0/1:135,0,159	0/1:143,0,162	0/0:0,255,255	0/0:0,255,255	0/1:159,0,142	0/0:0,45,170	0/1:128,0,147	0/0:0,40,158	0/0:0,144,222	0/0:0,81,205	0/0:0,30,133	0/1:125,0,88	0/0:0,221,211	0/0:0,12,73	0/0:0,10,86	0/1:137,0,106
+NC_082390.1	1872275	.	A	C	2618.39	.	DP=12404;VDB=0.887239;SGB=57.3507;RPBZ=-2.04611;MQBZ=-0.0712418;MQSBZ=-0.0411036;BQBZ=-1.59949;SCBZ=4.24132;MQ0F=0;AC=27;AN=142;DP4=2867,4839,880,1528;MQ=19	GT:PL	0/0:0,82,192	0/1:8,0,38	0/0:0,64,191	0/1:87,7,0	0/0:0,54,170	0/0:0,117,217	0/0:0,45,171	0/0:0,255,248	0/0:0,114,211	0/0:0,255,255	0/0:0,255,255	0/1:95,0,151	0/0:0,15,75	0/0:0,255,255	0/1:135,0,53	0/1:140,0,164	1/1:156,28,0	0/1:52,0,17	0/0:0,13,122	1/1:198,147,0	0/0:0,164,190	0/0:0,160,211	0/0:0,255,232	0/0:0,145,210	0/0:0,105,214	0/0:0,181,219	0/0:0,255,239	0/1:116,0,150	0/1:63,0,134	0/0:0,54,176	0/0:0,39,134	0/0:0,105,198	0/0:0,12,69	0/0:0,15,68	0/0:0,9,49	0/0:0,27,129	0/1:31,0,68	0/0:0,9,49	0/0:0,1,80	0/0:0,12,60	0/0:0,255,234	0/1:147,0,145	0/0:0,255,255	0/0:0,42,143	0/1:121,0,154	0/1:33,0,83	0/0:0,255,255	0/0:0,116,209	1/1:255,255,0	0/0:0,33,144	0/0:0,255,255	0/1:150,0,157	0/1:100,0,146	0/0:0,255,255	0/1:161,0,158	0/1:145,0,161	0/1:135,0,166	0/0:0,255,255	0/0:0,255,255	0/1:162,0,116	0/0:0,33,161	0/1:126,0,149	0/0:0,16,125	0/0:0,90,206	0/0:0,57,185	0/0:0,27,122	0/1:139,0,81	0/0:0,145,201	0/0:0,21,111	0/0:0,7,68	0/1:123,0,92

@@ -1,0 +1,455 @@
+
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> # I used this script to run on Sedna.
+> 
+> # Add all required libraries that are installed with install.packages() here
+> list.of.packages <- c("tidyverse", "plotly", "janitor")
+> # Add all libraries that are installed using BiocManager here
+> bioconductor.packages <- c("DEXSeq", "BiocParallel")
+> 
+> # This commented out code need only be run once per machine (installs packages). Don't re-do it, it can take a while.
+> # Install BiocManager if needed
+> #if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+> 
+> ## Get names of all required packages that aren't installed
+> #new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+> #new.bioc.packages <- bioconductor.packages[!(bioconductor.packages %in% installed.packages()[, "Package"])]
+> ## Install all new packages
+> #if(length(new.packages)) install.packages(new.packages)
+> #if(length(new.bioc.packages)) BiocManager::install(new.bioc.packages)
+> 
+> # Load all required libraries
+> all.packages <- c(list.of.packages, bioconductor.packages)
+> lapply(all.packages, FUN = function(X) {
++   do.call("require", list(X))
++ })
+Loading required package: tidyverse
+── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
+✔ ggplot2 3.3.6     ✔ purrr   0.3.4
+✔ tibble  3.1.7     ✔ dplyr   1.0.9
+✔ tidyr   1.2.0     ✔ stringr 1.4.0
+✔ readr   2.1.2     ✔ forcats 0.5.1
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+Loading required package: plotly
+
+Attaching package: ‘plotly’
+
+The following object is masked from ‘package:ggplot2’:
+
+    last_plot
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+The following object is masked from ‘package:graphics’:
+
+    layout
+
+Loading required package: janitor
+
+Attaching package: ‘janitor’
+
+The following objects are masked from ‘package:stats’:
+
+    chisq.test, fisher.test
+
+Loading required package: DEXSeq
+Loading required package: BiocParallel
+Loading required package: Biobase
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which.max, which.min
+
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+The following object is masked from ‘package:Biobase’:
+
+    rowMedians
+
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following object is masked from ‘package:plotly’:
+
+    rename
+
+The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+The following object is masked from ‘package:tidyr’:
+
+    expand
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:plotly’:
+
+    slice
+
+The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+The following object is masked from ‘package:purrr’:
+
+    reduce
+
+Loading required package: GenomeInfoDb
+Loading required package: DESeq2
+Loading required package: AnnotationDbi
+
+Attaching package: ‘AnnotationDbi’
+
+The following object is masked from ‘package:plotly’:
+
+    select
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+Loading required package: RColorBrewer
+Possible Ensembl SSL connectivity problems detected.
+Please see the 'Connection Troubleshooting' section of the biomaRt vignette
+vignette('accessing_ensembl', package = 'biomaRt')Error in curl::curl_fetch_memory(url, handle = handle) : 
+  SSL certificate problem: certificate has expired
+
+[[1]]
+[1] TRUE
+
+[[2]]
+[1] TRUE
+
+[[3]]
+[1] TRUE
+
+[[4]]
+[1] TRUE
+
+[[5]]
+[1] TRUE
+
+> 
+> source("load_SubreadOutput.R")
+> `%!in%` = Negate(`%in%`)
+> 
+> # Load in datasets
+> b <- c(data.frame(read.table("featurecounts_exon_dexseq_filtered", header = T, stringsAsFactors = F, fill = FALSE)) %>%
++   dplyr::select(starts_with("sample_")) %>% colnames())
+> 
+> samp <- b %>% as.data.frame() %>%
++   set_names("sample_name") %>% mutate(sample_number=gsub("sample_", "", sample_name)) %>%
++   left_join(
++     read_delim("DESeq2_Sample_Information.txt", delim="\t") %>%
++     clean_names() %>%
++     mutate(condition=case_when(
++       temp_treatment=="9" ~ "a_9",
++       temp_treatment=="0" ~ "b_0",
++       temp_treatment=="5" ~ "c_5",
++       temp_treatment=="16" ~ "d_16")) %>%
++     mutate(condition=factor(as.character(condition)),
++            sample_number=as.character(sample_number)) %>%
++     mutate(sample_name=gsub("RESUB-", "", sample_name))) %>%
++   mutate(sample_number=gsub(".G|.S", "", sample_number))%>%
++   group_by(sample_number) %>% fill(c(tank, condition), .direction = "down") %>% #fill in missing tank and treatment info
++   mutate(tissue_type=case_when(
++     grepl(".G", sample_name) ~ "Gill",
++     grepl(".S", sample_name) ~ "Spleen",
++     TRUE ~ "Liver") %>% as.factor()) %>%
++   column_to_rownames("sample_name")
+Rows: 72 Columns: 6
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (3): sample_name, tissue_type, notes
+dbl (3): sample_number, tank, temp_treatment
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Joining, by = c("sample_name", "sample_number")
+> 
+> samp.0.9 <- samp %>% filter(temp_treatment %in% c(0,9)) %>% droplevels()
+> samp.5.9 <- samp %>% filter(temp_treatment %in% c(5,9)) %>% droplevels()
+> samp.16.9 <- samp %>% filter(temp_treatment %in% c(16,9)) %>% droplevels()
+> 
+> # Create DEXSeq object
+> dxd.fc <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered",
++                                          flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
++                                          sampleData = samp %>% dplyr::select(condition))
+Reading and adding Exon IDs for DEXSeq
+converting counts to integer mode
+Warning messages:
+1: 0 aggregate geneIDs were found truncated in featureCounts output 
+2: In DESeqDataSet(rse, design, ignoreRank = TRUE) :
+  some variables in design formula are characters, converting to factors
+> 
+> # Normalization
+> dxd.fc = estimateSizeFactors( dxd.fc )
+> 
+> # Dispersion estimation
+> ## This is very memory intensive. Here I use multiple cores.
+> BPPARAM = BiocParallel::MulticoreParam(24)
+> dxd.fc = DEXSeq::estimateDispersions( dxd.fc, BPPARAM=BPPARAM )
+> 
+> pdf(file = "disp-estimates.pdf", width = 12, height = 9);
+> plotDispEsts( dxd.fc )
+> dev.off()
+null device 
+          1 
+> 
+> dxd.fc = testForDEU( dxd.fc, BPPARAM=BPPARAM )
+1 rows did not converge in beta, labelled in mcols(object)$fullBetaConv. Use larger maxit argument with nbinomLRT
+> 
+> # Estimate fold changes
+> dxd.fc = estimateExonFoldChanges( dxd.fc, fitExpToVar="condition", BPPARAM=BPPARAM )
+Fit for gene/exon rimbp2b threw the next warning(s): the matrix is either rank-deficient or indefinite
+> save(dxd.fc, file="dxd.fc.final")
+> 
+> # Extract results object
+> dxr1 = DEXSeqResults( dxd.fc )
+> dxr1
+
+LRT p-value: full vs reduced
+
+DataFrame with 120628 rows and 17 columns
+              groupID   featureID exonBaseMean dispersion      stat      pvalue
+          <character> <character>    <numeric>  <numeric> <numeric>   <numeric>
+a1cf:E001        a1cf        E001   6130.46534  0.1488756  14.07709 0.002802081
+a1cf:E002        a1cf        E002    141.49468  0.0668800  19.65349 0.000200251
+a1cf:E003        a1cf        E003      8.84709  0.1295219   4.68571 0.196311502
+a1cf:E004        a1cf        E004    117.41438  0.0888615  11.48907 0.009354975
+a1cf:E005        a1cf        E005     78.67314  0.1088294   7.66045 0.053575999
+...               ...         ...          ...        ...       ...         ...
+zzz3:E007        zzz3        E007      5.56142  0.0414205   7.14522 0.067410319
+zzz3:E008        zzz3        E008      6.05103  0.0608157   2.69378 0.441285573
+zzz3:E009        zzz3        E009      5.00649  0.0582931   7.87088 0.048756925
+zzz3:E010        zzz3        E010      4.05446  0.0800469   5.81782 0.120818149
+zzz3:E011        zzz3        E011    103.86582  0.1321813  16.42505 0.000927692
+                padj       a_9       b_0       c_5      d_16 log2fold_b_0_a_9
+           <numeric> <numeric> <numeric> <numeric> <numeric>        <numeric>
+a1cf:E001 0.01373013  24.36136  25.86254  23.89582  24.02080         0.659569
+a1cf:E002 0.00207399  12.11328  12.38256  11.92849  12.49479         0.124035
+a1cf:E003 0.30422421   4.32464   5.37787   4.52281   4.94464         0.738675
+a1cf:E004 0.03292910  11.58976  11.92314  11.36465  11.82080         0.154755
+a1cf:E005 0.11764474  10.27643  10.81033  10.32085  10.49264         0.254135
+...              ...       ...       ...       ...       ...              ...
+zzz3:E007 0.13924687   3.84667   3.96824   4.09142   4.01626        0.1001089
+zzz3:E008 0.55122228   3.99681   4.33835   4.15986   4.05619        0.2674579
+zzz3:E009 0.10974879   3.67685   3.73655   3.99379   3.74682        0.0513000
+zzz3:E010 0.21332519   3.31176   3.58636   3.48745   3.57485        0.2505521
+zzz3:E011 0.00620612  11.91335  12.04076  10.72483  10.73721        0.0589296
+          log2fold_c_5_a_9 log2fold_d_16_a_9                   genomicData
+                 <numeric>         <numeric>                     <GRanges>
+a1cf:E001       -0.2046111         -0.149679 NC_082399.1:9300190-9302225:-
+a1cf:E002       -0.0854097          0.175588 NC_082399.1:9302226-9302365:-
+a1cf:E003        0.1482276          0.448496 NC_082399.1:9303265-9303274:-
+a1cf:E004       -0.1050178          0.107342 NC_082399.1:9303275-9303426:-
+a1cf:E005        0.0212766          0.103320 NC_082399.1:9303779-9303915:-
+...                    ...               ...                           ...
+zzz3:E007         0.199092         0.1389850 NC_082389.1:1344588-1344659:+
+zzz3:E008         0.129807         0.0477523 NC_082389.1:1345246-1345347:+
+zzz3:E009         0.265037         0.0600567 NC_082389.1:1346222-1346317:+
+zzz3:E010         0.162215         0.2403752 NC_082389.1:1347686-1347835:+
+zzz3:E011        -0.556324        -0.5504593 NC_082389.1:1351631-1351765:+
+                   countData                                  transcripts
+                    <matrix>                                       <list>
+a1cf:E001 5189:2731:9630:...                XM_060036920.1,XM_060036919.1
+a1cf:E002     159:64:165:... XM_060036920.1,XM_060036921.1,XM_060036919.1
+a1cf:E003          8:2:6:...                               XM_060036921.1
+a1cf:E004     127:78:117:... XM_060036920.1,XM_060036921.1,XM_060036919.1
+a1cf:E005      107:89:82:... XM_060036920.1,XM_060036921.1,XM_060036919.1
+...                      ...                                          ...
+zzz3:E007         11:3:7:...                XM_060057969.1,XM_060057968.1
+zzz3:E008          8:7:7:...                XM_060057969.1,XM_060057968.1
+zzz3:E009          5:7:8:...                XM_060057969.1,XM_060057968.1
+zzz3:E010          6:0:6:...                XM_060057969.1,XM_060057968.1
+zzz3:E011      98:32:325:...                XM_060057969.1,XM_060057968.1
+> save(dxr1, file="dxr1")
+> 
+> # Explore results
+> table ( dxr1$padj < 0.1 )
+
+FALSE  TRUE 
+66149 49559 
+> table ( tapply( dxr1$padj < 0.1, dxr1$groupID, any ) )
+
+FALSE  TRUE 
+ 3940 10004 
+> 
+> pdf(file = "volcano-plot.pdf", width = 12, height = 9);
+> plotMA( dxr1, cex=0.8 )
+> dev.off()
+null device 
+          1 
+> 
+> # Rerun DEXSeq on subsetted objects, one for each treatment (0, 5, and 16, all vs. 9)
+> 
+> dxd.fc.0vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_0.9",
++                                          flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
++                                          sampleData = samp.0.9 %>% dplyr::select(condition))
+Reading and adding Exon IDs for DEXSeq
+converting counts to integer mode
+Warning messages:
+1: 0 aggregate geneIDs were found truncated in featureCounts output 
+2: In DESeqDataSet(rse, design, ignoreRank = TRUE) :
+  some variables in design formula are characters, converting to factors
+> 
+> dxd.fc.5vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_5.9",
++                                          flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
++                                          sampleData = samp.5.9 %>% dplyr::select(condition))
+Reading and adding Exon IDs for DEXSeq
+converting counts to integer mode
+Warning messages:
+1: 0 aggregate geneIDs were found truncated in featureCounts output 
+2: In DESeqDataSet(rse, design, ignoreRank = TRUE) :
+  some variables in design formula are characters, converting to factors
+> 
+> dxd.fc.16vs9 <- DEXSeqDataSetFromFeatureCounts(countfile = "featurecounts_exon_dexseq_filtered_16.9",
++                                          flattenedfile = "/home/lspencer/references/pcod-ncbi/GCF_031168955.1_ASM3116895v1_genomic_flat.gtf",
++                                          sampleData = samp.16.9 %>% dplyr::select(condition))
+Reading and adding Exon IDs for DEXSeq
+converting counts to integer mode
+Warning messages:
+1: 0 aggregate geneIDs were found truncated in featureCounts output 
+2: In DESeqDataSet(rse, design, ignoreRank = TRUE) :
+  some variables in design formula are characters, converting to factors
+> 
+> dxd.fc.treats <- vector(mode = "list", length = 3)
+> names(dxd.fc.treats) <-c ("dxd.fc.0vs9", "dxd.fc.5vs9", "dxd.fc.16vs9")
+> dxd.fc.treats[1] <- dxd.fc.0vs9
+Warning message:
+In `[<-`(`*tmp*`, 1, value = new("DEXSeqDataSet", modelFrameBM = list( :
+  implicit list embedding of S4 objects is deprecated
+> dxd.fc.treats[2] <- dxd.fc.5vs9
+Warning message:
+In `[<-`(`*tmp*`, 2, value = new("DEXSeqDataSet", modelFrameBM = list( :
+  implicit list embedding of S4 objects is deprecated
+> dxd.fc.treats[3] <- dxd.fc.16vs9
+Warning message:
+In `[<-`(`*tmp*`, 3, value = new("DEXSeqDataSet", modelFrameBM = list( :
+  implicit list embedding of S4 objects is deprecated
+> dxr.treats <- vector(mode = "list", length = 3)
+> names(dxr.treats) <- c("dxr.0vs9", "dxr.5vs9", "dxr.16vs9")
+> 
+> for (i in 1:3){
++ 
++  # Normalization
++  dxd.fc.treats[[i]] = estimateSizeFactors( dxd.fc.treats[[i]] )
++ 
++  # Dispersion estimation
++  ## This is very memory intensive. Here I use multiple cores.
++  BPPARAM = BiocParallel::MulticoreParam(24)
++  dxd.fc.treats[[i]] = DEXSeq::estimateDispersions( dxd.fc.treats[[i]], BPPARAM=BPPARAM )
++ 
++  pdf(file = paste("disp-estimates_", gsub("dxd.fc.", "", names(dxd.fc.treats[i])),".pdf", sep=""), width = 12, height = 9);
++  plotDispEsts( dxd.fc.treats[[i]] )
++  dev.off()
++ 
++  dxd.fc.treats[[i]] = testForDEU( dxd.fc.treats[[i]], BPPARAM=BPPARAM )
++ 
++  # Estimate fold changes
++  dxd.fc.treats[[i]] = estimateExonFoldChanges( dxd.fc.treats[[i]], fitExpToVar="condition", BPPARAM=BPPARAM )
++  save(dxd.fc.treats[[i]], file="dxd.fc.final")
++ 
++  # Extract results object
++  dxr.treats[[i]] = DEXSeqResults( dxd.fc.treats[[i]] )
++  save(dxr.treats[[i]], file=names(dxr.treats[i]))
++ 
++  }
+Error in save(dxd.fc.treats[[i]], file = "dxd.fc.final") : 
+  object ‘dxd.fc.treats[[i]]’ not found
+Execution halted

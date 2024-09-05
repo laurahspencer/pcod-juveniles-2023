@@ -1,0 +1,118 @@
+
+        ==========     _____ _    _ ____  _____  ______          _____  
+        =====         / ____| |  | |  _ \|  __ \|  ____|   /\   |  __ \ 
+          =====      | (___ | |  | | |_) | |__) | |__     /  \  | |  | |
+            ====      \___ \| |  | |  _ <|  _  /|  __|   / /\ \ | |  | |
+              ====    ____) | |__| | |_) | | \ \| |____ / ____ \| |__| |
+        ==========   |_____/ \____/|____/|_|  \_\______/_/    \_\_____/
+	  v2.0.3
+
+//========================== featureCounts setting ===========================\\
+||                                                                            ||
+||             Input files : 80 BAM files                                     ||
+||                                                                            ||
+||                           100.Aligned.sortedByCoord.out.bam                ||
+||                           107.Aligned.sortedByCoord.out.bam                ||
+||                           108.Aligned.sortedByCoord.out.bam                ||
+||                           109.Aligned.sortedByCoord.out.bam                ||
+||                           10.Aligned.sortedByCoord.out.bam                 ||
+||                           110.Aligned.sortedByCoord.out.bam                ||
+||                           116.Aligned.sortedByCoord.out.bam                ||
+||                           117.Aligned.sortedByCoord.out.bam                ||
+||                           118.Aligned.sortedByCoord.out.bam                ||
+||                           119.Aligned.sortedByCoord.out.bam                ||
+||                           11.Aligned.sortedByCoord.out.bam                 ||
+||                           120.Aligned.sortedByCoord.out.bam                ||
+||                           121.Aligned.sortedByCoord.out.bam                ||
+||                           127.Aligned.sortedByCoord.out.bam                ||
+||                           128.Aligned.sortedByCoord.out.bam                ||
+||                           129.Aligned.sortedByCoord.out.bam                ||
+||                           12.Aligned.sortedByCoord.out.bam                 ||
+||                           131.Aligned.sortedByCoord.out.bam                ||
+||                           137.Aligned.sortedByCoord.out.bam                ||
+||                           138.Aligned.sortedByCoord.out.bam                ||
+||                           139.Aligned.sortedByCoord.out.bam                ||
+||                           13.Aligned.sortedByCoord.out.bam                 ||
+||                           140.Aligned.sortedByCoord.out.bam                ||
+||                           147.Aligned.sortedByCoord.out.bam                ||
+||                           148.Aligned.sortedByCoord.out.bam                ||
+||                           149.Aligned.sortedByCoord.out.bam                ||
+||                           150.Aligned.sortedByCoord.out.bam                ||
+||                           156.Aligned.sortedByCoord.out.bam                ||
+||                           18.Aligned.sortedByCoord.out.bam                 ||
+||                           19.Aligned.sortedByCoord.out.bam                 ||
+||                           19-G.Aligned.sortedByCoord.out.bam               ||
+||                           19-S.Aligned.sortedByCoord.out.bam               ||
+||                           1.Aligned.sortedByCoord.out.bam                  ||
+||                           20.Aligned.sortedByCoord.out.bam                 ||
+||                           20-G.Aligned.sortedByCoord.out.bam               ||
+||                           20-S.Aligned.sortedByCoord.out.bam               ||
+||                           21.Aligned.sortedByCoord.out.bam                 ||
+||                           28.Aligned.sortedByCoord.out.bam                 ||
+||                           29.Aligned.sortedByCoord.out.bam                 ||
+||                           2.Aligned.sortedByCoord.out.bam                  ||
+||                           30.Aligned.sortedByCoord.out.bam                 ||
+||                           31.Aligned.sortedByCoord.out.bam                 ||
+||                           36.Aligned.sortedByCoord.out.bam                 ||
+||                           37.Aligned.sortedByCoord.out.bam                 ||
+||                           38.Aligned.sortedByCoord.out.bam                 ||
+||                           39.Aligned.sortedByCoord.out.bam                 ||
+||                           3.Aligned.sortedByCoord.out.bam                  ||
+||                           40.Aligned.sortedByCoord.out.bam                 ||
+||                           41.Aligned.sortedByCoord.out.bam                 ||
+||                           47.Aligned.sortedByCoord.out.bam                 ||
+||                           48.Aligned.sortedByCoord.out.bam                 ||
+||                           49.Aligned.sortedByCoord.out.bam                 ||
+||                           4.Aligned.sortedByCoord.out.bam                  ||
+||                           50.Aligned.sortedByCoord.out.bam                 ||
+||                           57.Aligned.sortedByCoord.out.bam                 ||
+||                           57-G.Aligned.sortedByCoord.out.bam               ||
+||                           57-S.Aligned.sortedByCoord.out.bam               ||
+||                           58.Aligned.sortedByCoord.out.bam                 ||
+||                           58-G.Aligned.sortedByCoord.out.bam               ||
+||                           58-S.Aligned.sortedByCoord.out.bam               ||
+||                           59.Aligned.sortedByCoord.out.bam                 ||
+||                           5.Aligned.sortedByCoord.out.bam                  ||
+||                           60.Aligned.sortedByCoord.out.bam                 ||
+||                           67.Aligned.sortedByCoord.out.bam                 ||
+||                           68.Aligned.sortedByCoord.out.bam                 ||
+||                           69.Aligned.sortedByCoord.out.bam                 ||
+||                           70.Aligned.sortedByCoord.out.bam                 ||
+||                           76.Aligned.sortedByCoord.out.bam                 ||
+||                           78.Aligned.sortedByCoord.out.bam                 ||
+||                           79.Aligned.sortedByCoord.out.bam                 ||
+||                           80.Aligned.sortedByCoord.out.bam                 ||
+||                           83.Aligned.sortedByCoord.out.bam                 ||
+||                           88.Aligned.sortedByCoord.out.bam                 ||
+||                           90.Aligned.sortedByCoord.out.bam                 ||
+||                           91.Aligned.sortedByCoord.out.bam                 ||
+||                           92.Aligned.sortedByCoord.out.bam                 ||
+||                           94.Aligned.sortedByCoord.out.bam                 ||
+||                           97.Aligned.sortedByCoord.out.bam                 ||
+||                           98.Aligned.sortedByCoord.out.bam                 ||
+||                           99.Aligned.sortedByCoord.out.bam                 ||
+||                                                                            ||
+||             Output file : featurecounts_gene                               ||
+||                 Summary : featurecounts_gene.summary                       ||
+||              Paired-end : yes                                              ||
+||        Count read pairs : yes                                              ||
+||              Annotation : genomic.gtf (GTF)                                ||
+||      Dir for temp files : /home/lspencer/pcod-juv-temp/aligned-gadMor      ||
+||                                                                            ||
+||                 Threads : 20                                               ||
+||                   Level : meta-feature level                               ||
+||      Multimapping reads : not counted                                      ||
+||     Multiple alignments : primary alignment only                           ||
+|| Multi-overlapping reads : counted                                          ||
+||   Min overlapping bases : 1                                                ||
+||                                                                            ||
+\\============================================================================//
+
+//================================= Running ==================================\\
+||                                                                            ||
+|| Load annotation file genomic.gtf ...                                       ||
+
+ERROR: failed to find the gene identifier attribute in the 9th column of the provided GTF file.
+The specified gene identifier attribute is 'db_xref' 
+An example of attributes included in your GTF annotation is 'gene_id "unassigned_gene_1"; transcript_id "unassigned_transcript_4184"; product "tRNA-Phe"; transcript_biotype "tRNA"; exon_number "1"; '.
+

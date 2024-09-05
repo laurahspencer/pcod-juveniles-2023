@@ -53,8 +53,7 @@ library(pairwiseAdonis)
 
 ```{r}
 #### Load counts and sample info 
-
-# load(file="../data/sample.info.rna")
+load(file="../sample.info.rna")
 # load(file = "../counts")
 # load(file = "../counts.t")
 # load(file = "../counts.ts")
@@ -115,6 +114,7 @@ anova(lm(log(read.total) ~ temperature, fragments))
 
 ggplot(fragments, aes(x=temperature, y=read.total, fill=temperature)) + geom_boxplot() + theme_minimal() #super weird, why the wider range in 5C? 
 ```
+
 Compare lcWGS depths to RNASeq counts 
 
 ```{r}
@@ -123,10 +123,11 @@ depths %>% left_join(fragments, by=c("sample"="sample_number")) %>%
   ggplot(aes(y=ave_depth, x=read.total, color=temperature)) +
   geom_point(size=3.5) + theme_minimal()
 
-depths %>% left_join(fragments, by=c("sample"="sample_number")) %>% 
-  filter(!is.na(read.total)) %>% str_sort(sample, numeric = T) %>% 
-  mutate(sample=factor(as.character(sample), ordered=T)) %>% #droplevels() %>%
-  ggplot(aes(x=sample, y=ave_depth, fill=temperature)) + geom_bar(stat = "identity") + theme_minimal() 
+## NOT WORKING
+# fragments %>% left_join(depths, by=c("sample_number"="sample")) %>% 
+#   filter(!is.na(read.total)) %>% str_sort(sample_number, numeric = T) %>% 
+#   mutate(sample=factor(as.character(sample), ordered=T)) %>% #droplevels() %>%
+#   ggplot(aes(x=sample, y=ave_depth, fill=temperature)) + geom_bar(stat = "identity") + theme_minimal() 
 ```
 
 
@@ -157,6 +158,12 @@ data.frame(rowSums(counts.ts != 0)) %>%
   mutate(V1=prettyNum(V1, big.mark = ",")) %>% 
   dplyr::rename("genes.per.sample"="V1")
 ```
+
+```{r}
+fragments %>% arrange(temperature, tank_number, sample_number) %>% filter(temperature %in% c(0,16)) 
+```
+
+
 
 #### Total no. of genes identified in each sample
 
@@ -603,6 +610,9 @@ ZP3 gene
 Genome location	Chromosome	Strand	Name	Symbol	GeneID	Gene Type	Transcripts	Proteins	Length (aa)
 NC_082390.1:1869790-1873256	9	minus	zona pellucida sperm-binding protein 3-like	LOC132464016	132464016	protein-coding	1 XM_060060171.1	1 XP_059916154.1	414
 
+Another reproduction transcript- 
+
+
 ```{r, warning=FALSE, message=F}
 #b <- c("3_amb", "3_low")
 #b <- c("6_amb", "6_low")
@@ -620,12 +630,14 @@ NC_082390.1:1869790-1873256	9	minus	zona pellucida sperm-binding protein 3-like	
 #   filter(spid %in%
 #            c("P49285"))
 
-test <- "GeneID:132464016" # ZP3 gene on P. cod genome 
+test <- "LOC132464016" # ZP3 gene on P. cod genome 
 #test <- "rereb" # other genes
 test <- "LOC132451019" # antifreeze protein
+test <- "LOC132461541" #reproduction related gene as per Kathleen's blast 
+test <- (counts.annot.pcod %>% filter(str_detect(description, "hemoglobin subunit")))$gene_pcod
 
 for (i in 1:length(test)) {
-a <-  plotCounts(dds.DESeq.temperature, gene=test, intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+a <-  plotCounts(dds.DESeq.temperature, gene=test[i], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
   rownames_to_column("sample") %>%
   left_join(sample.info.rna[,c("sample_name", "tank_number", "temperature_tank")], by=c("sample"="sample_name")) %>%
   mutate(temperature=fct_relevel(temperature, c("0", "5", "9", "16")))
@@ -637,9 +649,18 @@ print(
   geom_point(aes(color=temperature), size=2.5, position=position_jitter(w = 0.15,h = 0)) +
     #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
     theme_bw() +
-    ggtitle(str_wrap(test)) +
+    ggtitle(str_wrap((counts.annot.pcod %>% filter(gene_pcod==test[i]))$description)) +
     theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "none") +
   scale_color_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
+
+print(
+  ggplot(a,
+       aes(x=count)) +
+  geom_density(aes(fill=temperature), alpha=0.5, color="black") +
+    #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+    theme_minimal() +
+    ggtitle(paste((counts.annot.pcod %>% filter(gene_pcod==test[i]))$description, "\n", (counts.annot.pcod %>% filter(gene_pcod==test[i]))$gene_pcod, sep="")) +
+    theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "right") +     scale_fill_manual(name="Temperature", values=c(`0`="royalblue1",`5`="darkgreen", `9`="yellow3",`16`="firebrick4")))
 }
 
 
@@ -961,10 +982,10 @@ save(diffex.16.filt, file = "../deseq2/diffex.16.filt")
 
 ```{r}
 # write simple function to return the name of an object as a string
+degs$`16 degC` %>% as.data.frame() %>% rownames_to_column("gene")
 
 # Here is a list containing all DEG sets - this will be used in subsequent code chunks, too! 
 degs <- list(diffex.0.filt, diffex.5.filt, diffex.16.filt)
-
 names(degs) <- c("0 degC", "5 degC", "16 degC")
 
 n.degs <- data.frame(matrix(NA, nrow = length(degs), ncol = 3))
@@ -1048,14 +1069,10 @@ ggplot(n.degs.updown,
 
 ### Heat maps of DEGs 
 
-#### Single heatmap with all DEGs among any pH temperature 
-NOTE: There are 4,525 DEGs among pH temperature in the 6C group, but only 2 and 58 among the 3C and 10C groups, respectively. This is visible in the heat map- there are clear differences in expression in the 6_amb (green) and 6_low (yellow) temperatures. 
-
-Kinda interesting - below are only DEGs among pH temperature (mostly 6amb and 6low), but the expressoin patterns look similar among 6low, 10amb and 10low, compared to 6amb, 3amb and 3low. 
+#### Single heatmap with all DEGs among any temperature 
 
 ```{r}
 # Generate counts matrix With DEGs among any temperature 
-
 diffex.counts <- subset(assay(vsd.temperature), rownames(dds.DESeq.temperature) %in% unique(c(rownames(diffex.0.filt),rownames(diffex.5.filt),rownames(diffex.16.filt))))
 
 # Create a dataframe to annotate heatmap with temperatures 
@@ -1087,6 +1104,8 @@ library(eulerr)
 `Cold` <- row.names(degs$`0 degC`)
 `Cool`  <- row.names(degs$`5 degC`)
 `Hot` <- row.names(degs$`16 degC`)
+
+degs.unique <- unique(c(Cold, Cool, Hot)) #Save list of all unique DEGs
 
 venn.stressors <- data.frame(dat = 
              unique(c(`Cold`, `Cool`, `Hot`))) %>%
@@ -1206,68 +1225,76 @@ Generate .tab file with lists of DEGs in response to each temperature for DAVID 
 Using Uniprot SPIDs
 
 ```{r}
+cold.down <- res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>% filter(padj<0.05) %>% left_join(pcod.blast) 
+  
+cold.up <- res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>% filter(padj<0.05) %>% left_join(pcod.blast) 
+  
+cool.up <- res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>% filter(padj<0.05) %>% left_join(pcod.blast)
+
+cool.down <-  res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>% filter(padj<0.05) %>%  left_join(pcod.blast) 
+
+warm.up <- res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>% filter(padj<0.05) %>% left_join(pcod.blast) 
+  
+warm.down <- res.16  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>% filter(padj<0.05) %>% left_join(pcod.blast) 
+
+
+# Make list to then save to file 
 DEGs.4David.uniprot <- list(
 
   "Cold (0degC)" = 
     res.0 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
+    filter(padj<0.05) %>% filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
     #filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cool (5degC)" = 
     res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
+    filter(padj<0.05) %>% filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
     #filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Warm (16degC)" = 
     res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
+    filter(padj<0.05) %>% filter(abs(dplyr::select(., contains("log2FoldChange")))>0.5) %>%
     left_join(pcod.blast) %>%
     #filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
 
   "Cold_Downregulated"  =
-    res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>%
-    left_join(pcod.blast) %>%
+    cold.down %>%
     #filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
   "Cold_Upregulated" = 
-    res.0  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>%
-    left_join(pcod.blast) %>%
+    cold.up %>%
     #filter(ncbi_id %in% rownames(ebsea.out.0$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
-  "Cool_Downregulated" = 
-    res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>%
-    left_join(pcod.blast) %>%
+  "Cool_Upregulated" = 
+    cool.up %>%
     #filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
-  "Cool_Upregulated" = 
-    res.5  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>%
-    left_join(pcod.blast) %>%
+  "Cool_Downregulated" = 
+    cool.down %>%
     #filter(ncbi_id %in% rownames(ebsea.out.5$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
 
-  "Warm_Downregulated" = 
-    res.16 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))< -0.5) %>%
-    left_join(pcod.blast) %>%
+  "Warm_Upregulated" = 
+    warm.up %>%
     #filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector(),
   
-  "Warm_Upregulated" = 
-    res.16  %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
-    filter(dplyr::select(., contains("log2FoldChange"))> 0.5) %>%
-    left_join(pcod.blast) %>%
+  "Warm_Downregulated" = 
+    warm.down %>%
     #filter(ncbi_id %in% rownames(ebsea.out.16$GeneTable %>% filter(padj<0.05))) %>% # only include genes also ID'd as DEGs via EBSEA
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector())
 
@@ -1276,7 +1303,7 @@ write_delim(x = plyr::ldply(DEGs.4David.uniprot, rbind) %>% t() %>% as.data.fram
             file = "../deseq2/DEGs-4David.uniprot.txt")
             
 # BACKGROUND - all genes submitted to DESeq2 analysis 
-res.5 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
+res.0 %>% as.data.frame() %>% rownames_to_column("ncbi_id") %>% mutate(ncbi_id=gsub("GeneID:", "", ncbi_id)) %>%
     left_join(pcod.blast) %>%
     dplyr::select(spid) %>% na.omit() %>% unlist() %>% as.vector() %>% write_clip() 
 ```
@@ -1293,16 +1320,21 @@ names(file_list) <- c(filenames$gene_set)
 for (i in 1:nrow(filenames)) {
     file_list[[i]] <- data.frame(read_delim(file=paste("../deseq2/DAVID/", filenames[i,"filename"], sep=""), delim = "\t"))}
 
-
 david <- bind_rows(file_list, .id = "gene_set") %>% clean_names() %>%  # Bind dataframe for each gene_set together
     #filter(category=="GOTERM_BP_DIRECT") %>%
     filter(p_value<0.05) %>%
     dplyr::rename(percent=x) %>%
-    separate(term, into = c("term", "process"), sep = "~") %>%
-    separate(gene_set, sep = "_", into = c("stress", "response"), remove = F) %>%
+    separate(term, into = c("term_temp", "process_temp"), sep = "~") %>%
+    mutate(process=case_when(
+      is.na(process_temp) == FALSE ~ process_temp,
+      is.na(process_temp) == TRUE ~ str_remove(term_temp, ".*:"))) %>% 
+      mutate(term=case_when(
+      is.na(process_temp) == FALSE ~ term_temp,
+      is.na(process_temp) == TRUE ~ str_remove(term_temp, ":.*"))) %>%
+    separate(gene_set, sep = "_", into = c("stress", "filtering"), remove = F) %>%
     mutate(stress=factor(stress, ordered = TRUE, levels=c("Cold","Cool", "Warm")),
-           response=as.factor(response)) %>% 
-  tidyr::complete(stress, response, category) # add rows for gene_sets that are missing from dataframe
+           filtering=as.factor(filtering)) %>% 
+  tidyr::complete(stress, filtering, category) # add rows for gene_sets that are missing from dataframe
 
 save(david, file="../deseq2/DAVID/david")
 ```
@@ -1314,38 +1346,38 @@ Copy DAVID results (Uniprot Kewords and Gene Ontology terms) to paste into Googl
 david %>% 
   filter(p_value<0.05) %>%
   filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
-  arrange(response, stress, p_value) %>%
+  arrange(filtering, stress, p_value) %>%
   mutate_at(c("p_value", "fdr"), funs(signif(.,2))) %>%
-  dplyr::select(response, stress, term, process, count, p_value, fdr, genes) %>%
+  dplyr::select(filtering, stress, term, process, count, p_value, fdr, genes) %>%
   write_clip()
 
 # GO terms
 david %>% 
   filter(p_value<0.05) %>%
   filter(category=="GOTERM_BP_DIRECT") %>%
-  arrange(response, stress, p_value) %>%
+  arrange(filtering, stress, p_value) %>%
   mutate_at(c("p_value", "fdr"), funs(signif(.,2))) %>%
-  dplyr::select(response, stress, term, process, count, p_value, fdr, genes) %>%
+  dplyr::select(filtering, stress, term, process, count, p_value, fdr, genes) %>%
   write_clip()
 ```
 
-Enriched Uniprot Keywords in all DEGs
+Enriched Uniprot Keywords in ALL DEGs (both high/low expression levels)
 
 ```{r}
 david %>%
   #filter(count>=3) %>% 
-#  filter(p_value<0.005) %>%
+#  filter(p_value<0.01) %>%
   filter(fdr<0.1) %>%
-#  filter(category=="GOTERM_BP_DIRECT") %>% 
-  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
+  filter(category=="GOTERM_BP_DIRECT") %>% 
+#  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
-  group_by(stress, response, genes, count) %>%
+  group_by(stress, filtering, genes, count) %>%
   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
   left_join(david %>% 
-              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
-            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
-#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
-  filter(response=="All") %>%
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering=="All") %>%
 
   ungroup() %>% arrange(rev(stress), p_value) %>%
   mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
@@ -1371,11 +1403,58 @@ ggplot(aes(y = process, x=stress, col=stress)) +
         legend.title = element_text(size=6),
         strip.background = element_blank(),
         strip.text.x = element_blank()) +
-  ggtitle("Upregulated Biological Processes")
+  ggtitle("Enriched Biological Processes")
 ```
 
 
-Up-regulated Uniprot Keywords
+Enrichment results, HIGH expression levels relative to control (9C)
+
+All significant categories 
+
+```{r}
+david %>% 
+  filter(fdr<0.05) %>%
+  filter(stress=="Warm", filtering!="All") %>%
+#  filter(stress=="Cold", filtering!="All") %>%
+#  filter(stress=="Cool", filtering!="All") %>%
+  
+  group_by(stress, filtering, category, genes, count) %>%
+  dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
+  left_join(david %>% 
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "category", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  
+  ungroup() %>% arrange(filtering, rev(category), p_value) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+
+ggplot(aes(y = process, x=category, col=category, shape=filtering)) + 
+  geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
+ facet_wrap(~category,scales="free") +
+ # scale_color_manual(name="Temperature", values=c("Cold"="royalblue1","Cool"="darkgreen", "Warm"="firebrick4"),
+ #                                guide = guide_legend(override.aes = list(size=4))) +
+  scale_size("-Log10 P-value", range = c(2,8), #breaks = c(2, 5, 10),
+             guide = guide_legend(override.aes = list(col="gray50"))) +
+  scale_x_discrete(drop=T) + #Do drop empty factors for temperature contrasts
+  theme_cleveland() + 
+  theme(
+        legend.position = "right", 
+#        axis.text.x=element_text(size=6, angle = 90, vjust = 0.5, hjust=1),
+        axis.text.x=element_blank(),
+        # axis.title.x=element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.y=element_text(size=6.5), 
+        plot.title = element_text(size=8),
+        legend.text=element_text(size=6), 
+        legend.title = element_text(size=6),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  ggtitle("All enriched categories, WARM")
+#  ggtitle("All enriched categories, COOL")
+#  ggtitle("All enriched categories, COLD")
+```
+
+
 
 ```{r}
 # Bubble plot, Upregulated processes
@@ -1385,17 +1464,17 @@ Up-regulated Uniprot Keywords
 david %>% 
   #filter(count>=3) %>% 
 #  filter(p_value<0.01) %>%
-  filter(fdr<0.05) %>%
+  filter(fdr<0.1) %>%
 #  filter(category=="GOTERM_BP_DIRECT") %>% 
   filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
-  group_by(stress, response, genes, count) %>%
+  group_by(stress, filtering, genes, count) %>%
   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
   left_join(david %>% 
-              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
-            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
-#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
-  filter(response=="Upregulated") %>% 
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering=="Upregulated") %>% 
 
   ungroup() %>% arrange(rev(stress), p_value) %>%
   mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
@@ -1421,7 +1500,7 @@ ggplot(aes(y = process, x=stress, col=stress)) +
         legend.title = element_text(size=6),
         strip.background = element_blank(),
         strip.text.x = element_blank()) +
-  ggtitle("Upregulated Biological Processes")
+  ggtitle("Higher Expression - Biological Processes\n(Uniprot KWs)")
 #dev.off()
 ```
 
@@ -1432,18 +1511,19 @@ Up-regulated Gene Ontology terms
 #pdf(file="../GO-enrichment/Final-DAVID/Upregulated-GO-bubble.pdf", height = 9, width = 7.5)
 david %>% 
 #  filter(count>=3) %>% 
-  filter(fdr<0.05) %>%
+  filter(fdr<0.1) %>%
 #  filter(p_value<0.005) %>%
   filter(category=="GOTERM_BP_DIRECT") %>% 
 #  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
-  group_by(stress, response, genes, count) %>%
+  group_by(stress, filtering, genes, count) %>%
   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
   left_join(david %>% 
-              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
-            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
-#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
-  filter(response=="Upregulated") %>% 
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering=="Upregulated") %>% 
+  mutate(stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
 
   ungroup() %>% arrange(stress, p_value) %>%
   mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
@@ -1468,7 +1548,7 @@ ggplot(aes(y = process, x=stress, col=stress)) +
         legend.title = element_text(size=6),
         strip.background = element_blank(),
         strip.text.x = element_blank()) +
-  ggtitle("Upregulated Biological Processes\n(GO terms)")
+  ggtitle("Increased Activity - Biological Processes\n(GO terms)")
 ```
 
 Down-regulated Uniprot Keywords
@@ -1478,18 +1558,18 @@ Down-regulated Uniprot Keywords
 #pdf(file="../GO-enrichment/Final-DAVID/Downregulated-KW-bubble.pdf", height = 1.75, width = 2.8)
 david %>% 
   #filter(count>=3) %>% 
-  filter(fdr<0.05) %>%
+  filter(fdr<0.1) %>%
   #  filter(p_value<0.05) %>%
 #  filter(category=="GOTERM_BP_DIRECT") %>% 
   filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
-  group_by(stress, response, genes, count) %>%
+  group_by(stress, filtering, genes, count) %>%
   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
   left_join(david %>% 
-              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
-            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
-#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
-  filter(response=="Downregulated") %>% 
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering=="Downregulated") %>% 
   ungroup() %>% arrange(rev(stress), p_value) %>%
   mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
          stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
@@ -1514,7 +1594,7 @@ ggplot(aes(y = process, x=stress, col=stress)) +
         legend.title = element_text(size=6),
         strip.background = element_blank(),
         strip.text.x = element_blank()) +
-  ggtitle("Downregulated Biological Processes")
+  ggtitle("Lower Expression - Biological Processes\n(Uniprot KWs)")
 #dev.off()
 ```
 
@@ -1525,20 +1605,21 @@ Down-regulated Gene Ontology terms
 #pdf(file="../GO-enrichment/Final-DAVID/Downregulated-GO-bubble.pdf", height = 4, width = 5.75)
 david %>% 
 #  filter(count>=5) %>% 
-  filter(fdr<0.05) %>%
+  filter(fdr<0.1) %>%
   filter(category=="GOTERM_BP_DIRECT") %>% 
 #  filter(category=="UP_KW_BIOLOGICAL_PROCESS") %>%
 
-  group_by(stress, response, genes, count) %>%
+  group_by(stress, filtering, genes, count) %>%
   dplyr::summarise(p_value=min(p_value)) %>% distinct() %>% ungroup() %>% #for rows with duplicate grouping variabes, select one with lowest p-value
   left_join(david %>% 
-              dplyr::select(stress, response, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
-            by = c("stress", "response", "genes", "p_value", "count")) %>%  #re-add data
-#  ungroup() %>% arrange(stress, response, p_value) %>% group_by(stress, response) %>% dplyr::slice(1:15) %>%
-  filter(response=="Downregulated") %>% 
+              dplyr::select(stress, filtering, category, term, process, count, percent, p_value, fold_enrichment, fdr, genes), 
+            by = c("stress", "filtering", "genes", "p_value", "count")) %>%  #re-add data
+#  ungroup() %>% arrange(stress, filtering, p_value) %>% group_by(stress, filtering) %>% dplyr::slice(1:15) %>%
+  filter(filtering=="Downregulated") %>% 
 
   ungroup() %>% arrange(stress, p_value) %>%
-  mutate(process = factor(process, rev(unique(process)), ordered = TRUE)) %>%
+  mutate(process = factor(process, rev(unique(process)), ordered = TRUE),
+         stress=factor(stress, ordered = TRUE, levels=c("Warm", "Cool", "Cold"))) %>%
 
 ggplot(aes(y = process, x=stress, col=stress)) + 
   geom_point(alpha=0.65, aes(size=-log10(p_value))) + #size=count,  alpha=p_value, 
@@ -1560,9 +1641,176 @@ ggplot(aes(y = process, x=stress, col=stress)) +
         legend.title = element_text(size=6),
         strip.background = element_blank(),
         strip.text.x = element_blank()) +
-  ggtitle("Downregulated Biological Processes\n(GO terms)")
+  ggtitle("Decreased Activity - Biological Processes\n(GO terms)")
 #dev.off()
 ```
+Let's explore processes affected by WARMING (16C)
+
+Note: no enriched GO terms in genes that were less active in warming (quite interesting)
+
+```{r}
+cellmatrix.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Warm"), filtering!="All") %>%
+             filter(grepl('extracellular matrix organization', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+cellmatrix.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", warm.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% cellmatrix.spid))$ncbi_id
+
+adhesion.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Warm"), filtering!="All") %>%
+             filter(grepl('adhesion', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+adhesion.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", warm.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% adhesion.spid))$ncbi_id
+
+collagen.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Warm"), filtering!="All") %>%
+             filter(grepl('collagen', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+collagen.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", warm.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% collagen.spid))$ncbi_id
+
+inflamm.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Warm"), filtering!="All") %>%
+             filter(grepl('immun|inflamm', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+inflamm.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", warm.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% inflamm.spid))$ncbi_id
+
+signaling.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Warm"), filtering!="All") %>%
+             filter(grepl('signal', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+signaling.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", warm.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% signaling.spid))$ncbi_id
+```
+
+Explore processes affected by COLD temperature (0C)
+
+```{r}
+splicing.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Cold"), filtering!="All") %>%
+             filter(grepl('mRNA|rRNA|tRNA|Protein|Ribosome', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+splicing.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", cold.up$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% splicing.spid))$ncbi_id
+
+defense.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Cold"), filtering!="All") %>%
+             filter(grepl('defense', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+defense.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", cold.down$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% defense.spid))$ncbi_id
+
+cholesterol.spid <- (david %>% filter(fdr<0.1, category=="GOTERM_BP_DIRECT") %>% filter(stress %in% c("Cold"), filtering!="All") %>%
+             filter(grepl('cholesterol', process)))$genes %>% strsplit(., ",") %>% unlist() %>% as.vector() %>% gsub(" ", "", .)
+cholesterol.genes <- (counts.annot.pcod %>% mutate(ncbi_id=paste("GeneID:", ncbi_id, sep="")) %>%
+                  filter(ncbi_id %in% paste("GeneID:", cold.up$ncbi_id, sep="")) %>% #use only genes that were DEGs
+                  filter(spid %in% cholesterol.spid))$ncbi_id
+```
+
+MAKE Heatmaps for each process - mean expression shown for each temperature 
+
+```{r, message=F, warning=F, comment=F, echo=F}
+#WARMING
+z <- list(
+  "Cell matrix genes" = cellmatrix.genes,
+  "Adhesion genes" = adhesion.genes,
+  "Collagen genes" = collagen.genes,
+  "Inflammation genes" = inflamm.genes,
+  "Signaling genes" = signaling.genes)
+# 
+# #COLD
+# z <- list(
+#   "Splicing genes" = splicing.genes,
+#   "Bacterial defense genes" = defense.genes,
+#   "Cholesterol genes" = cholesterol.genes)
+# 
+
+# # Subset of up/down genes 
+# z <- list("Warm Up" = paste("GeneID:", (warm.up %>% sample_n(., 100))$ncbi_id, sep=""),
+#           "Warm Down" = paste("GeneID:", (warm.down %>% sample_n(., 100))$ncbi_id, sep=""),
+#           "Cool Up" = paste("GeneID:", (cool.up %>% sample_n(., 100))$ncbi_id, sep=""),
+#           "Cool Down" = paste("GeneID:", (cool.down %>% sample_n(., 100))$ncbi_id, sep=""),
+#           "Cold Up" = paste("GeneID:", (cold.up %>% sample_n(., 100))$ncbi_id, sep=""),
+#           "Cold Down" = paste("GeneID:", (cold.down %>% sample_n(., 100))$ncbi_id, sep=""))
+
+breaksList =  seq(-1.5, 1.5, by = 0.1)
+
+for (i in 1:length(z)) {
+  z.lines <- vector("list", length(z[[i]]))
+  names(z.lines) <- z[[i]]
+
+  for (j in 1:length(z.lines)) {
+  z.lines[[j]] <-  plotCounts(dds.DESeq.temperature, gene=z[[i]][j], intgroup=c("temperature"), replaced = TRUE, returnData = TRUE) %>%
+    rownames_to_column("sample_name") %>%
+    left_join(sample.info.rna[,c("sample_name", "temperature", "tank_number", "temperature_tank")]) %>%
+    mutate(temperature=fct_relevel(temperature, c("0", "5", "9", "16")))
+}
+
+  df1 <- bind_rows(z.lines, .id = "ncbi_id") %>% 
+    mutate(ncbi_id=as.factor(ncbi_id)) %>%
+    group_by(ncbi_id, temperature) %>%
+    dplyr::summarize(mean=mean(count), median=median(count), sd=sd(count), cv=sd(count)/mean(count)) %>% ungroup()
+    
+  #df2 <- df1 %>% filter(temperature=="6_amb") %>% select(ncbi_id, mean) %>% rename("mean"="control")
+  
+  df1.heat <- df1 %>%  remove_rownames() %>%
+  dplyr::select(temperature, ncbi_id, mean) %>%
+  pivot_wider(names_from = ncbi_id, values_from = mean) %>%
+  column_to_rownames("temperature")
+
+pheatmap(df1.heat %>% t(), 
+         Rowv=NA, Colv=NA, na.rm = TRUE, xlab = NA, scale="row",
+                     show_colnames =FALSE, show_rownames = TRUE,
+         border_color = NA,
+         fontsize_col=6.5, fontsize = 8, fontsize_row = 6,
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(breaksList)),
+         breaks =  breaksList,
+         cluster_cols = F, cluster_rows = T, treeheight_row = 0,
+         annotation_col = (df1.heat %>% mutate(temperature=rownames(.)) %>%
+           mutate(temperature=case_when(
+              temperature == 0 ~ "Cold (0C)",
+              temperature == 5 ~ "Cool (5C)",
+              temperature == 9 ~ "Control (9C)",
+              temperature == 16 ~ "Warm (16C)")))[,"temperature",drop=FALSE],
+          annotation_colors = list(temperature=c("Cold (0C)"="royalblue1","Cool (5C)"="darkgreen", "Control (9C)"="yellow3", "Warm (16C)"="firebrick4")),
+         main = names(z[i]))
+}
+
+# left_join(df1, df2) %>%
+# #df1 %>%
+# mutate(mean_diff=mean-control) %>% filter(temperature!="6_amb") %>%
+#   group_by(ncbi_id, temperature) %>% 
+#   # One boxplot, points for all genes
+#   ggplot(aes(x=temperature, y=mean_diff, color=temperature)) +
+#   geom_boxplot(outlier.shape = NA) +
+#   geom_point(size=2.5, position=position_jitter(w = 0.15,h = 0)) +
+#     #geom_text(size=3.5, position=position_jitter(w = 0.15,h = 0)) +
+#     theme_bw() + ylab("Δ from control, log(counts)") +
+#     theme(axis.title.x = element_blank(), plot.title = element_text(hjust = 0.5, size=10), legend.position = "right") +
+#   scale_color_manual(name="temperature", 
+#                      values=c("6_amb"="gray65",
+#                               "6_low"=lighten("darkorange2", 0.25), 
+#                               "10_amb"=lighten("firebrick4", 0.45), 
+#                               "10_low"="firebrick4", 
+#                               "3_amb"=lighten("navyblue", 0.45),
+#                               "3_low"="navyblue"),
+#                      labels=c("6_amb"="Control",
+#                               "6_low"="High pCO2", 
+#                               "10_amb"="Warm Temperature", 
+#                               "10_low"="Warm Temperature + High pCO2", 
+#                               "3_amb"="Cold Temperature",
+#                               "3_low"="Cold Temperature + High pCO2")) +
+# #  ggtitle("Immune system genes (DEGs)")
+#   ggtitle("Heme genes (DEGs)")
+# #  ggtitle("Electron transport genes (DEGs)")
+# #  ggtitle("Ribosomal biogenesis genes (DEGs)")
+
+
+#         main = "Hemoglobin & coagulation gene counts")
+
+```
+
+
+
+
+
+
+
 
 
 
@@ -1619,8 +1867,8 @@ Which biological processes are enriched in genes associated with fish length?
 
 ```{r}
 # Copy Uniprot IDs for length-associated genes
-gadMor.blast.GO %>% dplyr::select(gene_gadmor, gene_ontology_i_ds, spid, protein_names) %>%
-  filter(gene_gadmor %in% genes.length) %>% View()
+gadMor.blast.GO %>% dplyr::select(gene_pcod, gene_ontology_i_ds, spid, protein_names) %>%
+  filter(gene_pcod %in% genes.length) %>% View()
   dplyr::select(spid) %>%  na.omit() %>% unlist() %>% as.vector() %>% write_clip(allow_non_interactive = TRUE)
 
 # BACKGROUND - all genes submitted to DESeq2 analysis 

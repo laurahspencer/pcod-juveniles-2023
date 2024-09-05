@@ -1,0 +1,4 @@
+GOterm,over_represented_pvalue,under_represented_pvalue,numDEInCat,numInCat,term,ontology,fdr_over,fdr_under,treatment
+GO:0005739,9.666028171020872e-6,0.9999943150433306,129,952,mitochondrion,CC,0.07010770232441438,1,Warm_Downregulated
+GO:0140662,7.907916096586853e-8,0.9999999910857806,15,32,ATP-dependent protein folding chaperone,MF,0.001147122308970889,1,Warm_Downregulated
+GO:0051082,1.864827009976135e-5,0.9999954195000754,18,63,unfolded protein binding,MF,0.09017060202237936,1,Warm_Downregulated

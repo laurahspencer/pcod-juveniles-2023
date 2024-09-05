@@ -918,10 +918,6 @@ save(modules.all.lineplots, file = "../wgcna/modules.all.lineplots")
 
 ## Prep for DAVID Enrichment Analysis
 
-#### Another option for GO_MWU analysis: narrow down the "significant" genes assigned to each module by 
-1) Those that are also correlated with temperature individually (Gene Signficance p-value <0.05)
-2) Those that are also DEGs 
-
 ```{r}
 # Do enrichment on all modules, can filter out the ones that aren't correlated with temperature later 
 # modules # modules with genes that respond (linearly?) to temperature 

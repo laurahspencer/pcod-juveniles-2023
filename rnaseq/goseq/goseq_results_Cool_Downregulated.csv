@@ -1,0 +1,6 @@
+GOterm,over_represented_pvalue,under_represented_pvalue,numDEInCat,numInCat,term,ontology,fdr_over,fdr_under,treatment
+GO:0051301,1.876565824249423e-12,1,46,270,cell division,BP,2.7221463846562127e-8,1,Cool_Downregulated
+GO:0006260,1.1820125729300576e-5,0.9999976866820529,14,65,DNA replication,BP,0.03429254876584683,1,Cool_Downregulated
+GO:0005524,4.0228864619470166e-8,1,107,1325,ATP binding,MF,2.9177995508501714e-4,1,Cool_Downregulated
+GO:0016887,3.2308153953379093e-7,0.9999998877574147,39,329,ATP hydrolysis activity,MF,0.0015622069374923904,1,Cool_Downregulated
+GO:0003777,3.2862920911687535e-6,0.9999996946296351,9,30,microtubule motor activity,MF,0.011917738268623485,1,Cool_Downregulated
